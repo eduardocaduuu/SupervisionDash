@@ -254,12 +254,12 @@ function calculateDealerMetrics(dealer) {
 
   // Impulso motivacional
   let impulso = '';
-  if (percentManter < 30) impulso = 'CRITICAL - NEED BOOST';
-  else if (percentManter < 50) impulso = 'WARMING UP';
-  else if (percentManter < 80) impulso = 'ON TRACK';
-  else if (percentManter < 100) impulso = 'ALMOST THERE';
-  else if (percentSubir && percentSubir >= 80) impulso = 'LEVEL UP READY';
-  else impulso = 'MISSION SECURE';
+  if (percentManter < 30) impulso = 'CRÍTICO - PRECISA ACELERAR';
+  else if (percentManter < 50) impulso = 'AQUECENDO';
+  else if (percentManter < 80) impulso = 'NO CAMINHO';
+  else if (percentManter < 100) impulso = 'QUASE LÁ';
+  else if (percentSubir && percentSubir >= 80) impulso = 'PRONTO PARA SUBIR';
+  else impulso = 'MISSÃO CUMPRIDA';
 
   return {
     ...dealer,

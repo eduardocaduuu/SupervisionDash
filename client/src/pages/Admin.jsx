@@ -271,7 +271,7 @@ export default function Admin() {
                 <div className="upload-box">
                   <div className="upload-box__header">
                     <Sun size={20} />
-                    <span>SNAPSHOT MANHÃ</span>
+                    <span>POSIÇÃO MANHÃ</span>
                   </div>
                   <div
                     className={`dropzone ${uploadStatus.manha === 'loading' ? 'dropzone--loading' : ''}`}
@@ -311,7 +311,7 @@ export default function Admin() {
                 <div className="upload-box">
                   <div className="upload-box__header">
                     <Moon size={20} />
-                    <span>SNAPSHOT TARDE</span>
+                    <span>POSIÇÃO TARDE</span>
                   </div>
                   <div
                     className={`dropzone ${uploadStatus.tarde === 'loading' ? 'dropzone--loading' : ''}`}
@@ -355,7 +355,7 @@ export default function Admin() {
               <div className="config-section">
                 <h3 className="config-section__title">
                   <Clock size={16} />
-                  SNAPSHOT ATIVO
+                  POSIÇÃO ATIVA
                 </h3>
                 <div className="snapshot-toggle">
                   <button
