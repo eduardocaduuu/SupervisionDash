@@ -18,6 +18,21 @@ import './Dashboard.css'
 // SAFELIST: text-green-400 bg-green-400/10 border-green-400/20 shadow-[0_0_10px_rgba(74,222,128,0.2)]
 // SAFELIST: text-emerald-500 bg-emerald-500/10 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.2)]
 
+// MAPA DE TRADUÇÃO FORÇADO (Fallback para Backend em Inglês)
+const STATUS_TRANSLATION = {
+  'CRITICAL - NEED BOOST': 'CRÍTICO - PRECISA ACELERAR',
+  'WARMING UP': 'AQUECENDO',
+  'ON TRACK': 'NO CAMINHO',
+  'ALMOST THERE': 'QUASE LÁ',
+  'LEVEL UP READY': 'PRONTO PARA SUBIR',
+  'READY TO LEVEL UP': 'PRONTO PARA SUBIR',
+  'MISSION SECURE': 'MISSÃO CUMPRIDA'
+}
+
+const translateStatus = (status) => {
+  return STATUS_TRANSLATION[status] || status
+}
+
 // Mapeamento de cores para os status traduzidos (Badges)
 const getStatusClass = (status) => {
   if (!status) return 'bg-gray-500/10 text-gray-400 border-gray-500/20'
@@ -328,16 +343,20 @@ export default function Dashboard() {
 
               {/* DEALERS GRID */}
               <div className={`dealers-grid ${viewMode === 'list' ? 'dealers-grid--list' : ''}`}>
-                {filteredDealers.map(dealer => (
-                  <DealerCard
-                    key={dealer.codigo}
-                    dealer={{
-                      ...dealer,
-                      statusClass: getStatusClass(dealer.impulso)
-                    }}
-                    onClick={() => handleDealerClick(dealer)}
-                  />
-                ))}
+                {filteredDealers.map(dealer => {
+                  const statusTraduzido = translateStatus(dealer.impulso)
+                  return (
+                    <DealerCard
+                      key={dealer.codigo}
+                      dealer={{
+                        ...dealer,
+                        impulso: statusTraduzido, // Força o texto traduzido
+                        statusClass: getStatusClass(statusTraduzido) // Gera a cor baseada na tradução
+                      }}
+                      onClick={() => handleDealerClick(dealer)}
+                    />
+                  )
+                })}
               </div>
 
               {filteredDealers.length === 0 && (
