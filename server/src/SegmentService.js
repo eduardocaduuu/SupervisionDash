@@ -2,9 +2,9 @@ const XLSX = require('xlsx');
 const path = require('path');
 const fs = require('fs');
 
-// Caminho para o arquivo estático: server/data/Segmentos_bd.xlsx
-// __dirname em src/ aponta para server/src, então ../data sobe para server/data
-const DATA_FILE = path.join(__dirname, '../data/Segmentos_bd.xlsx');
+// Caminho para o arquivo estático: data/Segmentos_bd.xlsx (na raiz do projeto)
+// __dirname em src/ aponta para server/src, então ../../data sobe para a raiz/data
+const DATA_FILE = path.join(__dirname, '../../data/Segmentos_bd.xlsx');
 
 let cache = null;
 let lastMtime = 0;

@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx'
 import { useNavigate } from 'react-router-dom'
 import {
   Shield, LogOut, Upload, Clock, Settings, Save,
-  CheckCircle, AlertTriangle, Sun, Moon, FileSpreadsheet, Users
+  CheckCircle, AlertTriangle, Sun, Moon, FileSpreadsheet
 } from 'lucide-react'
 import Panel from '../components/Panel'
 import './Admin.css'
@@ -13,12 +13,11 @@ export default function Admin() {
   const navigate = useNavigate()
   const [config, setConfig] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [uploadStatus, setUploadStatus] = useState({ manha: null, tarde: null, cadastro: null })
+  const [uploadStatus, setUploadStatus] = useState({ manha: null, tarde: null })
   const [saveStatus, setSaveStatus] = useState(null)
   const [representatividade, setRepresentatividade] = useState({})
   const fileInputManha = useRef(null)
   const fileInputTarde = useRef(null)
-  const fileInputCadastro = useRef(null)
 
   useEffect(() => {
     fetch('/api/admin/config')
@@ -74,71 +73,6 @@ export default function Admin() {
 
     setTimeout(() => {
       setUploadStatus(prev => ({ ...prev, [snapshot]: null }))
-    }, 3000)
-  }
-
-  const handleCadastroUpload = async (file) => {
-    if (!file) return
-
-    setUploadStatus(prev => ({ ...prev, cadastro: 'loading' }))
-
-    const reader = new FileReader()
-    
-    reader.onload = async (e) => {
-      try {
-        const data = new Uint8Array(e.target.result)
-        const workbook = XLSX.read(data, { type: 'array' })
-        const firstSheetName = workbook.SheetNames[0]
-        const worksheet = workbook.Sheets[firstSheetName]
-        const rawData = XLSX.utils.sheet_to_json(worksheet)
-
-        if (!rawData || rawData.length === 0) {
-          throw new Error('Arquivo vazio ou inválido')
-        }
-
-        // 1. Normalização e Mapeamento (De-Para)
-        const normalizedData = rawData.map(row => ({
-          CodigoRevendedor: String(row['CodigoRevendedor'] || '').trim(),
-          NomeRevendedora: (row['Nome'] || '').trim(), // Mapeado de 'Nome'
-          SegmentoAtual: (row['Papel'] || '').trim(),  // Mapeado de 'Papel'
-          SetorId: String(row['CodigoEstruturaComercial'] || '').trim() // Mapeado de 'CodigoEstruturaComercial'
-        })).filter(r => r.CodigoRevendedor && r.SetorId) // Remove linhas sem identificação
-
-        // 2. Validação (Pós-renomeação)
-        const firstRow = normalizedData[0] || {}
-        const required = ['CodigoRevendedor', 'SegmentoAtual', 'SetorId']
-        const missing = required.filter(field => !firstRow[field])
-
-        if (missing.length > 0) {
-          throw new Error(`Colunas obrigatórias não identificadas (verifique mapeamento): ${missing.join(', ')}`)
-        }
-
-        // Enviar JSON para o backend
-        const res = await fetch('/api/admin/cadastro-data', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(normalizedData)
-        })
-
-        if (res.ok) {
-          setUploadStatus(prev => ({ ...prev, cadastro: 'success' }))
-        } else {
-          setUploadStatus(prev => ({ ...prev, cadastro: 'error' }))
-        }
-      } catch (err) {
-        console.error(err)
-        setUploadStatus(prev => ({ ...prev, cadastro: 'error' }))
-      }
-    }
-
-    reader.onerror = () => {
-      setUploadStatus(prev => ({ ...prev, cadastro: 'error' }))
-    }
-
-    reader.readAsArrayBuffer(file)
-
-    setTimeout(() => {
-      setUploadStatus(prev => ({ ...prev, cadastro: 'null' }))
     }, 3000)
   }
 
@@ -232,41 +166,6 @@ export default function Admin() {
             {/* UPLOAD SECTION */}
             <Panel title="CSV UPLOAD" variant="cyan" className="admin__upload">
               <div className="upload-grid">
-                {/* CADASTRO (NOVO) */}
-                <div className="upload-box">
-                  <div className="upload-box__header">
-                    <Users size={20} />
-                    <span>CADASTRO (SEGMENTOS)</span>
-                  </div>
-                  <div
-                    className={`dropzone ${uploadStatus.cadastro === 'loading' ? 'dropzone--loading' : ''}`}
-                    onClick={() => fileInputCadastro.current?.click()}
-                  >
-                    {uploadStatus.cadastro === 'success' ? (
-                      <CheckCircle size={32} className="text-neon" />
-                    ) : uploadStatus.cadastro === 'error' ? (
-                      <AlertTriangle size={32} className="text-danger" />
-                    ) : uploadStatus.cadastro === 'loading' ? (
-                      <div className="dropzone__spinner"></div>
-                    ) : (
-                      <Upload size={32} className="dropzone__icon" />
-                    )}
-                    <span className="dropzone__text">
-                      {uploadStatus.cadastro === 'success' ? 'CADASTRO ATUALIZADO' :
-                       uploadStatus.cadastro === 'error' ? 'ERRO NO UPLOAD' :
-                       uploadStatus.cadastro === 'loading' ? 'ENVIANDO...' :
-                       'Arquivo .xlsx, .xls ou .csv'}
-                    </span>
-                  </div>
-                  <input
-                    ref={fileInputCadastro}
-                    type="file"
-                    accept=".csv, .xlsx, .xls"
-                    hidden
-                    onChange={(e) => handleCadastroUpload(e.target.files[0])}
-                  />
-                </div>
-
                 {/* MANHÃ */}
                 <div className="upload-box">
                   <div className="upload-box__header">
