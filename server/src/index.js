@@ -226,9 +226,12 @@ function calculateDealerMetrics(dealer) {
   // Total do ciclo atual
   const totalCicloAtual = dealer.ciclos[config.cicloAtual] || 0;
 
-  // Determinar segmento: Prioriza o oficial do cadastro, fallback para calculado
-  const segmento = dealer.segmentoOficial || getSegmentoByTotal(totalGeral);
-  
+  // Determinar segmento: Prioriza o oficial do cadastro se for valido, senao usa calculado
+  let segmento = dealer.segmentoOficial;
+  if (!segmento || !SEGMENTOS[segmento]) {
+    segmento = getSegmentoByTotal(totalGeral);
+  }
+
   const segInfo = SEGMENTOS[segmento];
 
   // Meta para manter (mínimo do segmento atual)
