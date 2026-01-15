@@ -15,20 +15,26 @@ import './Dashboard.css'
 
 // Mapeamento de cores para os status traduzidos (Badges)
 const getStatusClass = (status) => {
-  switch (status) {
-    case 'CRÍTICO - PRECISA ACELERAR':
-      return 'text-red-500 bg-red-500/10 border-red-500'
-    case 'AQUECENDO':
-      return 'text-yellow-400 bg-yellow-500/10'
-    case 'NO CAMINHO':
-      return 'text-green-400'
-    case 'QUASE LÁ':
-      return 'text-emerald-500'
-    case 'PRONTO PARA SUBIR':
-      return 'text-cyan-400' // Mantendo padrão Neon
-    default:
-      return ''
+  if (!status) return ''
+  const s = status.toUpperCase()
+
+  if (s.includes('CRITIC') || s.includes('CRÍTICO') || s.includes('NEED BOOST') || s.includes('PRECISA ACELERAR')) {
+    return 'text-red-500 bg-red-500/10 border-red-500'
   }
+  if (s.includes('WARM') || s.includes('AQUECENDO')) {
+    return 'text-yellow-400 bg-yellow-500/10'
+  }
+  if (s.includes('TRACK') || s.includes('CAMINHO')) {
+    return 'text-green-400'
+  }
+  if (s.includes('ALMOST') || s.includes('QUASE')) {
+    return 'text-emerald-500'
+  }
+  if (s.includes('READY') || s.includes('PRONTO') || s.includes('SUBIR')) {
+    return 'text-cyan-400' // Mantendo padrão Neon
+  }
+  
+  return ''
 }
 
 export default function Dashboard() {
