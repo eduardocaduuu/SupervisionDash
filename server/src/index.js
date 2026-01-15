@@ -123,7 +123,8 @@ const SETORES_FALLBACK = [
 function getSetoresDinamicos() {
   try {
     const XLSX = require('xlsx');
-    const segmentosPath = path.join(dataDir, 'Segmentos_bd.xlsx');
+    // Caminho correto: data/ na raiz do projeto (não server/data/)
+    const segmentosPath = path.join(__dirname, '../../data/Segmentos_bd.xlsx');
 
     if (!fs.existsSync(segmentosPath)) {
       console.log('[Setores] Planilha não encontrada, usando lista fallback');
