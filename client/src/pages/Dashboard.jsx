@@ -18,47 +18,62 @@ import './Dashboard.css'
 // SAFELIST: text-green-400 bg-green-400/10 border-green-400/20 shadow-[0_0_10px_rgba(74,222,128,0.2)]
 // SAFELIST: text-emerald-500 bg-emerald-500/10 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.2)]
 
-// MAPA DE TRADUÇÃO FORÇADO (Fallback para Backend em Inglês)
-const STATUS_TRANSLATION = {
-  'CRITICAL - NEED BOOST': 'CRÍTICO - PRECISA ACELERAR',
-  'WARMING UP': 'AQUECENDO',
-  'ON TRACK': 'NO CAMINHO',
-  'ALMOST THERE': 'QUASE LÁ',
-  'LEVEL UP READY': 'PRONTO PARA SUBIR',
-  'READY TO LEVEL UP': 'PRONTO PARA SUBIR',
-  'MISSION SECURE': 'MISSÃO CUMPRIDA'
-}
-
-const translateStatus = (status) => {
-  return STATUS_TRANSLATION[status] || status
-}
-
-// Mapeamento de cores para os status traduzidos (Badges)
-const getStatusClass = (status) => {
-  if (!status) return 'bg-gray-500/10 text-gray-400 border-gray-500/20'
-  const s = status.toUpperCase()
+// Configuração robusta de Status (Texto + Estilo)
+const getStatusConfig = (rawStatus) => {
+  if (!rawStatus) return { label: 'Unknown', style: 'bg-gray-500/10 text-gray-400 border-gray-500/20' }
+  
+  const s = rawStatus.toString().toUpperCase().trim()
 
   // 1. 🔴 NEON VERMELHO (Crítico)
-  if (s.includes('CRITIC') || s.includes('CRÍTICO') || s.includes('BOOST') || s.includes('ACELERAR')) {
-    return 'bg-red-500/10 text-red-500 border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.2)]'
+  if (s.includes('CRITIC') || s.includes('CRÍTICO') || s.includes('BOOST') || s.includes('NEED') || s.includes('ACELERAR')) {
+    return {
+      label: 'CRÍTICO - PRECISA ACELERAR',
+      style: 'bg-red-500/10 text-red-500 border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.2)]'
+    }
   }
 
   // 2. 🟡 NEON AMARELO (Aquecendo)
   if (s.includes('WARM') || s.includes('AQUECENDO')) {
-    return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20 shadow-[0_0_10px_rgba(250,204,21,0.2)]'
+    return {
+      label: 'AQUECENDO',
+      style: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20 shadow-[0_0_10px_rgba(250,204,21,0.2)]'
+    }
   }
 
   // 3. 🟢 NEON VERDE CLARO (No Caminho)
   if (s.includes('TRACK') || s.includes('CAMINHO') || s.includes('SYSTEM OK')) {
-    return 'bg-green-400/10 text-green-400 border-green-400/20 shadow-[0_0_10px_rgba(74,222,128,0.2)]'
+    return {
+      label: 'NO CAMINHO',
+      style: 'bg-green-400/10 text-green-400 border-green-400/20 shadow-[0_0_10px_rgba(74,222,128,0.2)]'
+    }
   }
 
   // 4. ❇️ NEON ESMERALDA/FORTE (Quase lá / Meta)
-  if (s.includes('ALMOST') || s.includes('QUASE') || s.includes('READY') || s.includes('PRONTO') || s.includes('SUBIR')) {
-    return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
+  if (s.includes('ALMOST') || s.includes('QUASE')) {
+    return {
+      label: 'QUASE LÁ',
+      style: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
+    }
   }
   
-  return 'bg-gray-500/10 text-gray-400 border-gray-500/20'
+  if (s.includes('READY') || s.includes('LEVEL') || s.includes('PRONTO') || s.includes('SUBIR')) {
+    return {
+      label: 'PRONTO PARA SUBIR',
+      style: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
+    }
+  }
+
+  if (s.includes('MISSION') || s.includes('MISSÃO') || s.includes('SECURE') || s.includes('CUMPRIDA')) {
+    return {
+      label: 'MISSÃO CUMPRIDA',
+      style: 'bg-blue-500/10 text-blue-400 border-blue-500/20 shadow-[0_0_10px_rgba(59,130,246,0.2)]'
+    }
+  }
+  
+  return {
+    label: rawStatus,
+    style: 'bg-gray-500/10 text-gray-400 border-gray-500/20'
+  }
 }
 
 export default function Dashboard() {
@@ -344,16 +359,17 @@ export default function Dashboard() {
               {/* DEALERS GRID */}
               <div className={`dealers-grid ${viewMode === 'list' ? 'dealers-grid--list' : ''}`}>
                 {filteredDealers.map(dealer => {
-                  const statusTraduzido = translateStatus(dealer.impulso)
+                  const { label, style } = getStatusConfig(dealer.impulso)
+                  const dealerDisplay = {
+                    ...dealer,
+                    impulso: label, // Força o texto traduzido
+                    statusClass: style // Gera a cor baseada na tradução
+                  }
                   return (
                     <DealerCard
                       key={dealer.codigo}
-                      dealer={{
-                        ...dealer,
-                        impulso: statusTraduzido, // Força o texto traduzido
-                        statusClass: getStatusClass(statusTraduzido) // Gera a cor baseada na tradução
-                      }}
-                      onClick={() => handleDealerClick(dealer)}
+                      dealer={dealerDisplay}
+                      onClick={() => handleDealerClick(dealerDisplay)}
                     />
                   )
                 })}
