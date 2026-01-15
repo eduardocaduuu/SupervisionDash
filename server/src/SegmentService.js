@@ -46,11 +46,14 @@ const SegmentService = {
           return '';
         };
 
+        // Função para normalizar código (remover pontos e espaços)
+        const normalizeCode = (code) => String(code || '').replace(/\./g, '').replace(/\s+/g, '').trim();
+
         // Mapeamento das colunas (De-Para)
         return {
-          codigo: String(getVal(['CodigoRevendedor', 'Codigo'])).replace(/\s+/g, '').trim(),
+          codigo: normalizeCode(getVal(['CodigoRevendedor', 'Codigo'])),
           nome: getVal(['Nome', 'NomeRevendedora', 'Revendedor']) || 'Sem Nome',
-          setorId: String(getVal(['CodigoEstruturaComercial', 'SetorId', 'Setor'])).match(/^\d+/)?.[0] || '',
+          setorId: normalizeCode(getVal(['CodigoEstruturaComercial', 'SetorId', 'Setor'])),
           segmentoOficial: getVal(['Papel', 'SegmentoAtual', 'Segmento']) || 'Bronze'
         };
       }).filter(d => d.codigo && d.setorId); // Filtra linhas inválidas

@@ -84,40 +84,37 @@ function getSegmentoByTotal(total) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// LISTA FIXA DE SETORES
+// LISTA FIXA DE SETORES (gerada a partir de Segmentos_bd.xlsx)
 // ═══════════════════════════════════════════════════════════════
 const SETORES = [
-  { id: '1260', nome: 'PRATA / Palmeira / Igaci /' },
-  { id: '4005', nome: 'PLATINA & OURO / Palmeira / Igaci /Major / Cacimbinhas / Estrela / Min' },
-  { id: '8238', nome: 'PRATA 2 / Major / Cacimbinhas / Estrela / Quebrangulo / Minador /' },
-  { id: '8239', nome: 'SUPERVISORA DE RELACIONAMENTO PALMEIRA DOS INDIOS' },
-  { id: '14210', nome: 'FVC - 13706 - A - ALCINA MARIA 1' },
-  { id: '16283', nome: 'FVC - 13706- BER - ALCINA MARIA' },
-  { id: '16289', nome: 'FVC - 13706 - A - ALCINA MARIA 2' },
-  { id: '16471', nome: 'Setor Multimarcas - PALMEIRA DOS INDIOS - CP ALCINA MARIA' },
-  { id: '17539', nome: 'PLATINA / Palmeira /' },
-  { id: '18787', nome: 'FVC - 13706 - ALCINA MARIA REINÍCIOS' },
-  { id: '19699', nome: '13706 - ALCINA MARIA - SETOR DEVOLUÇÃO' },
-  { id: '23032', nome: 'BRONZE / Todas as cidades 13706' },
-  { id: '23336', nome: 'SETOR PADRÃO' },
-  { id: '15775', nome: 'INICIOS CENTRAL 13706' },
   { id: '1414', nome: 'SUPERVISORA DE RELACIONAMENTO' },
   { id: '1415', nome: 'PRATA 2 / Coruripe / Piaçabuçu / F. Deserto / São Sebastião /' },
   { id: '3124', nome: 'BRONZE / Todas as cidades 13707' },
+  { id: '4005', nome: 'PLATINA & OURO / Palmeira / Igaci /Major / Cacimbinhas / Estrela / Minador / Quebrangulo /' },
+  { id: '8238', nome: 'PRATA 2 / Major / Cacimbinhas / Estrela / Quebrangulo / Minador /' },
+  { id: '8239', nome: 'SUPERVISORA DE RELACIONAMENTO PALMEIRA DOS INDIOS' },
   { id: '8317', nome: 'BRONZE 2 / Todas as cidades 13707' },
   { id: '9540', nome: 'PLATINA / Penedo /' },
+  { id: '14210', nome: 'FVC - 13706 - A - ALCINA MARIA 1' },
   { id: '14211', nome: 'FVC - 13707 - A - ALCINA MARIA 1' },
-  { id: '14244', nome: 'PRATA 3 / I.Nova / Junqueiro / Olho D\' Agua / Porto Real / São Brás /' },
+  { id: '14244', nome: "PRATA 3 / I.Nova / Junqueiro / Olho D' Agua / Porto Real / São Brás / Teotônio" },
   { id: '14245', nome: 'PRATA 1 / Penedo /' },
   { id: '14246', nome: 'OURO / Penedo /' },
   { id: '15242', nome: 'FVC - 13707 - A - ALCINA MARIA 2' },
   { id: '15774', nome: 'INICIOS CENTRAL 13707' },
+  { id: '15775', nome: 'INICIOS CENTRAL 13706' },
+  { id: '16283', nome: 'FVC - 13706- BER - ALCINA MARIA' },
   { id: '16284', nome: 'FVC - 13707- BER - ALCINA MARIA' },
+  { id: '16289', nome: 'FVC - 13706 - A - ALCINA MARIA 2' },
+  { id: '16471', nome: 'Setor Multimarcas - PALMEIRA DOS INDIOS - CP ALCINA MARIA' },
   { id: '16472', nome: 'Setor Multimarcas - PENEDO - CP ALCINA MARIA' },
   { id: '16635', nome: 'FVC - 13707 - A - ALCINA MARIA 3' },
+  { id: '17539', nome: 'PLATINA / Palmeira /' },
+  { id: '18787', nome: 'FVC - 13706 - ALCINA MARIA REINÍCIOS' },
   { id: '18788', nome: 'FVC - 13707 - ALCINA MARIA REINÍCIOS' },
-  { id: '19698', nome: '13707 - ALCINA MARIA - SETOR DEVOLUÇÃO' },
-  { id: '23557', nome: 'SETOR PADRÃO' }
+  { id: '23032', nome: 'BRONZE / Todas as cidades 13706' },
+  { id: '23336', nome: 'SETOR PADRÃO 13706' },
+  { id: '23557', nome: 'SETOR PADRÃO 13707' }
 ];
 
 // GERÊNCIAS BLOQUEADAS
