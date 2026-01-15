@@ -3,6 +3,7 @@ const cors = require('cors');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
+const SegmentService = require('./SegmentService');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -23,13 +24,8 @@ if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadsDir),
   filename: (req, file, cb) => {
-    // Verifica se é upload de cadastro ou snapshot de vendas
-    if (req.query.type === 'cadastro') {
-      cb(null, 'cadastro_segmento.csv');
-    } else {
-      const slot = req.query.slot || 'manha';
-      cb(null, `snapshot_${slot}.csv`);
-    }
+    const slot = req.query.slot || 'manha';
+    cb(null, `snapshot_${slot}.csv`);
   }
 });
 const upload = multer({ storage });
@@ -284,43 +280,7 @@ function loadCSVData(slot) {
 
 // Carregar dados de Cadastro (Fonte Oficial)
 function loadCadastroData() {
-  // 1. Tentar carregar JSON (novo formato via Excel upload)
-  const jsonPath = path.join(uploadsDir, 'cadastro_segmento.json');
-  if (fs.existsSync(jsonPath)) {
-    try {
-      const content = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
-      return content.map(row => ({
-        codigo: row.CodigoRevendedor || row.codigo || '',
-        nome: row.NomeRevendedora || row.Nome || row.nome || 'Sem Nome',
-        setorId: extractSetorId(row.SetorId || row.setor || ''),
-        segmentoOficial: row.SegmentoAtual || row.segmento || 'Bronze'
-      })).filter(d => d.codigo && d.setorId);
-    } catch (e) {
-      console.error('Error loading Cadastro JSON:', e);
-    }
-  }
-
-  // 2. Fallback para CSV (legado)
-  const filePath = path.join(uploadsDir, 'cadastro_segmento.csv');
-  
-  // Se já temos em cache e o arquivo não mudou, retorna cache (simplificado)
-  // Para produção ideal verificar mtime, aqui vamos recarregar para garantir consistência
-  if (!fs.existsSync(filePath)) return [];
-
-  try {
-    const content = fs.readFileSync(filePath, 'utf-8');
-    const rows = parseCSV(content);
-    
-    return rows.map(row => ({
-      codigo: row.CodigoRevendedor || row.codigo || '',
-      nome: row.Nome || row.nome || 'Sem Nome',
-      setorId: extractSetorId(row.SetorId || row.setor || ''),
-      segmentoOficial: row.SegmentoAtual || row.segmento || 'Bronze'
-    })).filter(d => d.codigo && d.setorId);
-  } catch (e) {
-    console.error('Error loading Cadastro CSV:', e);
-    return [];
-  }
+  return SegmentService.loadSegments();
 }
 
 // Obter dados do snapshot ativo
@@ -713,44 +673,6 @@ app.post('/api/admin/upload', upload.single('file'), (req, res) => {
   res.json({
     success: true,
     message: `Upload ${slot} concluído`,
-    file: req.file.filename
-  });
-});
-
-// Upload Cadastro via JSON (Processado do Excel no Front)
-app.post('/api/admin/cadastro-data', (req, res) => {
-  try {
-    const data = req.body;
-    if (!Array.isArray(data)) {
-      return res.status(400).json({ error: 'Formato inválido. Esperado array JSON.' });
-    }
-    
-    const filePath = path.join(uploadsDir, 'cadastro_segmento.json');
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-    
-    // Limpar cache
-    dataCache.cadastro = null;
-
-    res.json({ success: true, count: data.length });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erro ao salvar dados de cadastro.' });
-  }
-});
-
-// Upload Cadastro (Novo Endpoint)
-app.post('/api/admin/upload-cadastro', upload.single('file'), (req, res) => {
-  // O multer já salvou como cadastro_segmento.csv devido à query type=cadastro
-  if (!req.file) {
-    return res.status(400).json({ error: 'Nenhum arquivo enviado' });
-  }
-
-  // Limpar cache
-  dataCache.cadastro = null;
-
-  res.json({
-    success: true,
-    message: 'Cadastro de segmentos atualizado com sucesso',
     file: req.file.filename
   });
 });
