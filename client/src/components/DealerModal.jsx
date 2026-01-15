@@ -37,7 +37,7 @@ export default function DealerModal({ dealer, onClose }) {
       <div className="modal" onClick={e => e.stopPropagation()}>
         <div className="modal__header">
           <div className="modal__title">
-            <span className="modal__title-label">DEALER INTEL</span>
+            <span className="modal__title-label">DADOS DO REVENDEDOR</span>
             <span className="modal__title-code mono">{codigo}</span>
           </div>
           <button className="modal__close" onClick={onClose}>

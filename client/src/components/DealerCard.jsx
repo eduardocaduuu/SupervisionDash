@@ -50,13 +50,13 @@ export default function DealerCard({ dealer, onClick }) {
 
       <div className="dealer-card__progress">
         <ProgressBar
-          label="KEEP"
+          label="MANTER"
           value={percentManter}
           variant={atRisk ? 'danger' : 'default'}
         />
         {percentSubir !== null && (
           <ProgressBar
-            label="LEVEL UP"
+            label="SUBIR"
             value={percentSubir}
             variant="cyan"
           />
@@ -91,7 +91,7 @@ export default function DealerCard({ dealer, onClick }) {
       </div>
 
       <button className="dealer-card__details" onClick={onClick}>
-        <span>DETAILS</span>
+        <span>DETALHES</span>
         <ChevronRight size={16} />
       </button>
     </div>

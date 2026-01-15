@@ -77,10 +77,10 @@ export default function Terminal() {
       <div className="terminal-page__header">
         <div className="terminal-page__header-left">
           <Activity size={14} className="animate-pulse" />
-          <span>SYSTEM ONLINE</span>
+          <span>SISTEMA ATIVO</span>
         </div>
         <div className="terminal-page__header-center">
-          <span className="mono">SUPERVISION // SEGMENTS TRACKER v1.0</span>
+          <span className="mono">SUPERVISAO // RASTREADOR DE SEGMENTOS v1.0</span>
         </div>
         <div className="terminal-page__header-right">
           <button
@@ -184,7 +184,7 @@ export default function Terminal() {
 |  ███████║╚██████╔╝██║     ███████╗██║  ██║    |
 |  ╚══════╝ ╚═════╝ ╚═╝     ╚══════╝╚═╝  ╚═╝    |
 |                                               |
-|       SEGMENTS TRACKING SYSTEM READY          |
+|    SISTEMA DE RASTREAMENTO DE SEGMENTOS       |
 +-----------------------------------------------+
           `}</pre>
         </div>

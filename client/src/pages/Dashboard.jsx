@@ -38,7 +38,7 @@ export default function Dashboard() {
     return (
       <div className="dashboard-loading">
         <div className="dashboard-loading__spinner"></div>
-        <span className="mono">LOADING SECTOR DATA...</span>
+        <span className="mono">CARREGANDO DADOS DO SETOR...</span>
       </div>
     )
   }
@@ -181,7 +181,7 @@ export default function Dashboard() {
               }}
             >
               <MetricCard
-                label="NEAR LEVEL UP"
+                label="PERTO DE SUBIR"
                 value={kpis.nearLevelUp}
                 subtext="≥80% meta subir"
                 icon={TrendingUp}
@@ -209,7 +209,7 @@ export default function Dashboard() {
               }}
             >
               <MetricCard
-                label="AT RISK"
+                label="EM RISCO"
                 value={kpis.atRisk}
                 subtext="<30% meta manter"
                 icon={AlertTriangle}

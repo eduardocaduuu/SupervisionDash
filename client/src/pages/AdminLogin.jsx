@@ -48,8 +48,8 @@ export default function AdminLogin() {
       <div className={`admin-login__box ${errorShake ? 'shake' : ''}`}>
         <div className="admin-login__header">
           <Shield size={32} />
-          <h1>ADMIN ACCESS</h1>
-          <span className="admin-login__subtitle mono">RESTRICTED AREA</span>
+          <h1>ACESSO ADMIN</h1>
+          <span className="admin-login__subtitle mono">AREA RESTRITA</span>
         </div>
 
         <form className="admin-login__form" onSubmit={handleSubmit}>
@@ -92,10 +92,10 @@ export default function AdminLogin() {
             {status === 'loading' ? (
               <>
                 <span className="admin-login__spinner"></span>
-                <span>AUTHENTICATING...</span>
+                <span>AUTENTICANDO...</span>
               </>
             ) : (
-              <span>AUTHENTICATE</span>
+              <span>ENTRAR</span>
             )}
           </button>
         </form>
@@ -106,14 +106,14 @@ export default function AdminLogin() {
             {status === 'granted' ? (
               <>
                 <CheckCircle size={48} />
-                <span className="admin-login__status-text">ACCESS GRANTED</span>
-                <span className="admin-login__status-sub mono">Redirecting...</span>
+                <span className="admin-login__status-text">ACESSO LIBERADO</span>
+                <span className="admin-login__status-sub mono">Redirecionando...</span>
               </>
             ) : (
               <>
                 <AlertTriangle size={48} />
-                <span className="admin-login__status-text">ACCESS DENIED</span>
-                <span className="admin-login__status-sub mono">Invalid credentials</span>
+                <span className="admin-login__status-text">ACESSO NEGADO</span>
+                <span className="admin-login__status-sub mono">Credenciais invalidas</span>
               </>
             )}
           </div>
@@ -121,7 +121,7 @@ export default function AdminLogin() {
       </div>
 
       <div className="admin-login__footer mono">
-        SUPERVISION SEGMENTS // ADMIN PANEL v1.0
+        SUPERVISAO SEGMENTOS // PAINEL ADMIN v1.0
       </div>
     </div>
   )
