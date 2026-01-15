@@ -13,6 +13,11 @@ import CiclosTab from './CiclosTab'
 import RankTab from './RankTab'
 import './Dashboard.css'
 
+// SAFELIST: text-red-500 bg-red-500/10 border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.2)]
+// SAFELIST: text-yellow-400 bg-yellow-500/10 border-yellow-500/20 shadow-[0_0_10px_rgba(250,204,21,0.2)]
+// SAFELIST: text-green-400 bg-green-400/10 border-green-400/20 shadow-[0_0_10px_rgba(74,222,128,0.2)]
+// SAFELIST: text-emerald-500 bg-emerald-500/10 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.2)]
+
 // Mapeamento de cores para os status traduzidos (Badges)
 const getStatusClass = (status) => {
   if (!status) return 'bg-gray-500/10 text-gray-400 border-gray-500/20'
