@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import {
   DollarSign, Users, TrendingUp, AlertTriangle,
-  Search, SlidersHorizontal, Grid, List
+  Search, SlidersHorizontal, Grid, List, Download
 } from 'lucide-react'
 import HUDHeader from '../components/HUDHeader'
 import MetricCard from '../components/MetricCard'
@@ -21,6 +21,7 @@ export default function Dashboard() {
   const [sortBy, setSortBy] = useState('levelUp')
   const [selectedDealer, setSelectedDealer] = useState(null)
   const [viewMode, setViewMode] = useState('grid')
+  const [activeFilter, setActiveFilter] = useState('ALL') // 'ALL', 'NEAR_LEVEL_UP', 'AT_RISK'
 
   useEffect(() => {
     fetch(`/api/setor/${setorId}`)
@@ -44,10 +45,19 @@ export default function Dashboard() {
   const { setor, cicloAtual, snapshotAtivo, kpis, dealers } = dashboardData
 
   // Filter and sort dealers
-  let filteredDealers = dealers.filter(d =>
-    d.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    d.codigo.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  let filteredDealers = dealers.filter(d => {
+    // 1. Filtro de Busca (Texto)
+    const matchesSearch = d.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      d.codigo.toLowerCase().includes(searchTerm.toLowerCase())
+    
+    if (!matchesSearch) return false
+
+    // 2. Filtro Ativo (Cards)
+    if (activeFilter === 'NEAR_LEVEL_UP') return d.nearLevelUp
+    if (activeFilter === 'AT_RISK') return d.atRisk
+    
+    return true
+  })
 
   filteredDealers = [...filteredDealers].sort((a, b) => {
     switch (sortBy) {
@@ -68,6 +78,49 @@ export default function Dashboard() {
     setSelectedDealer(dealer)
   }
 
+  // Toggle Filter Logic
+  const handleFilterClick = (filterType) => {
+    if (activeFilter === filterType) {
+      setActiveFilter('ALL')
+    } else {
+      setActiveFilter(filterType)
+    }
+  }
+
+  // Export Logic
+  const handleExport = (e, filterType) => {
+    e.stopPropagation()
+    
+    let dataToExport = dealers
+    if (filterType === 'NEAR_LEVEL_UP') dataToExport = dealers.filter(d => d.nearLevelUp)
+    if (filterType === 'AT_RISK') dataToExport = dealers.filter(d => d.atRisk)
+    
+    const headers = ['Codigo', 'Nome', 'Setor', 'Segmento', 'Total Geral', 'Meta Manter', 'Meta Subir']
+    const rows = dataToExport.map(d => [
+      d.codigo, 
+      d.nome, 
+      d.setorId, 
+      d.segmento, 
+      d.totalGeral.toString().replace('.', ','), 
+      d.metaManter, 
+      d.metaSubir || ''
+    ])
+    
+    const csvContent = [
+      headers.join(';'),
+      ...rows.map(r => r.join(';'))
+    ].join('\n')
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', `export_${filterType}_${setorId}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
   return (
     <div className="dashboard">
       <HUDHeader
@@ -80,32 +133,102 @@ export default function Dashboard() {
         <div className="container">
           {/* KPIs */}
           <section className="dashboard__kpis">
-            <MetricCard
-              label="TOTAL DO SETOR"
-              value={kpis.totalSetor}
-              format="currency"
-              icon={DollarSign}
-            />
-            <MetricCard
-              label="REVENDEDORES"
-              value={kpis.qtdRevendedores}
-              icon={Users}
-              variant="cyan"
-            />
-            <MetricCard
-              label="NEAR LEVEL UP"
-              value={kpis.nearLevelUp}
-              subtext="≥80% meta subir"
-              icon={TrendingUp}
-              variant="cyan"
-            />
-            <MetricCard
-              label="AT RISK"
-              value={kpis.atRisk}
-              subtext="<30% meta manter"
-              icon={AlertTriangle}
-              variant="danger"
-            />
+            {/* TOTAL (Reset Filter) */}
+            <div 
+              className="kpi-wrapper" 
+              onClick={() => handleFilterClick('ALL')}
+              style={{ cursor: 'pointer', position: 'relative' }}
+            >
+              <MetricCard
+                label="TOTAL DO SETOR"
+                value={kpis.totalSetor}
+                format="currency"
+                icon={DollarSign}
+              />
+            </div>
+
+            {/* REVENDEDORES (Filter ALL) */}
+            <div 
+              className="kpi-wrapper"
+              onClick={() => handleFilterClick('ALL')}
+              style={{ 
+                cursor: 'pointer', 
+                position: 'relative',
+                outline: activeFilter === 'ALL' ? '3px solid var(--color-neon-primary)' : 'none',
+                outlineOffset: '2px',
+                borderRadius: '4px'
+              }}
+            >
+              <MetricCard
+                label="REVENDEDORES"
+                value={kpis.qtdRevendedores}
+                icon={Users}
+                variant="cyan"
+              />
+              <button 
+                className="kpi-export-btn"
+                onClick={(e) => handleExport(e, 'ALL')}
+                style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.3)', border: 'none', color: '#fff', padding: 4, borderRadius: 4, cursor: 'pointer' }}
+              >
+                <Download size={14} />
+              </button>
+            </div>
+
+            {/* NEAR LEVEL UP (Filter) */}
+            <div 
+              className="kpi-wrapper"
+              onClick={() => handleFilterClick('NEAR_LEVEL_UP')}
+              style={{ 
+                cursor: 'pointer', 
+                position: 'relative',
+                outline: activeFilter === 'NEAR_LEVEL_UP' ? '3px solid var(--color-neon-secondary)' : 'none',
+                outlineOffset: '2px',
+                borderRadius: '4px'
+              }}
+            >
+              <MetricCard
+                label="NEAR LEVEL UP"
+                value={kpis.nearLevelUp}
+                subtext="≥80% meta subir"
+                icon={TrendingUp}
+                variant="cyan"
+              />
+              <button 
+                className="kpi-export-btn"
+                onClick={(e) => handleExport(e, 'NEAR_LEVEL_UP')}
+                style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.3)', border: 'none', color: '#fff', padding: 4, borderRadius: 4, cursor: 'pointer' }}
+              >
+                <Download size={14} />
+              </button>
+            </div>
+
+            {/* AT RISK (Filter) */}
+            <div 
+              className="kpi-wrapper"
+              onClick={() => handleFilterClick('AT_RISK')}
+              style={{ 
+                cursor: 'pointer', 
+                position: 'relative',
+                outline: activeFilter === 'AT_RISK' ? '3px solid var(--color-neon-danger)' : 'none',
+                outlineOffset: '2px',
+                borderRadius: '4px'
+              }}
+            >
+              <MetricCard
+                label="AT RISK"
+                value={kpis.atRisk}
+                subtext="<30% meta manter"
+                icon={AlertTriangle}
+                variant="danger"
+              />
+              <button 
+                className="kpi-export-btn"
+                onClick={(e) => handleExport(e, 'AT_RISK')}
+                style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,0,0,0.3)', border: 'none', color: '#fff', padding: 4, borderRadius: 4, cursor: 'pointer' }}
+              >
+                <Download size={14} />
+              </button>
+            </div>
           </section>
 
           {/* TABS */}
