@@ -1,23 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react'
-import * as XLSX from 'xlsx'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Shield, LogOut, Upload, Clock, Settings, Save,
-  CheckCircle, AlertTriangle, Sun, Moon, FileSpreadsheet
+  Shield, LogOut, Save, CheckCircle, AlertTriangle, FileSpreadsheet
 } from 'lucide-react'
 import Panel from '../components/Panel'
 import './Admin.css'
-import { SalesFileParser } from '../utils/SalesFileParser'
 
 export default function Admin() {
   const navigate = useNavigate()
   const [config, setConfig] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [uploadStatus, setUploadStatus] = useState({ manha: null, tarde: null })
   const [saveStatus, setSaveStatus] = useState(null)
   const [representatividade, setRepresentatividade] = useState({})
-  const fileInputManha = useRef(null)
-  const fileInputTarde = useRef(null)
 
   useEffect(() => {
     fetch('/api/admin/config')
@@ -32,62 +26,6 @@ export default function Admin() {
         navigate('/admin/login')
       })
   }, [navigate])
-
-  const handleFileUpload = async (snapshot, file) => {
-    if (!file) return
-
-    setUploadStatus(prev => ({ ...prev, [snapshot]: 'loading' }))
-
-    try {
-      // 1. Parse Universal (Excel ou CSV) -> JSON Normalizado
-      const normalizedData = await SalesFileParser.parse(file)
-
-      // 2. Converter JSON para CSV Padrão (para manter compatibilidade com Backend)
-      const worksheet = XLSX.utils.json_to_sheet(normalizedData)
-      const csvOutput = XLSX.utils.sheet_to_csv(worksheet, { FS: ';' }) // Força separador ;
-      
-      // 3. Criar Blob para envio
-      const blob = new Blob([csvOutput], { type: 'text/csv' })
-      const cleanFile = new File([blob], `snapshot_${snapshot}.csv`, { type: 'text/csv' })
-
-      const formData = new FormData()
-      formData.append('file', cleanFile)
-
-      const res = await fetch(`/api/admin/upload?snapshot=${snapshot}`, {
-        method: 'POST',
-        body: formData
-      })
-
-      if (res.ok) {
-        setUploadStatus(prev => ({ ...prev, [snapshot]: 'success' }))
-        // Refresh config
-        const configRes = await fetch('/api/admin/config')
-        const configData = await configRes.json()
-        setConfig(configData)
-      } else {
-        setUploadStatus(prev => ({ ...prev, [snapshot]: 'error' }))
-      }
-    } catch (err) {
-      setUploadStatus(prev => ({ ...prev, [snapshot]: 'error' }))
-    }
-
-    setTimeout(() => {
-      setUploadStatus(prev => ({ ...prev, [snapshot]: null }))
-    }, 3000)
-  }
-
-  const handleSnapshotChange = async (snapshot) => {
-    try {
-      await fetch('/api/admin/snapshot', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ snapshot })
-      })
-      setConfig(prev => ({ ...prev, snapshotAtivo: snapshot }))
-    } catch (err) {
-      console.error(err)
-    }
-  }
 
   const handleCicloChange = async (ciclo) => {
     try {
@@ -163,118 +101,8 @@ export default function Admin() {
       <main className="admin__content">
         <div className="container">
           <div className="admin__grid">
-            {/* UPLOAD SECTION */}
-            <Panel title="CSV UPLOAD" variant="cyan" className="admin__upload">
-              <div className="upload-grid">
-                {/* MANHÃ */}
-                <div className="upload-box">
-                  <div className="upload-box__header">
-                    <Sun size={20} />
-                    <span>SNAPSHOT MANHÃ</span>
-                  </div>
-                  <div
-                    className={`dropzone ${uploadStatus.manha === 'loading' ? 'dropzone--loading' : ''}`}
-                    onClick={() => fileInputManha.current?.click()}
-                  >
-                    {uploadStatus.manha === 'success' ? (
-                      <CheckCircle size={32} className="text-neon" />
-                    ) : uploadStatus.manha === 'error' ? (
-                      <AlertTriangle size={32} className="text-danger" />
-                    ) : uploadStatus.manha === 'loading' ? (
-                      <div className="dropzone__spinner"></div>
-                    ) : (
-                      <Upload size={32} className="dropzone__icon" />
-                    )}
-                    <span className="dropzone__text">
-                      {uploadStatus.manha === 'success' ? 'UPLOAD CONCLUÍDO' :
-                       uploadStatus.manha === 'error' ? 'ERRO NO UPLOAD' :
-                       uploadStatus.manha === 'loading' ? 'UPLOADING...' :
-                       'Clique ou arraste CSV'}
-                    </span>
-                    {config.uploads?.manha && (
-                      <span className="dropzone__hint">
-                        Último: {new Date(config.uploads.manha.timestamp).toLocaleString('pt-BR')}
-                      </span>
-                    )}
-                  </div>
-                  <input
-                    ref={fileInputManha}
-                    type="file"
-                    accept=".csv, .xlsx, .xls"
-                    hidden
-                    onChange={(e) => handleFileUpload('manha', e.target.files[0])}
-                  />
-                </div>
-
-                {/* TARDE */}
-                <div className="upload-box">
-                  <div className="upload-box__header">
-                    <Moon size={20} />
-                    <span>SNAPSHOT TARDE</span>
-                  </div>
-                  <div
-                    className={`dropzone ${uploadStatus.tarde === 'loading' ? 'dropzone--loading' : ''}`}
-                    onClick={() => fileInputTarde.current?.click()}
-                  >
-                    {uploadStatus.tarde === 'success' ? (
-                      <CheckCircle size={32} className="text-neon" />
-                    ) : uploadStatus.tarde === 'error' ? (
-                      <AlertTriangle size={32} className="text-danger" />
-                    ) : uploadStatus.tarde === 'loading' ? (
-                      <div className="dropzone__spinner"></div>
-                    ) : (
-                      <Upload size={32} className="dropzone__icon" />
-                    )}
-                    <span className="dropzone__text">
-                      {uploadStatus.tarde === 'success' ? 'UPLOAD CONCLUÍDO' :
-                       uploadStatus.tarde === 'error' ? 'ERRO NO UPLOAD' :
-                       uploadStatus.tarde === 'loading' ? 'UPLOADING...' :
-                       'Clique ou arraste CSV'}
-                    </span>
-                    {config.uploads?.tarde && (
-                      <span className="dropzone__hint">
-                        Último: {new Date(config.uploads.tarde.timestamp).toLocaleString('pt-BR')}
-                      </span>
-                    )}
-                  </div>
-                  <input
-                    ref={fileInputTarde}
-                    type="file"
-                    accept=".csv, .xlsx, .xls"
-                    hidden
-                    onChange={(e) => handleFileUpload('tarde', e.target.files[0])}
-                  />
-                </div>
-              </div>
-            </Panel>
-
-            {/* SNAPSHOT & CICLO */}
-            <Panel title="SYSTEM CONFIG" variant="default" className="admin__config">
-              {/* SNAPSHOT TOGGLE */}
-              <div className="config-section">
-                <h3 className="config-section__title">
-                  <Clock size={16} />
-                  SNAPSHOT ATIVO
-                </h3>
-                <div className="snapshot-toggle">
-                  <button
-                    className={`snapshot-toggle__btn ${config.snapshotAtivo === 'manha' ? 'active' : ''}`}
-                    onClick={() => handleSnapshotChange('manha')}
-                  >
-                    <Sun size={18} />
-                    <span>MANHÃ</span>
-                  </button>
-                  <button
-                    className={`snapshot-toggle__btn ${config.snapshotAtivo === 'tarde' ? 'active' : ''}`}
-                    onClick={() => handleSnapshotChange('tarde')}
-                  >
-                    <Moon size={18} />
-                    <span>TARDE</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* CICLO SELECT */}
+            {/* CICLO CONFIG */}
+            <Panel title="SYSTEM CONFIG" variant="cyan" className="admin__config">
               <div className="config-section">
                 <h3 className="config-section__title">
                   <FileSpreadsheet size={16} />
@@ -347,7 +175,7 @@ export default function Admin() {
                 ))}
               </div>
               <p className="repr-help">
-                Valores de 0 a 100. Define o peso de cada ciclo no cálculo das metas.
+                Valores de 0 a 100. Define o peso de cada ciclo no calculo das metas.
               </p>
             </Panel>
           </div>

@@ -1,9 +1,9 @@
 const express = require('express');
 const cors = require('cors');
-const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const SegmentService = require('./SegmentService');
+const VendasService = require('./VendasService');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -16,19 +16,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // DATA DIRECTORIES
 // ═══════════════════════════════════════════════════════════════
 const dataDir = path.join(__dirname, '../data');
-const uploadsDir = path.join(dataDir, 'uploads');
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-
-// Multer config
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadsDir),
-  filename: (req, file, cb) => {
-    const slot = req.query.slot || 'manha';
-    cb(null, `snapshot_${slot}.csv`);
-  }
-});
-const upload = multer({ storage });
 
 // ═══════════════════════════════════════════════════════════════
 // CONFIGURATION
@@ -37,7 +25,6 @@ const configPath = path.join(dataDir, 'config.json');
 
 const defaultConfig = {
   cicloAtual: '01/2026',
-  snapshotAtivo: 'manha',
   representatividade: {
     '01/2026': 8,
     '02/2026': 11,
@@ -48,10 +35,6 @@ const defaultConfig = {
     '07/2026': 10,
     '08/2026': 11,
     '09/2026': 10
-  },
-  uploads: {
-    manha: null,
-    tarde: null
   },
   adminUser: 'acqua',
   adminPassword: '13707'
@@ -155,185 +138,56 @@ function extractSetorId(setorString) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// CSV PARSING
+// DATA LOADING
 // ═══════════════════════════════════════════════════════════════
-
-// Converter moeda PT-BR para número (1.234,56 -> 1234.56)
-function parseCurrencyPTBR(value) {
-  if (typeof value === 'number') return value;
-  if (!value) return 0;
-
-  const str = String(value).trim();
-  // Remove R$ e espaços
-  let clean = str.replace(/R\$\s*/gi, '').trim();
-
-  // Detecta formato PT-BR: 1.234,56
-  if (clean.includes(',') && clean.includes('.')) {
-    // PT-BR: pontos são milhares, vírgula é decimal
-    clean = clean.replace(/\./g, '').replace(',', '.');
-  } else if (clean.includes(',') && !clean.includes('.')) {
-    // Apenas vírgula: assume decimal
-    clean = clean.replace(',', '.');
-  }
-
-  const num = parseFloat(clean);
-  return isNaN(num) ? 0 : num;
-}
-
-// Parse CSV robusto (detecta ; ou ,)
-function parseCSV(content) {
-  const lines = content.split(/\r?\n/).filter(line => line.trim());
-  if (lines.length === 0) return [];
-
-  // Detectar delimitador
-  const firstLine = lines[0];
-  const semicolonCount = (firstLine.match(/;/g) || []).length;
-  const commaCount = (firstLine.match(/,/g) || []).length;
-  const delimiter = semicolonCount > commaCount ? ';' : ',';
-
-  // Parse header
-  const headers = lines[0].split(delimiter).map(h => h.trim().replace(/^["']|["']$/g, ''));
-
-  // Parse rows
-  const rows = [];
-  for (let i = 1; i < lines.length; i++) {
-    const values = lines[i].split(delimiter).map(v => v.trim().replace(/^["']|["']$/g, ''));
-    if (values.length >= headers.length) {
-      const row = {};
-      headers.forEach((h, idx) => {
-        row[h] = values[idx] || '';
-      });
-      rows.push(row);
-    }
-  }
-
-  return rows;
-}
-
-// ═══════════════════════════════════════════════════════════════
-// DATA PROCESSING
-// ═══════════════════════════════════════════════════════════════
-
-// Cache de dados processados
-let dataCache = {
-  manha: null,
-  tarde: null,
-  cadastro: null,
-  timestamp: null
-};
-
-// Carregar e processar CSV
-function loadCSVData(slot) {
-  const filePath = path.join(uploadsDir, `snapshot_${slot}.csv`);
-
-  if (!fs.existsSync(filePath)) {
-    return null;
-  }
-
-  try {
-    const content = fs.readFileSync(filePath, 'utf-8');
-    const rows = parseCSV(content);
-
-    // Filtrar apenas Tipo = "Venda" e agrupar por setor/revendedor
-    const dealers = {};
-
-    rows.forEach(row => {
-      // Verificar se é venda
-      const tipo = (row.Tipo || row.tipo || '').trim().toLowerCase();
-      if (tipo !== 'venda') return;
-
-      // Extrair setorId (primeiro número)
-      const setorRaw = row.Setor || row.setor || '';
-      const setorId = extractSetorId(setorRaw);
-      if (!setorId) return;
-
-      const codigoRevendedor = row.CodigoRevendedor || row.codigoRevendedor || row.Codigo || '';
-      const nomeRevendedor = row.NomeRevendedora || row.NomeRevendedor || row.Nome || '';
-      const ciclo = row.CicloFaturamento || row.Ciclo || '';
-      const valor = parseCurrencyPTBR(row.ValorPraticado || row.Valor || 0);
-
-      if (!codigoRevendedor || !ciclo) return;
-
-      const key = `${setorId}-${codigoRevendedor}`;
-
-      if (!dealers[key]) {
-        dealers[key] = {
-          codigo: codigoRevendedor,
-          nome: nomeRevendedor,
-          setorId: setorId,
-          ciclos: {}
-        };
-      }
-
-      if (!dealers[key].ciclos[ciclo]) {
-        dealers[key].ciclos[ciclo] = 0;
-      }
-      dealers[key].ciclos[ciclo] += valor;
-    });
-
-    return Object.values(dealers);
-  } catch (e) {
-    console.error(`Error loading CSV ${slot}:`, e);
-    return null;
-  }
-}
 
 // Carregar dados de Cadastro (Fonte Oficial)
 function loadCadastroData() {
   return SegmentService.loadSegments();
 }
 
-// Obter dados do snapshot ativo
-function getActiveData() {
-  const slot = config.snapshotAtivo;
-  // Recarregar se necessário
-  const filePath = path.join(uploadsDir, `snapshot_${slot}.csv`);
-  if (fs.existsSync(filePath)) {
-    const stat = fs.statSync(filePath);
-    if (!dataCache[slot] || !dataCache.timestamp || stat.mtimeMs > dataCache.timestamp) {
-      dataCache[slot] = loadCSVData(slot);
-      dataCache.timestamp = stat.mtimeMs;
-    }
-  }
-  return dataCache[slot];
+// Carregar dados de Vendas
+function loadVendasData() {
+  return VendasService.loadVendas();
 }
 
 // Obter dealers de um setor específico
 function getDealersForSetor(setorId) {
   // 1. Carregar Cadastro (Fonte da Verdade)
   const cadastro = loadCadastroData();
-  
-  // Se não houver cadastro, fallback para demo ou vazio
+
+  // 2. Carregar Vendas
+  const vendasData = loadVendasData();
+
+  // Se não houver cadastro, usa apenas vendas ou dados de demonstração
   if (!cadastro || cadastro.length === 0) {
-    const data = getActiveData();
-    if (!data) return generateDemoData(setorId);
-    return data.filter(d => d.setorId === setorId);
+    if (!vendasData || vendasData.length === 0) {
+      return generateDemoData(setorId);
+    }
+    return vendasData.filter(d => d.setorId === setorId);
   }
 
-  // 2. Filtrar revendedores do setor no cadastro
+  // 3. Filtrar revendedores do setor no cadastro
   const dealersCadastro = cadastro.filter(d => d.setorId === setorId);
-  
-  // 3. Carregar Vendas (Performance)
-  const vendasData = getActiveData() || [];
-  
-  // Indexar vendas por código para acesso O(1)
+
+  // 4. Indexar vendas por código para acesso O(1)
   const vendasMap = new Map();
-  vendasData.forEach(v => {
-    if (v.setorId === setorId) { // Garantir que venda pertence ao setor
+  (vendasData || []).forEach(v => {
+    if (v.setorId === setorId) {
       vendasMap.set(v.codigo, v);
     }
   });
 
-  // 4. Cruzamento (Left Join: Cadastro -> Vendas)
+  // 5. Cruzamento (Left Join: Cadastro -> Vendas)
   return dealersCadastro.map(dealer => {
     const venda = vendasMap.get(dealer.codigo);
-    
+
     return {
       codigo: dealer.codigo,
-      nome: dealer.nome, // Nome oficial do cadastro
+      nome: dealer.nome,
       setorId: dealer.setorId,
-      segmentoOficial: dealer.segmentoOficial, // Segmento fixo do ciclo
-      ciclos: venda ? venda.ciclos : {} // Se não vendeu, ciclos vazio
+      segmentoOficial: dealer.segmentoOficial,
+      ciclos: venda ? venda.ciclos : {}
     };
   });
 }
@@ -513,7 +367,6 @@ app.get('/api/dashboard', (req, res) => {
   res.json({
     setor,
     cicloAtual: config.cicloAtual,
-    snapshotAtivo: config.snapshotAtivo,
     kpis: {
       totalSetor: Math.round(totalSetor * 100) / 100,
       qtdRevendedores,
@@ -621,12 +474,9 @@ app.get('/api/admin/config', (req, res) => {
 
 // Update config
 app.put('/api/admin/config', (req, res) => {
-  const { cicloAtual, snapshotAtivo, representatividade } = req.body;
+  const { cicloAtual, representatividade } = req.body;
 
   if (cicloAtual) config.cicloAtual = cicloAtual;
-  if (snapshotAtivo && ['manha', 'tarde'].includes(snapshotAtivo)) {
-    config.snapshotAtivo = snapshotAtivo;
-  }
   if (representatividade) {
     // Validar que soma = 100% (aproximadamente)
     const soma = Object.values(representatividade).reduce((a, b) => a + b, 0);
@@ -639,53 +489,7 @@ app.put('/api/admin/config', (req, res) => {
   }
 
   saveConfig(config);
-
-  // Limpar cache para recarregar com novas configs
-  dataCache.timestamp = null;
-
   res.json({ success: true, config });
-});
-
-// Upload CSV
-app.post('/api/admin/upload', upload.single('file'), (req, res) => {
-  const slot = req.query.slot || 'manha';
-
-  if (!req.file) {
-    return res.status(400).json({ error: 'Nenhum arquivo enviado' });
-  }
-
-  if (!['manha', 'tarde'].includes(slot)) {
-    return res.status(400).json({ error: 'Slot inválido. Use manha ou tarde.' });
-  }
-
-  config.uploads[slot] = {
-    filename: req.file.filename,
-    originalName: req.file.originalname,
-    timestamp: new Date().toISOString(),
-    size: req.file.size
-  };
-  saveConfig(config);
-
-  // Limpar cache para forçar reload
-  dataCache[slot] = null;
-  dataCache.timestamp = null;
-
-  res.json({
-    success: true,
-    message: `Upload ${slot} concluído`,
-    file: req.file.filename
-  });
-});
-
-// Update snapshot ativo (legado)
-app.post('/api/admin/snapshot', (req, res) => {
-  const { snapshot } = req.body;
-  if (!['manha', 'tarde'].includes(snapshot)) {
-    return res.status(400).json({ error: 'Snapshot inválido' });
-  }
-  config.snapshotAtivo = snapshot;
-  saveConfig(config);
-  res.json({ success: true, snapshotAtivo: snapshot });
 });
 
 // Update ciclo (legado)
