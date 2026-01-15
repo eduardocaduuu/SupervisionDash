@@ -12,8 +12,8 @@ export default function DealerModal({ dealer, onClose }) {
     codigo,
     nome,
     segmento,
+    totalGeral,
     totalCicloAtual,
-    totalPonderado,
     faltaManter,
     faltaSubir,
     percentManter,
@@ -61,12 +61,12 @@ export default function DealerModal({ dealer, onClose }) {
           {/* MAIN STATS */}
           <div className="dealer-modal__stats">
             <div className="dealer-modal__stat">
-              <span className="dealer-modal__stat-label">TOTAL CICLO ATUAL</span>
-              <span className="dealer-modal__stat-value mono">{formatCurrency(totalCicloAtual)}</span>
+              <span className="dealer-modal__stat-label">TOTAL 9 CICLOS</span>
+              <span className="dealer-modal__stat-value mono">{formatCurrency(totalGeral)}</span>
             </div>
             <div className="dealer-modal__stat dealer-modal__stat--secondary">
-              <span className="dealer-modal__stat-label">TOTAL PONDERADO</span>
-              <span className="dealer-modal__stat-value mono">{formatCurrency(totalPonderado)}</span>
+              <span className="dealer-modal__stat-label">CICLO ATUAL</span>
+              <span className="dealer-modal__stat-value mono">{formatCurrency(totalCicloAtual)}</span>
             </div>
           </div>
 

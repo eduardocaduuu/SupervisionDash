@@ -200,6 +200,51 @@
   box-shadow: inset 2px 2px 0 var(--shadow-color), 0 0 10px rgba(184, 217, 119, 0.2);
 }
 
+.terminal-input--error {
+  border-color: var(--color-neon-danger);
+  box-shadow: inset 2px 2px 0 var(--shadow-color), 0 0 10px rgba(217, 119, 119, 0.3);
+}
+
+.terminal-input--error:focus {
+  border-color: var(--color-neon-danger);
+}
+
+/* ERROR MESSAGE */
+.terminal-error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  padding: var(--space-md);
+  background: rgba(217, 119, 119, 0.15);
+  border: 2px solid var(--color-neon-danger);
+  color: var(--color-neon-danger);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  margin-top: var(--space-sm);
+  animation: fadeIn 0.3s ease;
+}
+
+.terminal-error svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* HELP TEXT */
+.terminal-help {
+  text-align: center;
+  margin-top: var(--space-md);
+  font-size: var(--text-xs);
+}
+
+/* MORE RESULTS */
+.terminal-dropdown__more {
+  padding: var(--space-sm) var(--space-md);
+  text-align: center;
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
 .terminal-input__cursor {
   position: absolute;
   right: var(--space-md);

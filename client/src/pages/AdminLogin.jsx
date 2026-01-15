@@ -1,10 +1,11 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Shield, Lock, AlertTriangle, CheckCircle, ArrowLeft } from 'lucide-react'
+import { Shield, Lock, User, AlertTriangle, CheckCircle, ArrowLeft } from 'lucide-react'
 import './AdminLogin.css'
 
 export default function AdminLogin() {
   const navigate = useNavigate()
+  const [user, setUser] = useState('')
   const [password, setPassword] = useState('')
   const [status, setStatus] = useState(null) // null, 'loading', 'granted', 'denied'
   const [errorShake, setErrorShake] = useState(false)
@@ -17,7 +18,7 @@ export default function AdminLogin() {
       const res = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password })
+        body: JSON.stringify({ user, password })
       })
 
       if (res.ok) {
@@ -54,24 +55,39 @@ export default function AdminLogin() {
         <form className="admin-login__form" onSubmit={handleSubmit}>
           <div className="admin-login__input-group">
             <label className="admin-login__label">
+              <User size={14} />
+              <span>USUÁRIO</span>
+            </label>
+            <input
+              type="text"
+              className="admin-login__input"
+              placeholder="Digite o usuário..."
+              value={user}
+              onChange={(e) => setUser(e.target.value)}
+              disabled={status === 'loading' || status === 'granted'}
+              autoFocus
+            />
+          </div>
+
+          <div className="admin-login__input-group">
+            <label className="admin-login__label">
               <Lock size={14} />
-              <span>AUTHENTICATION KEY</span>
+              <span>SENHA</span>
             </label>
             <input
               type="password"
               className="admin-login__input"
-              placeholder="Enter admin password..."
+              placeholder="Digite a senha..."
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={status === 'loading' || status === 'granted'}
-              autoFocus
             />
           </div>
 
           <button
             type="submit"
             className="admin-login__submit"
-            disabled={!password || status === 'loading' || status === 'granted'}
+            disabled={!user || !password || status === 'loading' || status === 'granted'}
           >
             {status === 'loading' ? (
               <>

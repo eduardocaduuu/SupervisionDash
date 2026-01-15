@@ -1,12 +1,14 @@
 import React from 'react'
-import { Award, Star, Gem, Crown, Sparkles } from 'lucide-react'
+import { Award, Star, Gem, Crown, Sparkles, Circle, Hexagon } from 'lucide-react'
 
 const segmentConfig = {
-  Bronze: { icon: Award, className: 'badge--bronze' },
-  Prata: { icon: Star, className: 'badge--prata' },
-  Ouro: { icon: Gem, className: 'badge--ouro' },
-  Diamante: { icon: Crown, className: 'badge--diamante' },
-  Elite: { icon: Sparkles, className: 'badge--elite' }
+  Bronze:    { icon: Circle,   className: 'badge--bronze' },
+  Prata:     { icon: Award,    className: 'badge--prata' },
+  Ouro:      { icon: Star,     className: 'badge--ouro' },
+  Platina:   { icon: Gem,      className: 'badge--platina' },
+  Rubi:      { icon: Hexagon,  className: 'badge--rubi' },
+  Esmeralda: { icon: Crown,    className: 'badge--esmeralda' },
+  Diamante:  { icon: Sparkles, className: 'badge--diamante' }
 }
 
 export default function BadgeSegment({ segment }) {

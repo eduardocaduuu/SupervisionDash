@@ -10,6 +10,7 @@ export default function DealerCard({ dealer, onClick }) {
     codigo,
     nome,
     segmento,
+    totalGeral,
     totalCicloAtual,
     faltaManter,
     faltaSubir,
@@ -30,7 +31,7 @@ export default function DealerCard({ dealer, onClick }) {
   }
 
   const formatCurrency = (val) =>
-    `R$ ${val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+    `R$ ${(val || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
 
   return (
     <div className={`dealer-card ${atRisk ? 'dealer-card--at-risk' : ''} ${nearLevelUp ? 'dealer-card--level-up' : ''}`}>
@@ -43,8 +44,8 @@ export default function DealerCard({ dealer, onClick }) {
       </div>
 
       <div className="dealer-card__total">
-        <span className="dealer-card__total-label">TOTAL CICLO</span>
-        <span className="dealer-card__total-value mono">{formatCurrency(totalCicloAtual)}</span>
+        <span className="dealer-card__total-label">TOTAL 9 CICLOS</span>
+        <span className="dealer-card__total-value mono">{formatCurrency(totalGeral)}</span>
       </div>
 
       <div className="dealer-card__progress">

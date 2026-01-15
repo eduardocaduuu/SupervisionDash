@@ -56,7 +56,7 @@ export default function Dashboard() {
       case 'delta':
         return b.deltaDia - a.deltaDia
       case 'total':
-        return b.totalCicloAtual - a.totalCicloAtual
+        return b.totalGeral - a.totalGeral
       case 'risk':
         return a.percentManter - b.percentManter
       default:

@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Terminal as TerminalIcon, Database, ChevronRight, Activity, Shield, Clock } from 'lucide-react'
+import { Terminal as TerminalIcon, Database, ChevronRight, Activity, Shield, AlertTriangle } from 'lucide-react'
 import './Terminal.css'
+
+// Códigos de gerência bloqueados
+const GERENCIAS_BLOQUEADAS = ['13706', '13707']
 
 export default function Terminal() {
   const navigate = useNavigate()
@@ -11,6 +14,7 @@ export default function Terminal() {
   const [showDropdown, setShowDropdown] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState(null)
   const inputRef = useRef(null)
 
   useEffect(() => {
@@ -23,6 +27,11 @@ export default function Terminal() {
       setIsLoading(false)
     }).catch(console.error)
   }, [])
+
+  // Verificar se é código de gerência
+  const isGerencia = (value) => {
+    return GERENCIAS_BLOQUEADAS.includes(value.trim())
+  }
 
   const filteredSetores = setores.filter(s =>
     s.nome.toLowerCase().includes(inputValue.toLowerCase()) ||
@@ -38,22 +47,52 @@ export default function Terminal() {
       setSelectedIndex(prev => Math.max(prev - 1, 0))
     } else if (e.key === 'Enter') {
       e.preventDefault()
-      if (filteredSetores[selectedIndex]) {
-        handleSelectSetor(filteredSetores[selectedIndex])
-      }
+      handleSubmit()
     } else if (e.key === 'Escape') {
       setShowDropdown(false)
     }
   }
 
   const handleSelectSetor = (setor) => {
+    setError(null)
     navigate(`/dashboard/${setor.id}`)
   }
 
+  const handleSubmit = () => {
+    setError(null)
+
+    // Verificar se é código de gerência
+    if (isGerencia(inputValue)) {
+      setError('Código inválido. Informe o código do setor (ex: 19698). Códigos de gerência (13706, 13707) não são permitidos.')
+      return
+    }
+
+    // Se tem seleção no dropdown, usar ela
+    if (filteredSetores[selectedIndex]) {
+      handleSelectSetor(filteredSetores[selectedIndex])
+      return
+    }
+
+    // Tentar buscar pelo valor digitado diretamente
+    const setor = setores.find(s => s.id === inputValue.trim())
+    if (setor) {
+      handleSelectSetor(setor)
+    } else {
+      setError('Setor não encontrado. Verifique o código informado.')
+    }
+  }
+
   const handleInputChange = (e) => {
-    setInputValue(e.target.value)
+    const value = e.target.value
+    setInputValue(value)
     setShowDropdown(true)
     setSelectedIndex(0)
+    setError(null)
+
+    // Verificar gerência em tempo real
+    if (isGerencia(value)) {
+      setError('Código inválido. Informe o código do setor (ex: 19698). Códigos de gerência (13706, 13707) não são permitidos.')
+    }
   }
 
   return (
@@ -104,8 +143,8 @@ export default function Terminal() {
                 <input
                   ref={inputRef}
                   type="text"
-                  className="terminal-input"
-                  placeholder="Digite o nome ou código do setor..."
+                  className={`terminal-input ${error ? 'terminal-input--error' : ''}`}
+                  placeholder="Digite o código do setor (ex: 19698)..."
                   value={inputValue}
                   onChange={handleInputChange}
                   onFocus={() => setShowDropdown(true)}
@@ -116,13 +155,21 @@ export default function Terminal() {
                 <span className="terminal-input__cursor animate-blink">_</span>
               </div>
 
+              {/* ERROR MESSAGE */}
+              {error && (
+                <div className="terminal-error">
+                  <AlertTriangle size={16} />
+                  <span>{error}</span>
+                </div>
+              )}
+
               {/* DROPDOWN */}
-              {showDropdown && filteredSetores.length > 0 && (
+              {showDropdown && filteredSetores.length > 0 && !error && (
                 <div className="terminal-dropdown">
                   <div className="terminal-dropdown__header">
                     <span className="mono">{filteredSetores.length} REGISTROS ENCONTRADOS</span>
                   </div>
-                  {filteredSetores.map((setor, idx) => (
+                  {filteredSetores.slice(0, 10).map((setor, idx) => (
                     <div
                       key={setor.id}
                       className={`terminal-dropdown__item ${idx === selectedIndex ? 'terminal-dropdown__item--active' : ''}`}
@@ -133,6 +180,11 @@ export default function Terminal() {
                       <ChevronRight size={14} />
                     </div>
                   ))}
+                  {filteredSetores.length > 10 && (
+                    <div className="terminal-dropdown__more">
+                      <span className="mono">+ {filteredSetores.length - 10} mais resultados...</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -140,12 +192,19 @@ export default function Terminal() {
             {/* ENTER BUTTON */}
             <button
               className="terminal-enter-btn"
-              onClick={() => filteredSetores[selectedIndex] && handleSelectSetor(filteredSetores[selectedIndex])}
-              disabled={!filteredSetores[selectedIndex]}
+              onClick={handleSubmit}
+              disabled={!inputValue.trim() || !!error}
             >
               <span>ENTER DASHBOARD</span>
               <ChevronRight size={20} />
             </button>
+
+            {/* HELP TEXT */}
+            <div className="terminal-help">
+              <span className="mono text-muted">
+                Informe o código do setor (primeiro número). Ex: 19698, 1260, 4005
+              </span>
+            </div>
           </div>
 
           {/* STATUS PANEL */}
