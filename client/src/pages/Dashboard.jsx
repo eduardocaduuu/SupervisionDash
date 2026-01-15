@@ -13,6 +13,24 @@ import CiclosTab from './CiclosTab'
 import RankTab from './RankTab'
 import './Dashboard.css'
 
+// Mapeamento de cores para os status traduzidos (Badges)
+const getStatusClass = (status) => {
+  switch (status) {
+    case 'CRÍTICO - PRECISA ACELERAR':
+      return 'text-red-500 bg-red-500/10 border-red-500'
+    case 'AQUECENDO':
+      return 'text-yellow-400 bg-yellow-500/10'
+    case 'NO CAMINHO':
+      return 'text-green-400'
+    case 'QUASE LÁ':
+      return 'text-emerald-500'
+    case 'PRONTO PARA SUBIR':
+      return 'text-cyan-400' // Mantendo padrão Neon
+    default:
+      return ''
+  }
+}
+
 export default function Dashboard() {
   const { setorId } = useParams()
   const [dashboardData, setDashboardData] = useState(null)
@@ -298,7 +316,10 @@ export default function Dashboard() {
                 {filteredDealers.map(dealer => (
                   <DealerCard
                     key={dealer.codigo}
-                    dealer={dealer}
+                    dealer={{
+                      ...dealer,
+                      statusClass: getStatusClass(dealer.impulso)
+                    }}
                     onClick={() => handleDealerClick(dealer)}
                   />
                 ))}
