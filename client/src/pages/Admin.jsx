@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import Panel from '../components/Panel'
 import './Admin.css'
+import { SalesFileParser } from '../utils/SalesFileParser'
 
 export default function Admin() {
   const navigate = useNavigate()
@@ -36,12 +37,23 @@ export default function Admin() {
   const handleFileUpload = async (snapshot, file) => {
     if (!file) return
 
-    const formData = new FormData()
-    formData.append('file', file)
-
     setUploadStatus(prev => ({ ...prev, [snapshot]: 'loading' }))
 
     try {
+      // 1. Parse Universal (Excel ou CSV) -> JSON Normalizado
+      const normalizedData = await SalesFileParser.parse(file)
+
+      // 2. Converter JSON para CSV Padrão (para manter compatibilidade com Backend)
+      const worksheet = XLSX.utils.json_to_sheet(normalizedData)
+      const csvOutput = XLSX.utils.sheet_to_csv(worksheet, { FS: ';' }) // Força separador ;
+      
+      // 3. Criar Blob para envio
+      const blob = new Blob([csvOutput], { type: 'text/csv' })
+      const cleanFile = new File([blob], `snapshot_${snapshot}.csv`, { type: 'text/csv' })
+
+      const formData = new FormData()
+      formData.append('file', cleanFile)
+
       const res = await fetch(`/api/admin/upload?snapshot=${snapshot}`, {
         method: 'POST',
         body: formData
@@ -289,7 +301,7 @@ export default function Admin() {
                   <input
                     ref={fileInputManha}
                     type="file"
-                    accept=".csv"
+                    accept=".csv, .xlsx, .xls"
                     hidden
                     onChange={(e) => handleFileUpload('manha', e.target.files[0])}
                   />
@@ -329,7 +341,7 @@ export default function Admin() {
                   <input
                     ref={fileInputTarde}
                     type="file"
-                    accept=".csv"
+                    accept=".csv, .xlsx, .xls"
                     hidden
                     onChange={(e) => handleFileUpload('tarde', e.target.files[0])}
                   />
