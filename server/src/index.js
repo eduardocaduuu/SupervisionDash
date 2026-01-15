@@ -22,8 +22,13 @@ if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, uploadsDir),
   filename: (req, file, cb) => {
-    const slot = req.query.slot || 'manha';
-    cb(null, `snapshot_${slot}.csv`);
+    // Verifica se é upload de cadastro ou snapshot de vendas
+    if (req.query.type === 'cadastro') {
+      cb(null, 'cadastro_segmento.csv');
+    } else {
+      const slot = req.query.slot || 'manha';
+      cb(null, `snapshot_${slot}.csv`);
+    }
   }
 });
 const upload = multer({ storage });
@@ -216,6 +221,7 @@ function parseCSV(content) {
 let dataCache = {
   manha: null,
   tarde: null,
+  cadastro: null,
   timestamp: null
 };
 
@@ -275,10 +281,33 @@ function loadCSVData(slot) {
   }
 }
 
+// Carregar dados de Cadastro (Fonte Oficial)
+function loadCadastroData() {
+  const filePath = path.join(uploadsDir, 'cadastro_segmento.csv');
+  
+  // Se já temos em cache e o arquivo não mudou, retorna cache (simplificado)
+  // Para produção ideal verificar mtime, aqui vamos recarregar para garantir consistência
+  if (!fs.existsSync(filePath)) return [];
+
+  try {
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const rows = parseCSV(content);
+    
+    return rows.map(row => ({
+      codigo: row.CodigoRevendedor || row.codigo || '',
+      nome: row.Nome || row.nome || 'Sem Nome',
+      setorId: extractSetorId(row.SetorId || row.setor || ''),
+      segmentoOficial: row.SegmentoAtual || row.segmento || 'Bronze'
+    })).filter(d => d.codigo && d.setorId);
+  } catch (e) {
+    console.error('Error loading Cadastro CSV:', e);
+    return [];
+  }
+}
+
 // Obter dados do snapshot ativo
 function getActiveData() {
   const slot = config.snapshotAtivo;
-
   // Recarregar se necessário
   const filePath = path.join(uploadsDir, `snapshot_${slot}.csv`);
   if (fs.existsSync(filePath)) {
@@ -288,20 +317,47 @@ function getActiveData() {
       dataCache.timestamp = stat.mtimeMs;
     }
   }
-
   return dataCache[slot];
 }
 
 // Obter dealers de um setor específico
 function getDealersForSetor(setorId) {
-  const data = getActiveData();
-
-  if (!data) {
-    // Retornar dados de demonstração se não houver CSV
-    return generateDemoData(setorId);
+  // 1. Carregar Cadastro (Fonte da Verdade)
+  const cadastro = loadCadastroData();
+  
+  // Se não houver cadastro, fallback para demo ou vazio
+  if (!cadastro || cadastro.length === 0) {
+    const data = getActiveData();
+    if (!data) return generateDemoData(setorId);
+    return data.filter(d => d.setorId === setorId);
   }
 
-  return data.filter(d => d.setorId === setorId);
+  // 2. Filtrar revendedores do setor no cadastro
+  const dealersCadastro = cadastro.filter(d => d.setorId === setorId);
+  
+  // 3. Carregar Vendas (Performance)
+  const vendasData = getActiveData() || [];
+  
+  // Indexar vendas por código para acesso O(1)
+  const vendasMap = new Map();
+  vendasData.forEach(v => {
+    if (v.setorId === setorId) { // Garantir que venda pertence ao setor
+      vendasMap.set(v.codigo, v);
+    }
+  });
+
+  // 4. Cruzamento (Left Join: Cadastro -> Vendas)
+  return dealersCadastro.map(dealer => {
+    const venda = vendasMap.get(dealer.codigo);
+    
+    return {
+      codigo: dealer.codigo,
+      nome: dealer.nome, // Nome oficial do cadastro
+      setorId: dealer.setorId,
+      segmentoOficial: dealer.segmentoOficial, // Segmento fixo do ciclo
+      ciclos: venda ? venda.ciclos : {} // Se não vendeu, ciclos vazio
+    };
+  });
 }
 
 // Gerar dados de demonstração
@@ -341,8 +397,9 @@ function calculateDealerMetrics(dealer) {
   // Total do ciclo atual
   const totalCicloAtual = dealer.ciclos[config.cicloAtual] || 0;
 
-  // Determinar segmento atual pelo total acumulado
-  const segmento = getSegmentoByTotal(totalGeral);
+  // Determinar segmento: Prioriza o oficial do cadastro, fallback para calculado
+  const segmento = dealer.segmentoOficial || getSegmentoByTotal(totalGeral);
+  
   const segInfo = SEGMENTOS[segmento];
 
   // Meta para manter (mínimo do segmento atual)
@@ -638,6 +695,23 @@ app.post('/api/admin/upload', upload.single('file'), (req, res) => {
   res.json({
     success: true,
     message: `Upload ${slot} concluído`,
+    file: req.file.filename
+  });
+});
+
+// Upload Cadastro (Novo Endpoint)
+app.post('/api/admin/upload-cadastro', upload.single('file'), (req, res) => {
+  // O multer já salvou como cadastro_segmento.csv devido à query type=cadastro
+  if (!req.file) {
+    return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+  }
+
+  // Limpar cache
+  dataCache.cadastro = null;
+
+  res.json({
+    success: true,
+    message: 'Cadastro de segmentos atualizado com sucesso',
     file: req.file.filename
   });
 });

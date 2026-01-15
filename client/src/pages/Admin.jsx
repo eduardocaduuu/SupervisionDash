@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Shield, LogOut, Upload, Clock, Settings, Save,
-  CheckCircle, AlertTriangle, Sun, Moon, FileSpreadsheet
+  CheckCircle, AlertTriangle, Sun, Moon, FileSpreadsheet, Users
 } from 'lucide-react'
 import Panel from '../components/Panel'
 import './Admin.css'
@@ -11,11 +11,12 @@ export default function Admin() {
   const navigate = useNavigate()
   const [config, setConfig] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [uploadStatus, setUploadStatus] = useState({ manha: null, tarde: null })
+  const [uploadStatus, setUploadStatus] = useState({ manha: null, tarde: null, cadastro: null })
   const [saveStatus, setSaveStatus] = useState(null)
   const [representatividade, setRepresentatividade] = useState({})
   const fileInputManha = useRef(null)
   const fileInputTarde = useRef(null)
+  const fileInputCadastro = useRef(null)
 
   useEffect(() => {
     fetch('/api/admin/config')
@@ -60,6 +61,36 @@ export default function Admin() {
 
     setTimeout(() => {
       setUploadStatus(prev => ({ ...prev, [snapshot]: null }))
+    }, 3000)
+  }
+
+  const handleCadastroUpload = async (file) => {
+    if (!file) return
+
+    const formData = new FormData()
+    formData.append('file', file)
+    // Adiciona type=cadastro para o multer identificar
+    // A URL deve bater com a rota criada no backend
+    
+    setUploadStatus(prev => ({ ...prev, cadastro: 'loading' }))
+
+    try {
+      const res = await fetch('/api/admin/upload-cadastro?type=cadastro', {
+        method: 'POST',
+        body: formData
+      })
+
+      if (res.ok) {
+        setUploadStatus(prev => ({ ...prev, cadastro: 'success' }))
+      } else {
+        setUploadStatus(prev => ({ ...prev, cadastro: 'error' }))
+      }
+    } catch (err) {
+      setUploadStatus(prev => ({ ...prev, cadastro: 'error' }))
+    }
+
+    setTimeout(() => {
+      setUploadStatus(prev => ({ ...prev, cadastro: 'null' }))
     }, 3000)
   }
 
@@ -153,6 +184,41 @@ export default function Admin() {
             {/* UPLOAD SECTION */}
             <Panel title="CSV UPLOAD" variant="cyan" className="admin__upload">
               <div className="upload-grid">
+                {/* CADASTRO (NOVO) */}
+                <div className="upload-box">
+                  <div className="upload-box__header">
+                    <Users size={20} />
+                    <span>CADASTRO (SEGMENTOS)</span>
+                  </div>
+                  <div
+                    className={`dropzone ${uploadStatus.cadastro === 'loading' ? 'dropzone--loading' : ''}`}
+                    onClick={() => fileInputCadastro.current?.click()}
+                  >
+                    {uploadStatus.cadastro === 'success' ? (
+                      <CheckCircle size={32} className="text-neon" />
+                    ) : uploadStatus.cadastro === 'error' ? (
+                      <AlertTriangle size={32} className="text-danger" />
+                    ) : uploadStatus.cadastro === 'loading' ? (
+                      <div className="dropzone__spinner"></div>
+                    ) : (
+                      <Upload size={32} className="dropzone__icon" />
+                    )}
+                    <span className="dropzone__text">
+                      {uploadStatus.cadastro === 'success' ? 'CADASTRO ATUALIZADO' :
+                       uploadStatus.cadastro === 'error' ? 'ERRO NO UPLOAD' :
+                       uploadStatus.cadastro === 'loading' ? 'ENVIANDO...' :
+                       'Arquivo cadastro_segmento.csv'}
+                    </span>
+                  </div>
+                  <input
+                    ref={fileInputCadastro}
+                    type="file"
+                    accept=".csv"
+                    hidden
+                    onChange={(e) => handleCadastroUpload(e.target.files[0])}
+                  />
+                </div>
+
                 {/* MANHÃ */}
                 <div className="upload-box">
                   <div className="upload-box__header">
