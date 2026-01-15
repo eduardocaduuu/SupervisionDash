@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import * as XLSX from 'xlsx'
 import { useParams } from 'react-router-dom'
 import {
   DollarSign, Users, TrendingUp, AlertTriangle,
@@ -91,34 +92,27 @@ export default function Dashboard() {
   const handleExport = (e, filterType) => {
     e.stopPropagation()
     
-    let dataToExport = dealers
-    if (filterType === 'NEAR_LEVEL_UP') dataToExport = dealers.filter(d => d.nearLevelUp)
-    if (filterType === 'AT_RISK') dataToExport = dealers.filter(d => d.atRisk)
+    let filteredData = dealers
+    if (filterType === 'NEAR_LEVEL_UP') filteredData = dealers.filter(d => d.nearLevelUp)
+    if (filterType === 'AT_RISK') filteredData = dealers.filter(d => d.atRisk)
     
-    const headers = ['Codigo', 'Nome', 'Setor', 'Segmento', 'Total Geral', 'Meta Manter', 'Meta Subir']
-    const rows = dataToExport.map(d => [
-      d.codigo, 
-      d.nome, 
-      d.setorId, 
-      d.segmento, 
-      d.totalGeral.toString().replace('.', ','), 
-      d.metaManter, 
-      d.metaSubir || ''
-    ])
-    
-    const csvContent = [
-      headers.join(';'),
-      ...rows.map(r => r.join(';'))
-    ].join('\n')
-    
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.setAttribute('download', `export_${filterType}_${setorId}.csv`)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    const dataToExport = filteredData.map(d => ({
+      Codigo: d.codigo,
+      Nome: d.nome,
+      Setor: d.setorId,
+      Segmento: d.segmento,
+      'Total Geral': d.totalGeral,
+      'Meta Manter': d.metaManter,
+      'Meta Subir': d.metaSubir || ''
+    }))
+
+    const date = new Date().toISOString().split('T')[0]
+    const filename = `Revendedores_${filterType}_${setorId}_${date}.xlsx`
+
+    const ws = XLSX.utils.json_to_sheet(dataToExport)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, "Revendedores")
+    XLSX.writeFile(wb, filename)
   }
 
   return (
