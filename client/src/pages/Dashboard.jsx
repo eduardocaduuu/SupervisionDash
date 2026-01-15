@@ -18,60 +18,69 @@ import './Dashboard.css'
 // SAFELIST: text-green-400 bg-green-400/10 border-green-400/20 shadow-[0_0_10px_rgba(74,222,128,0.2)]
 // SAFELIST: text-emerald-500 bg-emerald-500/10 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.2)]
 
-// Configuração robusta de Status (Texto + Estilo)
+// Configuração robusta de Status (Texto + Estilo + Tipo)
 const getStatusConfig = (rawStatus) => {
-  if (!rawStatus) return { label: 'Unknown', style: 'bg-gray-500/10 text-gray-400 border-gray-500/20' }
-  
+  if (!rawStatus) return { label: 'Unknown', type: 'info', style: 'bg-gray-500/10 text-gray-400 border-gray-500/20' }
+
   const s = rawStatus.toString().toUpperCase().trim()
 
-  // 1. 🔴 NEON VERMELHO (Crítico)
+  // 1. VERMELHO (Crítico) - Precisa de atenção urgente
   if (s.includes('CRITIC') || s.includes('CRÍTICO') || s.includes('BOOST') || s.includes('NEED') || s.includes('ACELERAR')) {
     return {
       label: 'CRÍTICO - PRECISA ACELERAR',
+      type: 'critical',
       style: 'bg-red-500/10 text-red-500 border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.2)]'
     }
   }
 
-  // 2. 🟡 NEON AMARELO (Aquecendo)
+  // 2. LARANJA (Aquecendo) - Em progresso inicial
   if (s.includes('WARM') || s.includes('AQUECENDO')) {
     return {
       label: 'AQUECENDO',
-      style: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20 shadow-[0_0_10px_rgba(250,204,21,0.2)]'
+      type: 'warning',
+      style: 'bg-orange-500/10 text-orange-400 border-orange-500/20 shadow-[0_0_10px_rgba(249,115,22,0.2)]'
     }
   }
 
-  // 3. 🟢 NEON VERDE CLARO (No Caminho)
+  // 3. VERDE (No Caminho) - Bom progresso
   if (s.includes('TRACK') || s.includes('CAMINHO') || s.includes('SYSTEM OK')) {
     return {
       label: 'NO CAMINHO',
+      type: 'track',
       style: 'bg-green-400/10 text-green-400 border-green-400/20 shadow-[0_0_10px_rgba(74,222,128,0.2)]'
     }
   }
 
-  // 4. ❇️ NEON ESMERALDA/FORTE (Quase lá / Meta)
+  // 4. CIANO (Quase lá) - Próximo da meta
   if (s.includes('ALMOST') || s.includes('QUASE')) {
     return {
       label: 'QUASE LÁ',
-      style: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
-    }
-  }
-  
-  if (s.includes('READY') || s.includes('LEVEL') || s.includes('PRONTO') || s.includes('SUBIR')) {
-    return {
-      label: 'PRONTO PARA SUBIR',
-      style: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
+      type: 'almost',
+      style: 'bg-cyan-400/10 text-cyan-400 border-cyan-400/20 shadow-[0_0_10px_rgba(34,211,238,0.2)]'
     }
   }
 
+  // 5. ROXO (Pronto para Subir) - Pronto para próximo nível
+  if (s.includes('READY') || s.includes('LEVEL') || s.includes('PRONTO') || s.includes('SUBIR')) {
+    return {
+      label: 'PRONTO PARA SUBIR',
+      type: 'levelup',
+      style: 'bg-purple-500/10 text-purple-400 border-purple-500/20 shadow-[0_0_10px_rgba(168,85,247,0.2)]'
+    }
+  }
+
+  // 6. AZUL (Missão Cumprida) - Meta atingida
   if (s.includes('MISSION') || s.includes('MISSÃO') || s.includes('SECURE') || s.includes('CUMPRIDA')) {
     return {
       label: 'MISSÃO CUMPRIDA',
+      type: 'success',
       style: 'bg-blue-500/10 text-blue-400 border-blue-500/20 shadow-[0_0_10px_rgba(59,130,246,0.2)]'
     }
   }
-  
+
   return {
     label: rawStatus,
+    type: 'info',
     style: 'bg-gray-500/10 text-gray-400 border-gray-500/20'
   }
 }
@@ -359,11 +368,12 @@ export default function Dashboard() {
               {/* DEALERS GRID */}
               <div className={`dealers-grid ${viewMode === 'list' ? 'dealers-grid--list' : ''}`}>
                 {filteredDealers.map(dealer => {
-                  const { label, style } = getStatusConfig(dealer.impulso)
+                  const { label, type, style } = getStatusConfig(dealer.impulso)
                   const dealerDisplay = {
                     ...dealer,
-                    impulso: label, // Força o texto traduzido
-                    statusClass: style // Gera a cor baseada na tradução
+                    impulso: label,
+                    statusType: type,
+                    statusClass: style
                   }
                   return (
                     <DealerCard

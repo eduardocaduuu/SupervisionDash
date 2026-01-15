@@ -18,17 +18,10 @@ export default function DealerCard({ dealer, onClick }) {
     percentSubir,
     deltaDia,
     impulso,
+    statusType,
     nearLevelUp,
     atRisk
   } = dealer
-
-  const getImpulsoType = () => {
-    if (impulso.includes('CRITICAL')) return 'critical'
-    if (impulso.includes('WARMING') || impulso.includes('BOOST')) return 'warning'
-    if (impulso.includes('SECURE') || impulso.includes('ALMOST')) return 'success'
-    if (impulso.includes('LEVEL UP')) return 'info'
-    return 'info'
-  }
 
   const formatCurrency = (val) =>
     `R$ ${(val || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
@@ -82,7 +75,7 @@ export default function DealerCard({ dealer, onClick }) {
 
       <div className="dealer-card__footer">
         <div className="dealer-card__impulso">
-          <AlertChip type={getImpulsoType()}>{impulso}</AlertChip>
+          <AlertChip type={statusType || 'info'}>{impulso}</AlertChip>
         </div>
         <div className={`dealer-card__delta ${deltaDia >= 0 ? 'dealer-card__delta--positive' : 'dealer-card__delta--negative'}`}>
           {deltaDia >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
