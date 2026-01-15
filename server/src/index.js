@@ -84,9 +84,11 @@ function getSegmentoByTotal(total) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// LISTA FIXA DE SETORES (gerada a partir de Segmentos_bd.xlsx)
+// LISTA DINÂMICA DE SETORES (gerada a partir de Segmentos_bd.xlsx)
 // ═══════════════════════════════════════════════════════════════
-const SETORES = [
+
+// Lista estática como fallback (caso a planilha não esteja disponível)
+const SETORES_FALLBACK = [
   { id: '1414', nome: 'SUPERVISORA DE RELACIONAMENTO' },
   { id: '1415', nome: 'PRATA 2 / Coruripe / Piaçabuçu / F. Deserto / São Sebastião /' },
   { id: '3124', nome: 'BRONZE / Todas as cidades 13707' },
@@ -117,6 +119,50 @@ const SETORES = [
   { id: '23557', nome: 'SETOR PADRÃO 13707' }
 ];
 
+// Gerar lista de setores dinamicamente a partir da planilha
+function getSetoresDinamicos() {
+  try {
+    const XLSX = require('xlsx');
+    const segmentosPath = path.join(dataDir, 'Segmentos_bd.xlsx');
+
+    if (!fs.existsSync(segmentosPath)) {
+      console.log('[Setores] Planilha não encontrada, usando lista fallback');
+      return SETORES_FALLBACK;
+    }
+
+    const workbook = XLSX.readFile(segmentosPath);
+    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rawData = XLSX.utils.sheet_to_json(worksheet);
+
+    // Mapa para agrupar setores únicos (id -> nome)
+    const setoresMap = new Map();
+
+    rawData.forEach(row => {
+      // Pega o código e normaliza (remove pontos)
+      let codigo = row.CodigoEstruturaComercial || row.SetorId || '';
+      codigo = String(codigo).replace(/\./g, '').replace(/\s+/g, '').trim();
+
+      // Pega o nome do setor
+      const nome = row.EstruturaComercial || row.SetorNome || `Setor ${codigo}`;
+
+      if (codigo && !setoresMap.has(codigo)) {
+        setoresMap.set(codigo, nome);
+      }
+    });
+
+    const setores = Array.from(setoresMap.entries()).map(([id, nome]) => ({ id, nome }));
+    console.log(`[Setores] ${setores.length} setores carregados da planilha`);
+
+    return setores.length > 0 ? setores : SETORES_FALLBACK;
+  } catch (error) {
+    console.error('[Setores] Erro ao carregar setores da planilha:', error);
+    return SETORES_FALLBACK;
+  }
+}
+
+// Carrega setores uma vez na inicialização
+let SETORES = getSetoresDinamicos();
+
 // GERÊNCIAS BLOQUEADAS
 const GERENCIAS_BLOQUEADAS = ['13706', '13707'];
 
@@ -132,6 +178,11 @@ function isValidSetorId(id) {
 function extractSetorId(setorString) {
   const match = String(setorString).match(/^\d+/);
   return match ? match[0] : null;
+}
+
+// Normalizar ID do setor (remover pontos, espaços e caracteres especiais)
+function normalizeSetorId(setorId) {
+  return String(setorId || '').replace(/\./g, '').replace(/\s+/g, '').trim();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -297,8 +348,10 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Lista de setores
+// Lista de setores (recarrega dinamicamente para refletir novas planilhas)
 app.get('/api/setores', (req, res) => {
+  // Recarrega a lista de setores para refletir mudanças na planilha
+  SETORES = getSetoresDinamicos();
   res.json(SETORES);
 });
 
@@ -310,7 +363,8 @@ app.get('/api/config', (req, res) => {
 
 // Validar setor
 app.get('/api/validar-setor/:setorId', (req, res) => {
-  const { setorId } = req.params;
+  // Normaliza o ID (remove pontos, espaços, etc)
+  const setorId = normalizeSetorId(req.params.setorId);
 
   if (GERENCIAS_BLOQUEADAS.includes(setorId)) {
     return res.status(400).json({
@@ -318,6 +372,9 @@ app.get('/api/validar-setor/:setorId', (req, res) => {
       error: 'Código inválido. Informe o código do setor (ex: 19698). Códigos de gerência (13706, 13707) não são permitidos.'
     });
   }
+
+  // Recarrega setores para garantir que novos setores sejam reconhecidos
+  SETORES = getSetoresDinamicos();
 
   const setor = SETORES.find(s => s.id === setorId);
   if (!setor) {
@@ -332,11 +389,12 @@ app.get('/api/validar-setor/:setorId', (req, res) => {
 
 // Dashboard do setor
 app.get('/api/dashboard', (req, res) => {
-  const { setorId } = req.query;
-
-  if (!setorId) {
+  if (!req.query.setorId) {
     return res.status(400).json({ error: 'setorId é obrigatório' });
   }
+
+  // Normaliza o ID (remove pontos, espaços, etc)
+  const setorId = normalizeSetorId(req.query.setorId);
 
   if (GERENCIAS_BLOQUEADAS.includes(setorId)) {
     return res.status(400).json({
@@ -380,17 +438,18 @@ app.get('/api/dashboard', (req, res) => {
 
 // Rota legada (compatibilidade)
 app.get('/api/setor/:setorId', (req, res) => {
-  req.query.setorId = req.params.setorId;
-  return res.redirect(`/api/dashboard?setorId=${req.params.setorId}`);
+  const setorId = normalizeSetorId(req.params.setorId);
+  return res.redirect(`/api/dashboard?setorId=${setorId}`);
 });
 
 // Detalhe do revendedor
 app.get('/api/revendedor', (req, res) => {
-  const { setorId, codigoRevendedor } = req.query;
-
-  if (!setorId || !codigoRevendedor) {
+  if (!req.query.setorId || !req.query.codigoRevendedor) {
     return res.status(400).json({ error: 'setorId e codigoRevendedor são obrigatórios' });
   }
+
+  const setorId = normalizeSetorId(req.query.setorId);
+  const codigoRevendedor = normalizeSetorId(req.query.codigoRevendedor);
 
   const dealers = getDealersForSetor(setorId);
   const dealer = dealers.find(d => d.codigo === codigoRevendedor);
@@ -404,7 +463,7 @@ app.get('/api/revendedor', (req, res) => {
 
 // Rank do dia
 app.get('/api/setor/:setorId/rank', (req, res) => {
-  const { setorId } = req.params;
+  const setorId = normalizeSetorId(req.params.setorId);
   const dealers = getDealersForSetor(setorId);
   const dealersWithMetrics = dealers.map(d => calculateDealerMetrics(d));
 
@@ -431,7 +490,7 @@ app.get('/api/setor/:setorId/rank', (req, res) => {
 
 // Ciclos do setor
 app.get('/api/setor/:setorId/ciclos', (req, res) => {
-  const { setorId } = req.params;
+  const setorId = normalizeSetorId(req.params.setorId);
   const dealers = getDealersForSetor(setorId);
 
   const ciclosList = Object.keys(config.representatividade);
