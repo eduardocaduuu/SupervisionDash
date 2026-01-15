@@ -372,12 +372,28 @@ app.get('/api/admin/config', (req, res) => {
   res.json(config);
 });
 
+// ========== SERVE FRONTEND IN PRODUCTION ==========
+if (process.env.NODE_ENV === 'production') {
+  const clientBuildPath = path.join(__dirname, '../../client/dist');
+
+  // Serve static files
+  app.use(express.static(clientBuildPath));
+
+  // Handle SPA routing - serve index.html for all non-API routes
+  app.get('*', (req, res) => {
+    if (!req.path.startsWith('/api')) {
+      res.sendFile(path.join(clientBuildPath, 'index.html'));
+    }
+  });
+}
+
 // Start server
 app.listen(PORT, () => {
   console.log(`
 ╔══════════════════════════════════════════════════╗
 ║     SUPERVISION SEGMENTS - SERVER ONLINE         ║
 ║     Port: ${PORT}                                    ║
+║     Mode: ${process.env.NODE_ENV || 'development'}                          ║
 ║     Status: OPERATIONAL                          ║
 ╚══════════════════════════════════════════════════╝
   `);
