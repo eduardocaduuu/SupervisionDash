@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import * as XLSX from 'xlsx'
 import { useNavigate } from 'react-router-dom'
 import {
   Shield, LogOut, Upload, Clock, Settings, Save,
@@ -67,27 +68,54 @@ export default function Admin() {
   const handleCadastroUpload = async (file) => {
     if (!file) return
 
-    const formData = new FormData()
-    formData.append('file', file)
-    // Adiciona type=cadastro para o multer identificar
-    // A URL deve bater com a rota criada no backend
-    
     setUploadStatus(prev => ({ ...prev, cadastro: 'loading' }))
 
-    try {
-      const res = await fetch('/api/admin/upload-cadastro?type=cadastro', {
-        method: 'POST',
-        body: formData
-      })
+    const reader = new FileReader()
+    
+    reader.onload = async (e) => {
+      try {
+        const data = new Uint8Array(e.target.result)
+        const workbook = XLSX.read(data, { type: 'array' })
+        const firstSheetName = workbook.SheetNames[0]
+        const worksheet = workbook.Sheets[firstSheetName]
+        const jsonData = XLSX.utils.sheet_to_json(worksheet)
 
-      if (res.ok) {
-        setUploadStatus(prev => ({ ...prev, cadastro: 'success' }))
-      } else {
+        if (!jsonData || jsonData.length === 0) {
+          throw new Error('Arquivo vazio ou inválido')
+        }
+
+        // Validação de colunas obrigatórias
+        const firstRow = jsonData[0]
+        const required = ['CodigoRevendedor', 'SegmentoAtual']
+        const missing = required.filter(field => !Object.keys(firstRow).includes(field))
+
+        if (missing.length > 0) {
+          throw new Error(`Colunas obrigatórias faltando: ${missing.join(', ')}`)
+        }
+
+        // Enviar JSON para o backend
+        const res = await fetch('/api/admin/cadastro-data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(jsonData)
+        })
+
+        if (res.ok) {
+          setUploadStatus(prev => ({ ...prev, cadastro: 'success' }))
+        } else {
+          setUploadStatus(prev => ({ ...prev, cadastro: 'error' }))
+        }
+      } catch (err) {
+        console.error(err)
         setUploadStatus(prev => ({ ...prev, cadastro: 'error' }))
       }
-    } catch (err) {
+    }
+
+    reader.onerror = () => {
       setUploadStatus(prev => ({ ...prev, cadastro: 'error' }))
     }
+
+    reader.readAsArrayBuffer(file)
 
     setTimeout(() => {
       setUploadStatus(prev => ({ ...prev, cadastro: 'null' }))
@@ -207,13 +235,13 @@ export default function Admin() {
                       {uploadStatus.cadastro === 'success' ? 'CADASTRO ATUALIZADO' :
                        uploadStatus.cadastro === 'error' ? 'ERRO NO UPLOAD' :
                        uploadStatus.cadastro === 'loading' ? 'ENVIANDO...' :
-                       'Arquivo cadastro_segmento.csv'}
+                       'Arquivo .xlsx, .xls ou .csv'}
                     </span>
                   </div>
                   <input
                     ref={fileInputCadastro}
                     type="file"
-                    accept=".csv"
+                    accept=".csv, .xlsx, .xls"
                     hidden
                     onChange={(e) => handleCadastroUpload(e.target.files[0])}
                   />
