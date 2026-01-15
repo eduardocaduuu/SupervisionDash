@@ -78,26 +78,34 @@ export default function Admin() {
         const workbook = XLSX.read(data, { type: 'array' })
         const firstSheetName = workbook.SheetNames[0]
         const worksheet = workbook.Sheets[firstSheetName]
-        const jsonData = XLSX.utils.sheet_to_json(worksheet)
+        const rawData = XLSX.utils.sheet_to_json(worksheet)
 
-        if (!jsonData || jsonData.length === 0) {
+        if (!rawData || rawData.length === 0) {
           throw new Error('Arquivo vazio ou inválido')
         }
 
-        // Validação de colunas obrigatórias
-        const firstRow = jsonData[0]
-        const required = ['CodigoRevendedor', 'SegmentoAtual']
-        const missing = required.filter(field => !Object.keys(firstRow).includes(field))
+        // 1. Normalização e Mapeamento (De-Para)
+        const normalizedData = rawData.map(row => ({
+          CodigoRevendedor: String(row['CodigoRevendedor'] || '').trim(),
+          NomeRevendedora: (row['Nome'] || '').trim(), // Mapeado de 'Nome'
+          SegmentoAtual: (row['Papel'] || '').trim(),  // Mapeado de 'Papel'
+          SetorId: String(row['CodigoEstruturaComercial'] || '').trim() // Mapeado de 'CodigoEstruturaComercial'
+        })).filter(r => r.CodigoRevendedor && r.SetorId) // Remove linhas sem identificação
+
+        // 2. Validação (Pós-renomeação)
+        const firstRow = normalizedData[0] || {}
+        const required = ['CodigoRevendedor', 'SegmentoAtual', 'SetorId']
+        const missing = required.filter(field => !firstRow[field])
 
         if (missing.length > 0) {
-          throw new Error(`Colunas obrigatórias faltando: ${missing.join(', ')}`)
+          throw new Error(`Colunas obrigatórias não identificadas (verifique mapeamento): ${missing.join(', ')}`)
         }
 
         // Enviar JSON para o backend
         const res = await fetch('/api/admin/cadastro-data', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(jsonData)
+          body: JSON.stringify(normalizedData)
         })
 
         if (res.ok) {

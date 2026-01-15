@@ -290,7 +290,7 @@ function loadCadastroData() {
       const content = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
       return content.map(row => ({
         codigo: row.CodigoRevendedor || row.codigo || '',
-        nome: row.Nome || row.nome || 'Sem Nome',
+        nome: row.NomeRevendedora || row.Nome || row.nome || 'Sem Nome',
         setorId: extractSetorId(row.SetorId || row.setor || ''),
         segmentoOficial: row.SegmentoAtual || row.segmento || 'Bronze'
       })).filter(d => d.codigo && d.setorId);
