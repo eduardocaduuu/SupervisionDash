@@ -15,26 +15,30 @@ import './Dashboard.css'
 
 // Mapeamento de cores para os status traduzidos (Badges)
 const getStatusClass = (status) => {
-  if (!status) return ''
+  if (!status) return 'bg-gray-500/10 text-gray-400 border-gray-500/20'
   const s = status.toUpperCase()
 
-  if (s.includes('CRITIC') || s.includes('CRÍTICO') || s.includes('NEED BOOST') || s.includes('PRECISA ACELERAR')) {
-    return 'text-red-500 bg-red-500/10 border-red-500'
+  // 1. 🔴 NEON VERMELHO (Crítico)
+  if (s.includes('CRITIC') || s.includes('CRÍTICO') || s.includes('BOOST') || s.includes('ACELERAR')) {
+    return 'bg-red-500/10 text-red-500 border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.2)]'
   }
+
+  // 2. 🟡 NEON AMARELO (Aquecendo)
   if (s.includes('WARM') || s.includes('AQUECENDO')) {
-    return 'text-yellow-400 bg-yellow-500/10'
+    return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20 shadow-[0_0_10px_rgba(250,204,21,0.2)]'
   }
-  if (s.includes('TRACK') || s.includes('CAMINHO')) {
-    return 'text-green-400'
+
+  // 3. 🟢 NEON VERDE CLARO (No Caminho)
+  if (s.includes('TRACK') || s.includes('CAMINHO') || s.includes('SYSTEM OK')) {
+    return 'bg-green-400/10 text-green-400 border-green-400/20 shadow-[0_0_10px_rgba(74,222,128,0.2)]'
   }
-  if (s.includes('ALMOST') || s.includes('QUASE')) {
-    return 'text-emerald-500'
-  }
-  if (s.includes('READY') || s.includes('PRONTO') || s.includes('SUBIR')) {
-    return 'text-cyan-400' // Mantendo padrão Neon
+
+  // 4. ❇️ NEON ESMERALDA/FORTE (Quase lá / Meta)
+  if (s.includes('ALMOST') || s.includes('QUASE') || s.includes('READY') || s.includes('PRONTO') || s.includes('SUBIR')) {
+    return 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.2)]'
   }
   
-  return ''
+  return 'bg-gray-500/10 text-gray-400 border-gray-500/20'
 }
 
 export default function Dashboard() {
