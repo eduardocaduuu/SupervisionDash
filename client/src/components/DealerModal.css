@@ -1,0 +1,213 @@
+/* ═══ DEALER MODAL - NEO-BRUTALIST ═══ */
+.modal__title {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.modal__title-label {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  letter-spacing: 0.15em;
+}
+
+.modal__title-code {
+  font-size: var(--text-lg);
+  color: var(--color-neon-primary);
+}
+
+/* HEADER */
+.dealer-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-md);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: var(--space-lg);
+}
+
+.dealer-modal__name {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.dealer-modal__name h2 {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-text-primary);
+}
+
+.dealer-modal__impulso {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.dealer-modal__impulso-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--color-text-muted);
+}
+
+.dealer-modal__impulso-value {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--color-neon-warning);
+  padding: var(--space-xs) var(--space-sm);
+  border: 2px solid var(--color-neon-warning);
+  background: rgba(217, 195, 119, 0.1);
+}
+
+/* STATS */
+.dealer-modal__stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.dealer-modal__stat {
+  padding: var(--space-md);
+  background: var(--color-bg-secondary);
+  border: 2px solid var(--border-color);
+  border-left: 4px solid var(--color-neon-primary);
+}
+
+.dealer-modal__stat--secondary {
+  border-left-color: var(--color-neon-secondary);
+}
+
+.dealer-modal__stat-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+  margin-bottom: var(--space-xs);
+}
+
+.dealer-modal__stat-value {
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+/* PROGRESS */
+.dealer-modal__progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  margin-bottom: var(--space-lg);
+}
+
+.dealer-modal__progress-item {
+  padding: var(--space-md);
+  background: var(--color-bg-secondary);
+  border: 2px solid var(--border-color);
+}
+
+.dealer-modal__progress-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-neon-primary);
+  margin-bottom: var(--space-sm);
+}
+
+.dealer-modal__progress-header--cyan {
+  color: var(--color-neon-secondary);
+}
+
+.dealer-modal__progress-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+/* CHART */
+.dealer-modal__chart {
+  margin-bottom: var(--space-lg);
+}
+
+.dealer-modal__chart-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-neon-primary);
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.dealer-modal__chart-container {
+  background: var(--color-bg-secondary);
+  border: 2px solid var(--border-color);
+  padding: var(--space-md);
+}
+
+/* TABLE */
+.dealer-modal__table {
+  margin-bottom: var(--space-md);
+}
+
+.dealer-modal__table-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-neon-primary);
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.dealer-modal__table .table-neo tbody tr.current {
+  background: rgba(184, 217, 119, 0.1);
+}
+
+.dealer-modal__table .table-neo tbody tr.current td {
+  color: var(--color-neon-primary);
+}
+
+/* RESPONSIVE */
+@media (max-width: 600px) {
+  .dealer-modal__header {
+    flex-direction: column;
+  }
+
+  .dealer-modal__impulso {
+    align-items: flex-start;
+  }
+
+  .dealer-modal__stats {
+    grid-template-columns: 1fr;
+  }
+
+  .dealer-modal__stat-value {
+    font-size: var(--text-xl);
+  }
+}

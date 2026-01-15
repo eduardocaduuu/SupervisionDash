@@ -1,0 +1,112 @@
+/* ═══ CICLOS TAB ═══ */
+.ciclos-tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.ciclos-loading {
+  padding: var(--space-2xl);
+  text-align: center;
+}
+
+/* INFO */
+.ciclos-tab__info {
+  margin-bottom: var(--space-md);
+}
+
+.ciclos-info {
+  display: flex;
+  gap: var(--space-md);
+  align-items: flex-start;
+}
+
+.ciclos-info__icon {
+  color: var(--color-neon-secondary);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.ciclos-info p {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+.ciclos-info strong {
+  color: var(--color-neon-secondary);
+}
+
+/* CHART */
+.ciclos-chart-container {
+  background: var(--color-bg-secondary);
+  border: 2px solid var(--border-color);
+  padding: var(--space-md);
+}
+
+/* TOOLTIP */
+.ciclos-tooltip {
+  background: var(--color-bg-panel);
+  border: 2px solid var(--color-neon-primary);
+  padding: var(--space-sm) var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ciclos-tooltip__label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+}
+
+.ciclos-tooltip__value {
+  font-family: var(--font-mono);
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--color-neon-primary);
+}
+
+/* TABLE CUSTOM */
+.ciclos-tab .table-neo tbody tr.highlight {
+  background: rgba(184, 217, 119, 0.1);
+}
+
+.ciclos-tab .table-neo tbody tr.highlight td {
+  color: var(--color-neon-primary);
+}
+
+/* PERCENT BAR */
+.ciclos-percent-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  min-width: 150px;
+}
+
+.ciclos-percent-bar__fill {
+  height: 8px;
+  background: var(--color-neon-secondary);
+  flex-shrink: 0;
+  transition: width 0.3s ease;
+}
+
+.ciclos-percent-bar span {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .ciclos-info {
+    flex-direction: column;
+    text-align: center;
+    align-items: center;
+  }
+
+  .ciclos-percent-bar {
+    min-width: 100px;
+  }
+}
