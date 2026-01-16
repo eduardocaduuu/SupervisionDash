@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { TrendingUp, TrendingDown, ChevronRight, Target, Rocket, StickyNote } from 'lucide-react'
+import { TrendingUp, TrendingDown, ChevronRight, Target, Rocket } from 'lucide-react'
 import BadgeSegment from './BadgeSegment'
 import ProgressBar from './ProgressBar'
 import AlertChip from './AlertChip'
@@ -92,20 +92,15 @@ export default function DealerCard({ dealer, onClick, note = '', onSaveNote }) {
         )}
       </div>
 
-      {/* POST-IT NOTE */}
-      <div style={{ padding: '0 12px 12px 12px' }}>
-        <div className="relative bg-yellow-50 border border-yellow-200 rounded p-2 shadow-sm flex gap-2">
-          <StickyNote size={14} className="text-yellow-400 flex-shrink-0 mt-1" />
-          <textarea
-            className="w-full bg-transparent border-none resize-none text-xs text-slate-600 placeholder-yellow-400/50 focus:outline-none"
-            placeholder="Adicionar observação..."
-            rows={2}
-            value={localNote}
-            onChange={(e) => setLocalNote(e.target.value)}
-            onBlur={handleBlur}
-            style={{ minHeight: '40px' }}
-          />
-        </div>
+      {/* NOTES (Cyberpunk Style) */}
+      <div className="px-4 pb-4">
+        <textarea
+          className="w-full bg-slate-900/50 text-emerald-400 placeholder-slate-600 text-xs border border-slate-700 rounded p-2 mt-2 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all resize-none h-20 font-mono"
+          placeholder="// Adicionar observação..."
+          value={localNote}
+          onChange={(e) => setLocalNote(e.target.value)}
+          onBlur={handleBlur}
+        />
       </div>
 
       <div className="dealer-card__footer">

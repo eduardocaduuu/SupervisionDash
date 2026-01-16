@@ -26,7 +26,7 @@ const persistentDataDir = path.join(__dirname, '../../data');
 // ═══════════════════════════════════════════════════════════════
 // Config salvo junto com os dados persistentes (data/ na raiz)
 const configPath = path.join(persistentDataDir, 'config.json');
-const notesPath = path.join(persistentDataDir, 'notes.json');
+const notesPath = path.join(__dirname, '../../data/notes.json');
 
 const defaultConfig = {
   cicloAtual: '01/2026',
