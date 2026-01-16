@@ -183,6 +183,117 @@ SEGMENTOS = {
 - Cache de dados
 - Animações otimizadas (toggle disponível)
 
+## 📢 Slack Alerts
+
+O sistema pode enviar alertas automáticos via DM no Slack para supervisoras quando há revendedores "em risco" (percentManter < 50%).
+
+### Agendamento
+
+- Segunda-feira: 09:00 e 17:00
+- Sexta-feira: 09:00 e 17:00
+- Timezone: America/Maceio
+
+### Configuração do Slack App
+
+1. **Criar Slack App**
+   - Acesse [api.slack.com/apps](https://api.slack.com/apps)
+   - Clique em "Create New App" → "From scratch"
+   - Nome: `SuperVision Alerts`
+   - Workspace: Selecione seu workspace
+
+2. **Configurar Bot Token Scopes**
+   - Vá em "OAuth & Permissions"
+   - Em "Bot Token Scopes", adicione:
+     - `chat:write` - Enviar mensagens
+     - `im:write` - Abrir DMs com usuários
+
+3. **Instalar no Workspace**
+   - Clique em "Install to Workspace"
+   - Autorize o app
+   - Copie o "Bot User OAuth Token" (começa com `xoxb-`)
+
+4. **Obter User IDs**
+   - No Slack, clique no perfil do usuário
+   - Clique em "..." → "Copy member ID"
+   - O ID tem formato `U0895CZ8HU7`
+
+### Variáveis de Ambiente (Render)
+
+Adicione no Render (Environment Variables):
+
+```
+SLACK_BOT_TOKEN=xoxb-seu-token-aqui
+SLACK_TEST_USER_ID=U0895CZ8HU7
+SLACK_BASE_URL=https://supervisiondash.onrender.com
+```
+
+### Endpoints Admin
+
+```bash
+# Ver status do Slack
+GET /api/admin/slack/status
+
+# Testar conexão
+GET /api/admin/slack/connection
+
+# Testar envio de alerta (usa testMode)
+POST /api/admin/slack/test?setorId=19698
+
+# Atualizar configuração
+PUT /api/admin/slack/config
+{
+  "enabled": true,
+  "testMode": false,
+  "riskThresholdPercent": 50,
+  "sendWhenZero": false,
+  "supervisoresPorSetor": {
+    "19698": "U0895CZ8HU7",
+    "14245": "UXXXXXXXX"
+  }
+}
+```
+
+### Ativar Alertas
+
+1. **Testar primeiro** (testMode=true):
+   ```bash
+   # Configure SLACK_BOT_TOKEN e SLACK_TEST_USER_ID no Render
+   # Acesse: POST /api/admin/slack/test?setorId=19698
+   # Verifique se recebeu a DM no Slack
+   ```
+
+2. **Ativar em produção**:
+   ```bash
+   PUT /api/admin/slack/config
+   {
+     "enabled": true,
+     "testMode": false,
+     "supervisoresPorSetor": {
+       "19698": "U0895CZ8HU7"
+     }
+   }
+   ```
+
+### Estrutura da Mensagem
+
+```
+⚠️ EM RISCO — Setor 19698
+📍 Nome do Setor
+
+5 de 20 revendedores estão abaixo de 50% da meta de manter (9 ciclos).
+
+🔥 Top 5 Mais Críticos:
+🥇 Maria Silva (10001)
+   └ 23.5% da meta | Falta: R$ 2.300,00
+🥈 Ana Santos (10002)
+   └ 35.2% da meta | Falta: R$ 1.800,00
+...
+
+[📊 Ver Dashboard Completo]
+
+📅 Atualizado em: 16/01/2026, 09:00:00
+```
+
 ## 📄 Licença
 
 MIT © 2026

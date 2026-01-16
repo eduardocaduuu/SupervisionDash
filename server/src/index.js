@@ -44,14 +44,27 @@ const defaultConfig = {
   adminUser: 'acqua',
   adminPassword: '13707',
   // Mensagem de recompensa/motivação (visível para todas supervisoras)
-  mensagemRecompensa: null  // { titulo: '', texto: '', ativa: false }
+  mensagemRecompensa: null,  // { titulo: '', texto: '', ativa: false }
+  // Configuração Slack Alerts
+  slack: {
+    enabled: false,              // Ativa/desativa alertas Slack
+    testMode: true,              // Se true, envia para SLACK_TEST_USER_ID
+    riskThresholdPercent: 50,    // Threshold de risco (percentManter < X)
+    sendWhenZero: false,         // Enviar quando não há revendedores em risco
+    supervisoresPorSetor: {}     // Mapeamento: { "19698": "U0895CZ8HU7", ... }
+  }
 };
 
 function loadConfig() {
   try {
     if (fs.existsSync(configPath)) {
       const saved = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-      return { ...defaultConfig, ...saved };
+      // Deep merge for slack config
+      return {
+        ...defaultConfig,
+        ...saved,
+        slack: { ...defaultConfig.slack, ...(saved.slack || {}) }
+      };
     }
   } catch (e) {
     console.error('Error loading config:', e);
@@ -638,6 +651,143 @@ app.post('/api/notes', (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+// SLACK ALERTS ROUTES (Admin)
+// ═══════════════════════════════════════════════════════════════
+const slackClient = require('./slack/slackClient');
+const alertComposer = require('./slack/alertComposer');
+const riskService = require('./slack/riskService');
+const cronSlackAlerts = require('./jobs/cronSlackAlerts');
+
+// Get Slack status (admin)
+app.get('/api/admin/slack/status', (req, res) => {
+  const slackConfig = config.slack || {};
+  const baseUrl = process.env.SLACK_BASE_URL || 'https://supervisiondash.onrender.com';
+
+  res.json({
+    enabled: slackConfig.enabled || false,
+    testMode: slackConfig.testMode !== false,
+    riskThresholdPercent: slackConfig.riskThresholdPercent || 50,
+    sendWhenZero: slackConfig.sendWhenZero || false,
+    baseUrl,
+    hasToken: !!process.env.SLACK_BOT_TOKEN,
+    hasTestUser: !!process.env.SLACK_TEST_USER_ID,
+    mappedSetores: Object.keys(slackConfig.supervisoresPorSetor || {}),
+    cronSchedule: [
+      'Segunda 09:00 (America/Maceio)',
+      'Segunda 17:00 (America/Maceio)',
+      'Sexta 09:00 (America/Maceio)',
+      'Sexta 17:00 (America/Maceio)'
+    ]
+  });
+});
+
+// Test Slack alert (admin)
+app.post('/api/admin/slack/test', async (req, res) => {
+  const { setorId } = req.query;
+
+  if (!setorId) {
+    return res.status(400).json({ error: 'setorId is required (e.g., ?setorId=19698)' });
+  }
+
+  // Check if Slack token is configured
+  if (!process.env.SLACK_BOT_TOKEN) {
+    return res.status(500).json({
+      error: 'SLACK_BOT_TOKEN not configured',
+      hint: 'Add SLACK_BOT_TOKEN to your environment variables on Render'
+    });
+  }
+
+  const slackConfig = config.slack || {};
+
+  // Determine recipient
+  let userId;
+  if (slackConfig.testMode !== false) {
+    userId = process.env.SLACK_TEST_USER_ID;
+    if (!userId) {
+      return res.status(500).json({
+        error: 'testMode is ON but SLACK_TEST_USER_ID not configured',
+        hint: 'Add SLACK_TEST_USER_ID to your environment variables'
+      });
+    }
+  } else {
+    userId = slackConfig.supervisoresPorSetor?.[setorId];
+    if (!userId) {
+      return res.status(400).json({
+        error: `No supervisor mapped for setor ${setorId}`,
+        hint: 'Add mapping in config.slack.supervisoresPorSetor or enable testMode'
+      });
+    }
+  }
+
+  try {
+    // Get risk summary
+    const summary = riskService.getSectorRiskSummary(setorId);
+
+    // Compose message
+    const { text, blocks } = alertComposer.composeRiskAlert(summary);
+
+    // Send DM
+    const result = await slackClient.sendDM(userId, text, blocks);
+
+    if (result.ok) {
+      res.json({
+        success: true,
+        message: `Alert sent to ${slackConfig.testMode !== false ? 'test user' : 'supervisor'}`,
+        summary: {
+          setorId: summary.setorId,
+          setorNome: summary.setorNome,
+          riskCount: summary.riskCount,
+          totalDealers: summary.totalDealers,
+          threshold: summary.threshold
+        },
+        recipient: userId
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: result.error
+      });
+    }
+  } catch (error) {
+    console.error('[Slack Test] Error:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// Update Slack config (admin)
+app.put('/api/admin/slack/config', (req, res) => {
+  const { enabled, testMode, riskThresholdPercent, sendWhenZero, supervisoresPorSetor } = req.body;
+
+  if (!config.slack) {
+    config.slack = { ...defaultConfig.slack };
+  }
+
+  if (typeof enabled === 'boolean') config.slack.enabled = enabled;
+  if (typeof testMode === 'boolean') config.slack.testMode = testMode;
+  if (typeof riskThresholdPercent === 'number') config.slack.riskThresholdPercent = riskThresholdPercent;
+  if (typeof sendWhenZero === 'boolean') config.slack.sendWhenZero = sendWhenZero;
+  if (supervisoresPorSetor && typeof supervisoresPorSetor === 'object') {
+    config.slack.supervisoresPorSetor = supervisoresPorSetor;
+  }
+
+  saveConfig(config);
+
+  res.json({
+    success: true,
+    slack: config.slack
+  });
+});
+
+// Test Slack connection (admin)
+app.get('/api/admin/slack/connection', async (req, res) => {
+  const result = await slackClient.testConnection();
+  res.json(result);
+});
+
+// ═══════════════════════════════════════════════════════════════
 // SERVE FRONTEND IN PRODUCTION
 // ═══════════════════════════════════════════════════════════════
 if (process.env.NODE_ENV === 'production') {
@@ -656,14 +806,19 @@ if (process.env.NODE_ENV === 'production') {
 // START SERVER
 // ═══════════════════════════════════════════════════════════════
 app.listen(PORT, () => {
+  const slackStatus = config.slack?.enabled ? 'ENABLED' : 'DISABLED';
+
   console.log(`
 ╔══════════════════════════════════════════════════════════════╗
 ║     SUPERVISION SEGMENTS - SERVER ONLINE                     ║
 ║     Port: ${PORT}                                                ║
 ║     Mode: ${(process.env.NODE_ENV || 'development').padEnd(12)}                             ║
 ║     Ciclo: ${config.cicloAtual}                                       ║
-║     Snapshot: ${config.snapshotAtivo}                                       ║
+║     Slack Alerts: ${slackStatus.padEnd(8)}                                   ║
 ║     Status: OPERATIONAL                                      ║
 ╚══════════════════════════════════════════════════════════════╝
   `);
+
+  // Initialize Slack cron jobs
+  cronSlackAlerts.initCronJobs();
 });
