@@ -344,7 +344,7 @@ export default function Dashboard() {
               <MetricCard
                 label="EM RISCO"
                 value={kpis.atRisk}
-                subtext="<30% meta manter"
+                subtext="<50% meta manter"
                 icon={AlertTriangle}
                 variant="danger"
               />
