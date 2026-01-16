@@ -26,6 +26,7 @@ const persistentDataDir = path.join(__dirname, '../../data');
 // ═══════════════════════════════════════════════════════════════
 // Config salvo junto com os dados persistentes (data/ na raiz)
 const configPath = path.join(persistentDataDir, 'config.json');
+const notesPath = path.join(persistentDataDir, 'notes.json');
 
 const defaultConfig = {
   cicloAtual: '01/2026',
@@ -64,6 +65,24 @@ function saveConfig(cfg) {
 
 let config = loadConfig();
 saveConfig(config);
+
+// ═══════════════════════════════════════════════════════════════
+// NOTES (POST-ITS)
+// ═══════════════════════════════════════════════════════════════
+function loadNotes() {
+  try {
+    if (fs.existsSync(notesPath)) {
+      return JSON.parse(fs.readFileSync(notesPath, 'utf-8'));
+    }
+  } catch (e) {
+    console.error('Error loading notes:', e);
+  }
+  return {};
+}
+
+function saveNotes(notes) {
+  fs.writeFileSync(notesPath, JSON.stringify(notes, null, 2));
+}
 
 // ═══════════════════════════════════════════════════════════════
 // SEGMENTAÇÕES (REGRAS DE NEGÓCIO)
@@ -599,6 +618,23 @@ app.delete('/api/admin/mensagem-recompensa', (req, res) => {
 // Obter mensagem de recompensa (público - para supervisoras)
 app.get('/api/mensagem-recompensa', (req, res) => {
   res.json({ mensagem: config.mensagemRecompensa });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// NOTES ROUTES
+// ═══════════════════════════════════════════════════════════════
+app.get('/api/notes', (req, res) => {
+  res.json(loadNotes());
+});
+
+app.post('/api/notes', (req, res) => {
+  const { resellerId, note } = req.body;
+  if (!resellerId) return res.status(400).json({ error: 'resellerId required' });
+  
+  const notes = loadNotes();
+  notes[resellerId] = note;
+  saveNotes(notes);
+  res.json({ success: true });
 });
 
 // ═══════════════════════════════════════════════════════════════

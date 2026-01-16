@@ -1,11 +1,11 @@
-import React from 'react'
-import { TrendingUp, TrendingDown, ChevronRight, Target, Rocket, Zap } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { TrendingUp, TrendingDown, ChevronRight, Target, Rocket, StickyNote } from 'lucide-react'
 import BadgeSegment from './BadgeSegment'
 import ProgressBar from './ProgressBar'
 import AlertChip from './AlertChip'
 import './DealerCard.css'
 
-export default function DealerCard({ dealer, onClick }) {
+export default function DealerCard({ dealer, onClick, note = '', onSaveNote }) {
   const {
     codigo,
     nome,
@@ -16,14 +16,31 @@ export default function DealerCard({ dealer, onClick }) {
     faltaSubir,
     percentManter,
     percentSubir,
-    metaCicloPonderada,
-    percentCiclo,
     deltaDia,
     impulso,
-    statusType,
     nearLevelUp,
     atRisk
   } = dealer
+
+  const [localNote, setLocalNote] = useState(note)
+
+  useEffect(() => {
+    setLocalNote(note)
+  }, [note])
+
+  const handleBlur = () => {
+    if (localNote !== note && onSaveNote) {
+      onSaveNote(localNote)
+    }
+  }
+
+  const getImpulsoType = () => {
+    if (impulso.includes('CRITICAL')) return 'critical'
+    if (impulso.includes('WARMING') || impulso.includes('BOOST')) return 'warning'
+    if (impulso.includes('SECURE') || impulso.includes('ALMOST')) return 'success'
+    if (impulso.includes('LEVEL UP')) return 'info'
+    return 'info'
+  }
 
   const formatCurrency = (val) =>
     `R$ ${(val || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
@@ -58,27 +75,6 @@ export default function DealerCard({ dealer, onClick }) {
         )}
       </div>
 
-      {/* Meta do Ciclo Atual (afetada pela representatividade) */}
-      {metaCicloPonderada > 0 && (
-        <div className="dealer-card__ciclo">
-          <div className="dealer-card__ciclo-header">
-            <Zap size={12} />
-            <span>META CICLO ATUAL</span>
-            <strong>{formatCurrency(metaCicloPonderada)}</strong>
-          </div>
-          <div className="dealer-card__ciclo-bar">
-            <div
-              className="dealer-card__ciclo-fill"
-              style={{ width: `${Math.min(100, percentCiclo || 0)}%` }}
-            />
-          </div>
-          <div className="dealer-card__ciclo-info">
-            <span>Atual: {formatCurrency(totalCicloAtual)}</span>
-            <span className={percentCiclo >= 100 ? 'text-neon' : 'text-warning'}>{percentCiclo?.toFixed(1)}%</span>
-          </div>
-        </div>
-      )}
-
       <div className="dealer-card__targets">
         <div className="dealer-card__target">
           <Target size={14} />
@@ -96,9 +92,25 @@ export default function DealerCard({ dealer, onClick }) {
         )}
       </div>
 
+      {/* POST-IT NOTE */}
+      <div style={{ padding: '0 12px 12px 12px' }}>
+        <div className="relative bg-yellow-50 border border-yellow-200 rounded p-2 shadow-sm flex gap-2">
+          <StickyNote size={14} className="text-yellow-400 flex-shrink-0 mt-1" />
+          <textarea
+            className="w-full bg-transparent border-none resize-none text-xs text-slate-600 placeholder-yellow-400/50 focus:outline-none"
+            placeholder="Adicionar observação..."
+            rows={2}
+            value={localNote}
+            onChange={(e) => setLocalNote(e.target.value)}
+            onBlur={handleBlur}
+            style={{ minHeight: '40px' }}
+          />
+        </div>
+      </div>
+
       <div className="dealer-card__footer">
         <div className="dealer-card__impulso">
-          <AlertChip type={statusType || 'info'}>{impulso}</AlertChip>
+          <AlertChip type={getImpulsoType()}>{impulso}</AlertChip>
         </div>
         <div className={`dealer-card__delta ${deltaDia >= 0 ? 'dealer-card__delta--positive' : 'dealer-card__delta--negative'}`}>
           {deltaDia >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}

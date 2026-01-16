@@ -97,6 +97,7 @@ export default function Dashboard() {
   const [viewMode, setViewMode] = useState('grid')
   const [activeFilter, setActiveFilter] = useState('ALL') // 'ALL', 'NEAR_LEVEL_UP', 'AT_RISK'
   const [segmentFilter, setSegmentFilter] = useState('TODOS') // Novo estado do filtro
+  const [notes, setNotes] = useState({})
 
   // Mensagem de recompensa do admin
   const [mensagemRecompensa, setMensagemRecompensa] = useState(null)
@@ -112,6 +113,14 @@ export default function Dashboard() {
           setShowMensagem(true)
         }
       })
+      .catch(console.error)
+  }, [])
+
+  // Buscar notas
+  useEffect(() => {
+    fetch('/api/notes')
+      .then(r => r.json())
+      .then(setNotes)
       .catch(console.error)
   }, [])
 
@@ -172,6 +181,15 @@ export default function Dashboard() {
 
   const handleDealerClick = (dealer) => {
     setSelectedDealer(dealer)
+  }
+
+  const handleSaveNote = (resellerId, note) => {
+    setNotes(prev => ({ ...prev, [resellerId]: note }))
+    fetch('/api/notes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resellerId, note })
+    }).catch(console.error)
   }
 
   // Toggle Filter Logic
@@ -431,6 +449,8 @@ export default function Dashboard() {
                     <DealerCard
                       key={dealer.codigo}
                       dealer={dealerDisplay}
+                      note={notes[dealer.codigo] || ''}
+                      onSaveNote={(note) => handleSaveNote(dealer.codigo, note)}
                       onClick={() => handleDealerClick(dealerDisplay)}
                     />
                   )
