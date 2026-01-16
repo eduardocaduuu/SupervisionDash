@@ -18,10 +18,14 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 const dataDir = path.join(__dirname, '../data');
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
+// Diretório de dados persistentes (na raiz do projeto, junto com as planilhas)
+const persistentDataDir = path.join(__dirname, '../../data');
+
 // ═══════════════════════════════════════════════════════════════
 // CONFIGURATION
 // ═══════════════════════════════════════════════════════════════
-const configPath = path.join(dataDir, 'config.json');
+// Config salvo junto com os dados persistentes (data/ na raiz)
+const configPath = path.join(persistentDataDir, 'config.json');
 
 const defaultConfig = {
   cicloAtual: '01/2026',
