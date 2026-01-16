@@ -544,13 +544,6 @@ app.put('/api/admin/config', (req, res) => {
 
   if (cicloAtual) config.cicloAtual = cicloAtual;
   if (representatividade) {
-    // Validar que soma = 100% (aproximadamente)
-    const soma = Object.values(representatividade).reduce((a, b) => a + b, 0);
-    if (soma < 95 || soma > 105) {
-      return res.status(400).json({
-        error: `Soma da representatividade deve ser ~100%. Atual: ${soma}%`
-      });
-    }
     config.representatividade = representatividade;
   }
 
@@ -566,15 +559,12 @@ app.post('/api/admin/ciclo', (req, res) => {
   res.json({ success: true, cicloAtual: ciclo });
 });
 
-// Update representatividade (legado)
+// Update representatividade
 app.post('/api/admin/representatividade', (req, res) => {
   const { representatividade } = req.body;
 
-  const soma = Object.values(representatividade).reduce((a, b) => a + b, 0);
-  if (soma < 95 || soma > 105) {
-    return res.status(400).json({
-      error: `Soma da representatividade deve ser ~100%. Atual: ${soma}%`
-    });
+  if (!representatividade || typeof representatividade !== 'object') {
+    return res.status(400).json({ error: 'Dados inválidos' });
   }
 
   config.representatividade = { ...config.representatividade, ...representatividade };
