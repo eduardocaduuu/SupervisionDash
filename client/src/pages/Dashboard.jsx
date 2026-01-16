@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import * as XLSX from 'xlsx'
 import { useParams } from 'react-router-dom'
 import {
@@ -101,6 +101,31 @@ export default function Dashboard() {
   // Mensagem de recompensa do admin
   const [mensagemRecompensa, setMensagemRecompensa] = useState(null)
   const [showMensagem, setShowMensagem] = useState(false)
+
+  // Notes (post-its) das supervisoras
+  const [notes, setNotes] = useState({})
+
+  // Buscar notas
+  useEffect(() => {
+    fetch('/api/notes')
+      .then(r => r.json())
+      .then(data => setNotes(data || {}))
+      .catch(console.error)
+  }, [])
+
+  // Salvar nota
+  const handleSaveNote = useCallback(async (resellerId, noteText) => {
+    try {
+      await fetch('/api/notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resellerId, note: noteText })
+      })
+      setNotes(prev => ({ ...prev, [resellerId]: noteText }))
+    } catch (error) {
+      console.error('Erro ao salvar nota:', error)
+    }
+  }, [])
 
   // Buscar mensagem de recompensa
   useEffect(() => {
@@ -432,6 +457,8 @@ export default function Dashboard() {
                       key={dealer.codigo}
                       dealer={dealerDisplay}
                       onClick={() => handleDealerClick(dealerDisplay)}
+                      note={notes[dealer.codigo] || ''}
+                      onSaveNote={(noteText) => handleSaveNote(dealer.codigo, noteText)}
                     />
                   )
                 })}

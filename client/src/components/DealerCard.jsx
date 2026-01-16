@@ -1,11 +1,13 @@
-import React from 'react'
-import { TrendingUp, TrendingDown, ChevronRight, Target, Rocket, Zap } from 'lucide-react'
+import React, { useState } from 'react'
+import { TrendingUp, TrendingDown, ChevronRight, Target, Rocket, Zap, StickyNote, X, Check, Edit3 } from 'lucide-react'
 import BadgeSegment from './BadgeSegment'
 import ProgressBar from './ProgressBar'
 import AlertChip from './AlertChip'
 import './DealerCard.css'
 
-export default function DealerCard({ dealer, onClick }) {
+export default function DealerCard({ dealer, onClick, note, onSaveNote }) {
+  const [isEditingNote, setIsEditingNote] = useState(false)
+  const [noteText, setNoteText] = useState(note || '')
   const {
     codigo,
     nome,
@@ -34,6 +36,26 @@ export default function DealerCard({ dealer, onClick }) {
 
   const formatCurrency = (val) =>
     `R$ ${(val || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+
+  const handleSaveNote = (e) => {
+    e.stopPropagation()
+    if (onSaveNote) {
+      onSaveNote(noteText)
+    }
+    setIsEditingNote(false)
+  }
+
+  const handleCancelNote = (e) => {
+    e.stopPropagation()
+    setNoteText(note || '')
+    setIsEditingNote(false)
+  }
+
+  const handleOpenNote = (e) => {
+    e.stopPropagation()
+    setNoteText(note || '')
+    setIsEditingNote(true)
+  }
 
   return (
     <div className={`dealer-card ${atRisk ? 'dealer-card--at-risk' : ''} ${nearLevelUp ? 'dealer-card--level-up' : ''}`}>
@@ -105,6 +127,53 @@ export default function DealerCard({ dealer, onClick }) {
           <span>Atual: {formatCurrency(totalCicloAtual)}</span>
           <span className="text-yellow-500 font-bold">{percentCiclo?.toFixed(1)}%</span>
         </div>
+      </div>
+
+      {/* OBSERVAÇÕES (POST-IT) */}
+      <div className="dealer-card__note">
+        {isEditingNote ? (
+          <div className="dealer-card__note-editor">
+            <textarea
+              className="dealer-card__note-textarea"
+              value={noteText}
+              onChange={(e) => setNoteText(e.target.value)}
+              placeholder="Digite sua observação..."
+              onClick={(e) => e.stopPropagation()}
+              autoFocus
+              maxLength={200}
+            />
+            <div className="dealer-card__note-actions">
+              <button
+                className="dealer-card__note-btn dealer-card__note-btn--save"
+                onClick={handleSaveNote}
+                title="Salvar"
+              >
+                <Check size={14} />
+              </button>
+              <button
+                className="dealer-card__note-btn dealer-card__note-btn--cancel"
+                onClick={handleCancelNote}
+                title="Cancelar"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </div>
+        ) : note ? (
+          <div className="dealer-card__note-display" onClick={handleOpenNote}>
+            <StickyNote size={12} className="dealer-card__note-icon" />
+            <span className="dealer-card__note-text">{note}</span>
+            <Edit3 size={12} className="dealer-card__note-edit" />
+          </div>
+        ) : (
+          <button
+            className="dealer-card__note-add"
+            onClick={handleOpenNote}
+          >
+            <StickyNote size={12} />
+            <span>Adicionar observação</span>
+          </button>
+        )}
       </div>
 
       <div className="dealer-card__footer">

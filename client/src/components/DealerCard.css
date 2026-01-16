@@ -228,6 +228,153 @@
   margin-left: auto;
 }
 
+/* OBSERVAÇÕES (POST-IT) */
+.dealer-card__note {
+  padding: 0 var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
+.dealer-card__note-add {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  width: 100%;
+  padding: var(--space-xs) var(--space-sm);
+  background: rgba(251, 191, 36, 0.05);
+  border: 1px dashed rgba(251, 191, 36, 0.3);
+  border-radius: 4px;
+  color: rgba(251, 191, 36, 0.6);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dealer-card__note-add:hover {
+  background: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.5);
+  color: rgba(251, 191, 36, 0.9);
+}
+
+.dealer-card__note-display {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  padding: var(--space-sm);
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(251, 191, 36, 0.08) 100%);
+  border-left: 3px solid #fbbf24;
+  border-radius: 0 4px 4px 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.dealer-card__note-display:hover {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.2) 0%, rgba(251, 191, 36, 0.12) 100%);
+  box-shadow:
+    0 4px 8px rgba(0, 0, 0, 0.15),
+    0 0 12px rgba(251, 191, 36, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.dealer-card__note-icon {
+  color: #fbbf24;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.dealer-card__note-text {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: rgba(251, 191, 36, 0.9);
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.dealer-card__note-edit {
+  color: rgba(251, 191, 36, 0.4);
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.dealer-card__note-display:hover .dealer-card__note-edit {
+  opacity: 1;
+}
+
+.dealer-card__note-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.dealer-card__note-textarea {
+  width: 100%;
+  min-height: 60px;
+  padding: var(--space-sm);
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  border-radius: 4px;
+  color: #fbbf24;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.4;
+  resize: none;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.dealer-card__note-textarea:focus {
+  border-color: #fbbf24;
+  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.2), 0 0 12px rgba(251, 191, 36, 0.1);
+}
+
+.dealer-card__note-textarea::placeholder {
+  color: rgba(251, 191, 36, 0.4);
+}
+
+.dealer-card__note-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-xs);
+}
+
+.dealer-card__note-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.dealer-card__note-btn--save {
+  background: rgba(74, 222, 128, 0.2);
+  color: #4ade80;
+}
+
+.dealer-card__note-btn--save:hover {
+  background: rgba(74, 222, 128, 0.3);
+  box-shadow: 0 0 8px rgba(74, 222, 128, 0.3);
+}
+
+.dealer-card__note-btn--cancel {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.dealer-card__note-btn--cancel:hover {
+  background: rgba(239, 68, 68, 0.3);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
+}
+
 /* FOOTER */
 .dealer-card__footer {
   padding: var(--space-sm) var(--space-md);
