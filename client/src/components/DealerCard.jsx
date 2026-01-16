@@ -1,5 +1,5 @@
 import React from 'react'
-import { TrendingUp, TrendingDown, ChevronRight, Target, Rocket } from 'lucide-react'
+import { TrendingUp, TrendingDown, ChevronRight, Target, Rocket, Zap } from 'lucide-react'
 import BadgeSegment from './BadgeSegment'
 import ProgressBar from './ProgressBar'
 import AlertChip from './AlertChip'
@@ -16,6 +16,8 @@ export default function DealerCard({ dealer, onClick }) {
     faltaSubir,
     percentManter,
     percentSubir,
+    metaCicloPonderada,
+    percentCiclo,
     deltaDia,
     impulso,
     statusType,
@@ -55,6 +57,27 @@ export default function DealerCard({ dealer, onClick }) {
           />
         )}
       </div>
+
+      {/* Meta do Ciclo Atual (afetada pela representatividade) */}
+      {metaCicloPonderada > 0 && (
+        <div className="dealer-card__ciclo">
+          <div className="dealer-card__ciclo-header">
+            <Zap size={12} />
+            <span>META CICLO ATUAL</span>
+            <strong>{formatCurrency(metaCicloPonderada)}</strong>
+          </div>
+          <div className="dealer-card__ciclo-bar">
+            <div
+              className="dealer-card__ciclo-fill"
+              style={{ width: `${Math.min(100, percentCiclo || 0)}%` }}
+            />
+          </div>
+          <div className="dealer-card__ciclo-info">
+            <span>Atual: {formatCurrency(totalCicloAtual)}</span>
+            <span className={percentCiclo >= 100 ? 'text-neon' : 'text-warning'}>{percentCiclo?.toFixed(1)}%</span>
+          </div>
+        </div>
+      )}
 
       <div className="dealer-card__targets">
         <div className="dealer-card__target">

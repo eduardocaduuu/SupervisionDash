@@ -215,6 +215,19 @@ export default function Dashboard() {
 
       <main className="main-content">
         <div className="container">
+          {/* BANNER DE MENSAGEM DE RECOMPENSA (permanente) */}
+          {mensagemRecompensa?.ativa && (
+            <div className="recompensa-banner">
+              <div className="recompensa-banner__icon">
+                <Gift size={24} />
+              </div>
+              <div className="recompensa-banner__content">
+                <h3>{mensagemRecompensa.titulo}</h3>
+                <p>{mensagemRecompensa.texto}</p>
+              </div>
+              <Sparkles size={20} className="recompensa-banner__sparkle" />
+            </div>
+          )}
           {/* KPIs */}
           <section className="dashboard__kpis">
             {/* TOTAL (Reset Filter) */}

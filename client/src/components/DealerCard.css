@@ -112,6 +112,53 @@
   gap: var(--space-sm);
 }
 
+/* META CICLO ATUAL */
+.dealer-card__ciclo {
+  margin: var(--space-sm) var(--space-md);
+  padding: var(--space-sm);
+  background: rgba(217, 195, 119, 0.1);
+  border: 1px solid rgba(217, 195, 119, 0.3);
+}
+
+.dealer-card__ciclo-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-neon-warning);
+  margin-bottom: var(--space-xs);
+}
+
+.dealer-card__ciclo-header strong {
+  margin-left: auto;
+  font-size: var(--text-sm);
+}
+
+.dealer-card__ciclo-bar {
+  height: 8px;
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+.dealer-card__ciclo-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-neon-warning) 0%, #ffd700 100%);
+  transition: width 0.5s ease;
+}
+
+.dealer-card__ciclo-info {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-text-muted);
+  margin-top: var(--space-xs);
+}
+
 /* TARGETS */
 .dealer-card__targets {
   padding: 0 var(--space-md);

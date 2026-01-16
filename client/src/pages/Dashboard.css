@@ -256,6 +256,80 @@
   }
 }
 
+/* ═══ BANNER DE RECOMPENSA (permanente) ═══ */
+.recompensa-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  margin-bottom: var(--space-lg);
+  background: linear-gradient(90deg, rgba(217, 195, 119, 0.15) 0%, rgba(217, 195, 119, 0.05) 100%);
+  border: 2px solid var(--color-neon-warning);
+  border-left: 6px solid var(--color-neon-warning);
+  position: relative;
+  overflow: hidden;
+  animation: bannerGlow 3s ease-in-out infinite;
+}
+
+@keyframes bannerGlow {
+  0%, 100% { box-shadow: 0 0 10px rgba(217, 195, 119, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(217, 195, 119, 0.4); }
+}
+
+.recompensa-banner__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: var(--color-neon-warning);
+  color: var(--color-text-dark);
+  flex-shrink: 0;
+}
+
+.recompensa-banner__content {
+  flex: 1;
+}
+
+.recompensa-banner__content h3 {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  color: var(--color-neon-warning);
+  margin: 0 0 var(--space-xs) 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.recompensa-banner__content p {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-primary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.recompensa-banner__sparkle {
+  color: var(--color-neon-warning);
+  animation: sparkle 1.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes sparkle {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+@media (max-width: 600px) {
+  .recompensa-banner {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .recompensa-banner__sparkle {
+    display: none;
+  }
+}
+
 /* ═══ MENSAGEM DE RECOMPENSA MODAL ═══ */
 .recompensa-modal-overlay {
   position: fixed;
