@@ -37,7 +37,9 @@ const defaultConfig = {
     '09/2026': 10
   },
   adminUser: 'acqua',
-  adminPassword: '13707'
+  adminPassword: '13707',
+  // Mensagem de recompensa/motivação (visível para todas supervisoras)
+  mensagemRecompensa: null  // { titulo: '', texto: '', ativa: false }
 };
 
 function loadConfig() {
@@ -574,6 +576,33 @@ app.post('/api/admin/representatividade', (req, res) => {
   config.representatividade = { ...config.representatividade, ...representatividade };
   saveConfig(config);
   res.json({ success: true, representatividade: config.representatividade });
+});
+
+// Salvar mensagem de recompensa
+app.post('/api/admin/mensagem-recompensa', (req, res) => {
+  const { titulo, texto } = req.body;
+
+  config.mensagemRecompensa = {
+    titulo: titulo || 'Nova Meta!',
+    texto: texto || '',
+    ativa: true,
+    criadaEm: new Date().toISOString()
+  };
+
+  saveConfig(config);
+  res.json({ success: true, mensagem: config.mensagemRecompensa });
+});
+
+// Remover mensagem de recompensa
+app.delete('/api/admin/mensagem-recompensa', (req, res) => {
+  config.mensagemRecompensa = null;
+  saveConfig(config);
+  res.json({ success: true });
+});
+
+// Obter mensagem de recompensa (público - para supervisoras)
+app.get('/api/mensagem-recompensa', (req, res) => {
+  res.json({ mensagem: config.mensagemRecompensa });
 });
 
 // ═══════════════════════════════════════════════════════════════

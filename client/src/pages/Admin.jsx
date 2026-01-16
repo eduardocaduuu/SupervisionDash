@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Shield, LogOut, Save, CheckCircle, AlertTriangle, FileSpreadsheet, TrendingUp
+  Shield, LogOut, Save, CheckCircle, AlertTriangle, FileSpreadsheet, TrendingUp,
+  Gift, Trash2, Send, MessageSquare
 } from 'lucide-react'
 import Panel from '../components/Panel'
 import './Admin.css'
@@ -13,12 +14,22 @@ export default function Admin() {
   const [saveStatus, setSaveStatus] = useState(null)
   const [representatividade, setRepresentatividade] = useState({})
 
+  // Mensagem de recompensa
+  const [mensagemTitulo, setMensagemTitulo] = useState('')
+  const [mensagemTexto, setMensagemTexto] = useState('')
+  const [mensagemStatus, setMensagemStatus] = useState(null)
+
   useEffect(() => {
     fetch('/api/admin/config')
       .then(r => r.json())
       .then(data => {
         setConfig(data)
         setRepresentatividade(data.representatividade)
+        // Carregar mensagem existente
+        if (data.mensagemRecompensa) {
+          setMensagemTitulo(data.mensagemRecompensa.titulo || '')
+          setMensagemTexto(data.mensagemRecompensa.texto || '')
+        }
         setIsLoading(false)
       })
       .catch(err => {
@@ -68,6 +79,61 @@ export default function Admin() {
     }
 
     setTimeout(() => setSaveStatus(null), 3000)
+  }
+
+  // Salvar mensagem de recompensa
+  const handleSaveMensagem = async () => {
+    if (!mensagemTexto.trim()) return
+
+    setMensagemStatus('loading')
+
+    try {
+      const res = await fetch('/api/admin/mensagem-recompensa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          titulo: mensagemTitulo || 'Nova Meta!',
+          texto: mensagemTexto
+        })
+      })
+
+      if (res.ok) {
+        setMensagemStatus('success')
+        const configRes = await fetch('/api/admin/config')
+        const configData = await configRes.json()
+        setConfig(configData)
+      } else {
+        setMensagemStatus('error')
+      }
+    } catch (err) {
+      setMensagemStatus('error')
+    }
+
+    setTimeout(() => setMensagemStatus(null), 3000)
+  }
+
+  // Remover mensagem de recompensa
+  const handleRemoveMensagem = async () => {
+    setMensagemStatus('loading')
+
+    try {
+      const res = await fetch('/api/admin/mensagem-recompensa', {
+        method: 'DELETE'
+      })
+
+      if (res.ok) {
+        setMensagemTitulo('')
+        setMensagemTexto('')
+        setConfig(prev => ({ ...prev, mensagemRecompensa: null }))
+        setMensagemStatus('removed')
+      } else {
+        setMensagemStatus('error')
+      }
+    } catch (err) {
+      setMensagemStatus('error')
+    }
+
+    setTimeout(() => setMensagemStatus(null), 3000)
   }
 
   if (isLoading) {
@@ -182,6 +248,97 @@ export default function Admin() {
                   <strong>Ajuste as metas em tempo real!</strong> Ao alterar a % do ciclo atual,
                   a meta ponderada muda automaticamente para todas as supervisoras.
                 </p>
+              </div>
+            </Panel>
+
+            {/* MENSAGEM DE RECOMPENSA */}
+            <Panel
+              title="MENSAGEM DE RECOMPENSA"
+              variant="warning"
+              className="admin__mensagem"
+              headerRight={
+                config.mensagemRecompensa?.ativa && (
+                  <span className="mensagem-ativa-badge">
+                    <CheckCircle size={12} />
+                    ATIVA
+                  </span>
+                )
+              }
+            >
+              <div className="mensagem-form">
+                <div className="mensagem-form__field">
+                  <label>
+                    <Gift size={16} />
+                    Título da Mensagem
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Nova Meta Especial!"
+                    value={mensagemTitulo}
+                    onChange={(e) => setMensagemTitulo(e.target.value)}
+                    className="mensagem-input"
+                  />
+                </div>
+
+                <div className="mensagem-form__field">
+                  <label>
+                    <MessageSquare size={16} />
+                    Mensagem para as Supervisoras
+                  </label>
+                  <textarea
+                    placeholder="Ex: Quem atingir a nova meta de 12% ganha um brinde especial! Vamos juntas!"
+                    value={mensagemTexto}
+                    onChange={(e) => setMensagemTexto(e.target.value)}
+                    className="mensagem-textarea"
+                    rows={4}
+                  />
+                </div>
+
+                <div className="mensagem-form__actions">
+                  <button
+                    className={`btn ${mensagemStatus === 'success' ? 'btn--secondary' : ''}`}
+                    onClick={handleSaveMensagem}
+                    disabled={!mensagemTexto.trim() || mensagemStatus === 'loading'}
+                  >
+                    {mensagemStatus === 'loading' ? (
+                      <span>ENVIANDO...</span>
+                    ) : mensagemStatus === 'success' ? (
+                      <>
+                        <CheckCircle size={14} />
+                        <span>MENSAGEM ATIVA!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send size={14} />
+                        <span>ATIVAR MENSAGEM</span>
+                      </>
+                    )}
+                  </button>
+
+                  {config.mensagemRecompensa?.ativa && (
+                    <button
+                      className="btn btn--danger"
+                      onClick={handleRemoveMensagem}
+                      disabled={mensagemStatus === 'loading'}
+                    >
+                      <Trash2 size={14} />
+                      <span>REMOVER</span>
+                    </button>
+                  )}
+                </div>
+
+                {mensagemStatus === 'removed' && (
+                  <p className="mensagem-feedback mensagem-feedback--removed">
+                    Mensagem removida com sucesso!
+                  </p>
+                )}
+
+                <div className="mensagem-info">
+                  <p>
+                    Esta mensagem aparecerá para <strong>todas as supervisoras</strong> assim que
+                    entrarem no dashboard. Ela ficará visível até você remover.
+                  </p>
+                </div>
               </div>
             </Panel>
           </div>

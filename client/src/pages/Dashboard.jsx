@@ -3,7 +3,8 @@ import * as XLSX from 'xlsx'
 import { useParams } from 'react-router-dom'
 import {
   DollarSign, Users, TrendingUp, AlertTriangle,
-  Search, SlidersHorizontal, Grid, List, Download
+  Search, SlidersHorizontal, Grid, List, Download,
+  Gift, X, Sparkles
 } from 'lucide-react'
 import HUDHeader from '../components/HUDHeader'
 import MetricCard from '../components/MetricCard'
@@ -95,6 +96,23 @@ export default function Dashboard() {
   const [selectedDealer, setSelectedDealer] = useState(null)
   const [viewMode, setViewMode] = useState('grid')
   const [activeFilter, setActiveFilter] = useState('ALL') // 'ALL', 'NEAR_LEVEL_UP', 'AT_RISK'
+
+  // Mensagem de recompensa do admin
+  const [mensagemRecompensa, setMensagemRecompensa] = useState(null)
+  const [showMensagem, setShowMensagem] = useState(false)
+
+  // Buscar mensagem de recompensa
+  useEffect(() => {
+    fetch('/api/mensagem-recompensa')
+      .then(r => r.json())
+      .then(data => {
+        if (data.mensagem?.ativa) {
+          setMensagemRecompensa(data.mensagem)
+          setShowMensagem(true)
+        }
+      })
+      .catch(console.error)
+  }, [])
 
   useEffect(() => {
     fetch(`/api/setor/${setorId}`)
@@ -402,6 +420,34 @@ export default function Dashboard() {
           )}
         </div>
       </main>
+
+      {/* MENSAGEM DE RECOMPENSA MODAL */}
+      {showMensagem && mensagemRecompensa && (
+        <div className="recompensa-modal-overlay" onClick={() => setShowMensagem(false)}>
+          <div className="recompensa-modal" onClick={e => e.stopPropagation()}>
+            <button className="recompensa-modal__close" onClick={() => setShowMensagem(false)}>
+              <X size={24} />
+            </button>
+
+            <div className="recompensa-modal__icon">
+              <Sparkles size={48} />
+            </div>
+
+            <h2 className="recompensa-modal__title">
+              <Gift size={24} />
+              {mensagemRecompensa.titulo}
+            </h2>
+
+            <p className="recompensa-modal__texto">
+              {mensagemRecompensa.texto}
+            </p>
+
+            <button className="btn recompensa-modal__btn" onClick={() => setShowMensagem(false)}>
+              VAMOS LÁ!
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* DEALER MODAL */}
       {selectedDealer && (
