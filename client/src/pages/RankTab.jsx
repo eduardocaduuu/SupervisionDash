@@ -63,12 +63,12 @@ export default function RankTab({ setorId }) {
 
       {/* RANKING */}
       <Panel
-        title="TOP 10 - MAIOR Δ DO DIA"
+        title="TOP 10 - MAIORES VENDAS"
         headerRight={<Trophy size={18} />}
         noPadding
       >
         <div className="rank-list">
-          {ranking.map((dealer, idx) => (
+          {ranking.sort((a, b) => b.totalCicloAtual - a.totalCicloAtual).map((dealer, idx) => (
             <div key={dealer.codigo} className={`rank-item ${getMedalClass(idx)}`}>
               <div className="rank-item__position">
                 {idx < 3 ? (

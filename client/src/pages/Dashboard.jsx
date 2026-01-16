@@ -154,8 +154,6 @@ export default function Dashboard() {
     switch (sortBy) {
       case 'levelUp':
         return (b.percentSubir || 0) - (a.percentSubir || 0)
-      case 'delta':
-        return b.deltaDia - a.deltaDia
       case 'total':
         return b.totalGeral - a.totalGeral
       case 'risk':
@@ -375,7 +373,6 @@ export default function Dashboard() {
                     onChange={(e) => setSortBy(e.target.value)}
                   >
                     <option value="levelUp">Mais perto de SUBIR</option>
-                    <option value="delta">Maior Δ do dia</option>
                     <option value="total">Maior total</option>
                     <option value="risk">Maior risco</option>
                   </select>
