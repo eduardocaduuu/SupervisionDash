@@ -80,8 +80,15 @@
   gap: var(--space-lg);
 }
 
+.admin__grid--simple {
+  grid-template-columns: 1fr 2fr;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
 @media (max-width: 1024px) {
-  .admin__grid {
+  .admin__grid,
+  .admin__grid--simple {
     grid-template-columns: 1fr;
   }
 }
@@ -338,9 +345,54 @@
 
 .repr-help {
   margin-top: var(--space-lg);
+  padding: var(--space-md);
+  background: rgba(184, 217, 119, 0.1);
+  border: 2px solid rgba(184, 217, 119, 0.3);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+
+.repr-help svg {
+  color: var(--color-neon-primary);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.repr-help p {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.repr-help strong {
+  color: var(--color-neon-primary);
+}
+
+/* CICLO SELECT */
+.config-hint {
   font-size: var(--text-sm);
   color: var(--color-text-muted);
-  text-align: center;
+  margin-bottom: var(--space-md);
+  line-height: 1.5;
+}
+
+.ciclo-select-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.ciclo-select-wrapper svg {
+  color: var(--color-neon-secondary);
+}
+
+.config-select--large {
+  font-size: var(--text-xl);
+  padding: var(--space-lg);
+  font-weight: 700;
+  color: var(--color-neon-secondary);
 }
 
 /* RESPONSIVE */
