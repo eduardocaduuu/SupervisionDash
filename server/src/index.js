@@ -302,9 +302,11 @@ function calculateDealerMetrics(dealer) {
   const faltaSubir = metaSubir ? Math.max(0, metaSubir - totalGeral) : null;
   const percentSubir = metaSubir ? Math.min(100, (totalGeral / metaSubir) * 100) : null;
 
-  // Meta ponderada do ciclo atual
-  const repCiclo = config.representatividade[config.cicloAtual] || 10;
-  const metaCicloPonderada = metaSubir ? (metaSubir * repCiclo / 100) : (metaManter * repCiclo / 100);
+  // Meta ponderada do ciclo atual (usa ?? para permitir 0 como valor válido)
+  const repCiclo = config.representatividade[config.cicloAtual] ?? 10;
+  const metaCicloPonderada = repCiclo > 0
+    ? (metaSubir ? (metaSubir * repCiclo / 100) : (metaManter * repCiclo / 100))
+    : 0;
   const percentCiclo = metaCicloPonderada > 0 ? Math.min(100, (totalCicloAtual / metaCicloPonderada) * 100) : 0;
 
   // Delta do dia (simulado - em produção viria da comparação manhã/tarde)
