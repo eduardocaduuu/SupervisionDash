@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react'
-import { TrendingUp, TrendingDown, ChevronRight, Target, Rocket } from 'lucide-react'
+import React from 'react'
+import { TrendingUp, TrendingDown, ChevronRight, Target, Rocket, Zap } from 'lucide-react'
 import BadgeSegment from './BadgeSegment'
 import ProgressBar from './ProgressBar'
 import AlertChip from './AlertChip'
 import './DealerCard.css'
 
-export default function DealerCard({ dealer, onClick, note = '', onSaveNote }) {
+export default function DealerCard({ dealer, onClick }) {
   const {
     codigo,
     nome,
@@ -16,23 +16,13 @@ export default function DealerCard({ dealer, onClick, note = '', onSaveNote }) {
     faltaSubir,
     percentManter,
     percentSubir,
+    metaCicloPonderada,
+    percentCiclo,
     deltaDia,
     impulso,
     nearLevelUp,
     atRisk
   } = dealer
-
-  const [localNote, setLocalNote] = useState(note)
-
-  useEffect(() => {
-    setLocalNote(note)
-  }, [note])
-
-  const handleBlur = () => {
-    if (localNote !== note && onSaveNote) {
-      onSaveNote(localNote)
-    }
-  }
 
   const getImpulsoType = () => {
     if (impulso.includes('CRITICAL')) return 'critical'
@@ -92,15 +82,29 @@ export default function DealerCard({ dealer, onClick, note = '', onSaveNote }) {
         )}
       </div>
 
-      {/* NOTES (Cyberpunk Style) */}
-      <div className="px-4 pb-4">
-        <textarea
-          className="w-full bg-slate-900/50 text-emerald-400 placeholder-slate-600 text-xs border border-slate-700 rounded p-2 mt-2 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all resize-none h-20 font-mono"
-          placeholder="// Adicionar observação..."
-          value={localNote}
-          onChange={(e) => setLocalNote(e.target.value)}
-          onBlur={handleBlur}
+      {/* META CICLO ATUAL */}
+      <div className="mx-4 mb-4 p-3 bg-slate-900/80 border border-yellow-500/30 rounded flex flex-col gap-2">
+        <div className="flex justify-between items-center">
+          <span className="text-[10px] font-bold text-yellow-500 uppercase flex items-center gap-1">
+            <Zap size={12} /> META CICLO ATUAL
+          </span>
+          <span className="font-mono text-xs text-yellow-500 font-bold">
+            {formatCurrency(metaCicloPonderada)}
+          </span>
+        </div>
+        
+        <ProgressBar 
+          label="" 
+          value={percentCiclo} 
+          variant="warning" 
+          showValue={false}
+          ticks={0}
         />
+        
+        <div className="flex justify-between items-center text-[10px] font-mono text-slate-400">
+          <span>Atual: {formatCurrency(totalCicloAtual)}</span>
+          <span className="text-yellow-500 font-bold">{percentCiclo?.toFixed(1)}%</span>
+        </div>
       </div>
 
       <div className="dealer-card__footer">
