@@ -1,349 +1,150 @@
-import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import {
-  Shield, LogOut, Save, CheckCircle, AlertTriangle, FileSpreadsheet, TrendingUp,
-  Gift, Trash2, Send, MessageSquare
-} from 'lucide-react'
-import Panel from '../components/Panel'
-import './Admin.css'
+import React, { useState, useEffect } from 'react';
+import { FileText, Filter, User } from 'lucide-react';
+import * as SalesFileParser from '../utils/SalesFileParser';
 
-export default function Admin() {
-  const navigate = useNavigate()
-  const [config, setConfig] = useState(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [saveStatus, setSaveStatus] = useState(null)
-  const [representatividade, setRepresentatividade] = useState({})
-
-  // Mensagem de recompensa
-  const [mensagemTitulo, setMensagemTitulo] = useState('')
-  const [mensagemTexto, setMensagemTexto] = useState('')
-  const [mensagemStatus, setMensagemStatus] = useState(null)
+const Admin = () => {
+  const [data, setData] = useState([]);
+  const [basesUnicas, setBasesUnicas] = useState([]);
+  const [segmentosUnicos, setSegmentosUnicos] = useState([]);
+  
+  // Estados dos Filtros
+  const [filtroBase, setFiltroBase] = useState('Todos');
+  const [filtroSegmento, setFiltroSegmento] = useState('Todos');
 
   useEffect(() => {
-    fetch('/api/admin/config')
-      .then(r => r.json())
-      .then(data => {
-        setConfig(data)
-        setRepresentatividade(data.representatividade)
-        // Carregar mensagem existente
-        if (data.mensagemRecompensa) {
-          setMensagemTitulo(data.mensagemRecompensa.titulo || '')
-          setMensagemTexto(data.mensagemRecompensa.texto || '')
-        }
-        setIsLoading(false)
-      })
-      .catch(err => {
-        console.error(err)
-        navigate('/admin/login')
-      })
-  }, [navigate])
+    const loadData = async () => {
+      try {
+        const parsedData = await SalesFileParser.parseSalesFile();
+        setData(parsedData);
 
-  const handleCicloChange = async (ciclo) => {
-    try {
-      await fetch('/api/admin/ciclo', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ciclo })
-      })
-      setConfig(prev => ({ ...prev, cicloAtual: ciclo }))
-    } catch (err) {
-      console.error(err)
-    }
-  }
+        // Extrair Bases Únicas (Código ou Nome do Supervisor)
+        const bases = ['Todos', ...new Set(parsedData.map(item => item.supervisor || 'N/A'))].sort();
+        setBasesUnicas(bases);
 
-  const handleRepresentatividadeChange = (ciclo, value) => {
-    const numValue = Math.min(100, Math.max(0, parseInt(value) || 0))
-    setRepresentatividade(prev => ({ ...prev, [ciclo]: numValue }))
-  }
+        // Extrair Segmentos Únicos
+        // Ajuste 'nivel' para o nome exato da sua coluna de segmento (ex: classificacao, categoria)
+        const segmentos = ['Todos', ...new Set(parsedData.map(item => item.nivel || 'N/A'))].sort();
+        setSegmentosUnicos(segmentos);
 
-  const handleSaveRepresentatividade = async () => {
-    setSaveStatus('loading')
-
-    try {
-      const res = await fetch('/api/admin/representatividade', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ representatividade })
-      })
-
-      if (res.ok) {
-        setSaveStatus('success')
-        const configRes = await fetch('/api/admin/config')
-        const configData = await configRes.json()
-        setConfig(configData)
-      } else {
-        setSaveStatus('error')
+      } catch (error) {
+        console.error("Erro ao carregar dados:", error);
       }
-    } catch (err) {
-      setSaveStatus('error')
-    }
+    };
 
-    setTimeout(() => setSaveStatus(null), 3000)
-  }
+    loadData();
+  }, []);
 
-  // Salvar mensagem de recompensa
-  const handleSaveMensagem = async () => {
-    if (!mensagemTexto.trim()) return
-
-    setMensagemStatus('loading')
-
-    try {
-      const res = await fetch('/api/admin/mensagem-recompensa', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          titulo: mensagemTitulo || 'Nova Meta!',
-          texto: mensagemTexto
-        })
-      })
-
-      if (res.ok) {
-        setMensagemStatus('success')
-        const configRes = await fetch('/api/admin/config')
-        const configData = await configRes.json()
-        setConfig(configData)
-      } else {
-        setMensagemStatus('error')
-      }
-    } catch (err) {
-      setMensagemStatus('error')
-    }
-
-    setTimeout(() => setMensagemStatus(null), 3000)
-  }
-
-  // Remover mensagem de recompensa
-  const handleRemoveMensagem = async () => {
-    setMensagemStatus('loading')
-
-    try {
-      const res = await fetch('/api/admin/mensagem-recompensa', {
-        method: 'DELETE'
-      })
-
-      if (res.ok) {
-        setMensagemTitulo('')
-        setMensagemTexto('')
-        setConfig(prev => ({ ...prev, mensagemRecompensa: null }))
-        setMensagemStatus('removed')
-      } else {
-        setMensagemStatus('error')
-      }
-    } catch (err) {
-      setMensagemStatus('error')
-    }
-
-    setTimeout(() => setMensagemStatus(null), 3000)
-  }
-
-  if (isLoading) {
-    return (
-      <div className="admin-loading">
-        <div className="admin-loading__spinner"></div>
-        <span className="mono">CARREGANDO PAINEL ADMIN...</span>
-      </div>
-    )
-  }
-
-  const ciclos = Object.keys(representatividade)
+  // Lógica de Filtragem Dupla
+  const dadosFiltrados = data.filter(item => {
+    const passaBase = filtroBase === 'Todos' || item.supervisor === filtroBase;
+    const passaSegmento = filtroSegmento === 'Todos' || item.nivel === filtroSegmento; 
+    return passaBase && passaSegmento;
+  });
 
   return (
-    <div className="admin">
-      {/* HEADER */}
-      <header className="admin__header">
-        <div className="admin__header-left">
-          <Shield size={24} />
-          <div>
-            <h1>PAINEL ADMINISTRATIVO</h1>
-            <span className="mono text-muted">Configuração do Sistema</span>
+    <div className="p-6 text-slate-100 min-h-screen bg-slate-900">
+      <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+        <h1 className="text-3xl font-bold flex items-center gap-2">
+          <User className="text-emerald-400" />
+          Gestão de Bases
+        </h1>
+        
+        {/* ÁREA DE FILTROS */}
+        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+          {/* Filtro de Base */}
+          <div className="flex items-center gap-2 bg-slate-800 p-2 rounded-lg border border-slate-700">
+            <Filter size={18} className="text-slate-400" />
+            <select 
+              value={filtroBase}
+              onChange={(e) => setFiltroBase(e.target.value)}
+              className="bg-transparent outline-none text-sm w-full md:w-48 cursor-pointer"
+            >
+              {basesUnicas.map((base, idx) => (
+                <option key={idx} value={base} className="bg-slate-800 text-white">
+                  {base === 'Todos' ? 'Todas as Bases' : base}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filtro de Segmento */}
+          <div className="flex items-center gap-2 bg-slate-800 p-2 rounded-lg border border-slate-700">
+            <FileText size={18} className="text-slate-400" />
+            <select 
+              value={filtroSegmento}
+              onChange={(e) => setFiltroSegmento(e.target.value)}
+              className="bg-transparent outline-none text-sm w-full md:w-48 cursor-pointer"
+            >
+              {segmentosUnicos.map((seg, idx) => (
+                <option key={idx} value={seg} className="bg-slate-800 text-white">
+                  {seg === 'Todos' ? 'Todos os Segmentos' : seg}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
-        <button className="admin__logout" onClick={() => navigate('/')}>
-          <LogOut size={18} />
-          <span>SAIR</span>
-        </button>
-      </header>
+      </div>
 
-      <main className="admin__content">
-        <div className="container">
-          <div className="admin__grid admin__grid--simple">
-            {/* CICLO ATUAL */}
-            <Panel title="CICLO ATUAL" variant="cyan" className="admin__config">
-              <div className="config-section">
-                <p className="config-hint">
-                  Selecione o ciclo atual para calcular as metas ponderadas de todas as supervisoras.
-                </p>
-                <div className="ciclo-select-wrapper">
-                  <FileSpreadsheet size={20} />
-                  <select
-                    className="config-select config-select--large"
-                    value={config.cicloAtual}
-                    onChange={(e) => handleCicloChange(e.target.value)}
-                  >
-                    {ciclos.map(ciclo => (
-                      <option key={ciclo} value={ciclo}>{ciclo}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </Panel>
-
-            {/* REPRESENTATIVIDADE */}
-            <Panel
-              title="REPRESENTATIVIDADE POR CICLO"
-              variant="pink"
-              className="admin__repr"
-              headerRight={
-                <button
-                  className={`btn btn--sm ${saveStatus === 'success' ? 'btn--secondary' : saveStatus === 'error' ? 'btn--danger' : ''}`}
-                  onClick={handleSaveRepresentatividade}
-                  disabled={saveStatus === 'loading'}
-                >
-                  {saveStatus === 'loading' ? (
-                    <span>SALVANDO...</span>
-                  ) : saveStatus === 'success' ? (
-                    <>
-                      <CheckCircle size={14} />
-                      <span>SALVO</span>
-                    </>
-                  ) : saveStatus === 'error' ? (
-                    <>
-                      <AlertTriangle size={14} />
-                      <span>ERRO</span>
-                    </>
-                  ) : (
-                    <>
-                      <Save size={14} />
-                      <span>SALVAR CONFIG</span>
-                    </>
-                  )}
-                </button>
-              }
-            >
-              <div className="repr-grid">
-                {ciclos.map(ciclo => (
-                  <div key={ciclo} className="repr-item">
-                    <label className="repr-item__label">{ciclo}</label>
-                    <div className="repr-item__input-wrapper">
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        className="repr-item__input"
-                        value={representatividade[ciclo]}
-                        onChange={(e) => handleRepresentatividadeChange(ciclo, e.target.value)}
-                      />
-                      <span className="repr-item__suffix">%</span>
-                    </div>
-                    <div
-                      className="repr-item__bar"
-                      style={{ width: `${representatividade[ciclo]}%` }}
-                    />
-                  </div>
-                ))}
-              </div>
-              <div className="repr-help">
-                <TrendingUp size={16} />
-                <p>
-                  <strong>Ajuste as metas em tempo real!</strong> Ao alterar a % do ciclo atual,
-                  a meta ponderada muda automaticamente para todas as supervisoras.
-                </p>
-              </div>
-            </Panel>
-
-            {/* MENSAGEM DE RECOMPENSA */}
-            <Panel
-              title="MENSAGEM DE RECOMPENSA"
-              variant="warning"
-              className="admin__mensagem"
-              headerRight={
-                config.mensagemRecompensa?.ativa && (
-                  <span className="mensagem-ativa-badge">
-                    <CheckCircle size={12} />
-                    ATIVA
-                  </span>
-                )
-              }
-            >
-              <div className="mensagem-form">
-                <div className="mensagem-form__field">
-                  <label>
-                    <Gift size={16} />
-                    Título da Mensagem
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Ex: Nova Meta Especial!"
-                    value={mensagemTitulo}
-                    onChange={(e) => setMensagemTitulo(e.target.value)}
-                    className="mensagem-input"
-                  />
-                </div>
-
-                <div className="mensagem-form__field">
-                  <label>
-                    <MessageSquare size={16} />
-                    Mensagem para as Supervisoras
-                  </label>
-                  <textarea
-                    placeholder="Ex: Quem atingir a nova meta de 12% ganha um brinde especial! Vamos juntas!"
-                    value={mensagemTexto}
-                    onChange={(e) => setMensagemTexto(e.target.value)}
-                    className="mensagem-textarea"
-                    rows={4}
-                  />
-                </div>
-
-                <div className="mensagem-form__actions">
-                  <button
-                    className={`btn ${mensagemStatus === 'success' ? 'btn--secondary' : ''}`}
-                    onClick={handleSaveMensagem}
-                    disabled={!mensagemTexto.trim() || mensagemStatus === 'loading'}
-                  >
-                    {mensagemStatus === 'loading' ? (
-                      <span>ENVIANDO...</span>
-                    ) : mensagemStatus === 'success' ? (
-                      <>
-                        <CheckCircle size={14} />
-                        <span>MENSAGEM ATIVA!</span>
-                      </>
-                    ) : (
-                      <>
-                        <Send size={14} />
-                        <span>ATIVAR MENSAGEM</span>
-                      </>
-                    )}
-                  </button>
-
-                  {config.mensagemRecompensa?.ativa && (
-                    <button
-                      className="btn btn--danger"
-                      onClick={handleRemoveMensagem}
-                      disabled={mensagemStatus === 'loading'}
-                    >
-                      <Trash2 size={14} />
-                      <span>REMOVER</span>
-                    </button>
-                  )}
-                </div>
-
-                {mensagemStatus === 'removed' && (
-                  <p className="mensagem-feedback mensagem-feedback--removed">
-                    Mensagem removida com sucesso!
-                  </p>
-                )}
-
-                <div className="mensagem-info">
-                  <p>
-                    Esta mensagem aparecerá para <strong>todas as supervisoras</strong> assim que
-                    entrarem no dashboard. Ela ficará visível até você remover.
-                  </p>
-                </div>
-              </div>
-            </Panel>
-          </div>
-        </div>
-      </main>
+      {/* TABELA DE RESULTADOS */}
+      <div className="overflow-x-auto bg-slate-800 rounded-lg shadow-xl border border-slate-700">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-slate-900/50 text-slate-400 text-sm uppercase tracking-wider">
+              <th className="p-4 border-b border-slate-700">Cód. Base / Supervisor</th>
+              <th className="p-4 border-b border-slate-700">Revendedor</th>
+              <th className="p-4 border-b border-slate-700">Segmento</th>
+              <th className="p-4 border-b border-slate-700 text-right">Venda Atual</th>
+              <th className="p-4 border-b border-slate-700 text-center">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-700">
+            {dadosFiltrados.length > 0 ? (
+              dadosFiltrados.map((item, index) => (
+                <tr key={index} className="hover:bg-slate-700/50 transition-colors">
+                  <td className="p-4 font-mono text-emerald-400 font-medium">
+                    {/* Exibe Supervisor ou Código da Base */}
+                    {item.supervisor || item.cod_setor || '-'}
+                  </td>
+                  <td className="p-4 font-medium text-white">
+                    {item.nome || item.revendedor}
+                    <div className="text-xs text-slate-500">{item.codigo}</div>
+                  </td>
+                  <td className="p-4">
+                    <span className="px-2 py-1 rounded-full text-xs font-bold bg-slate-700 text-slate-300 border border-slate-600">
+                      {item.nivel || item.segmento || 'N/A'}
+                    </span>
+                  </td>
+                  <td className="p-4 text-right font-mono text-slate-200">
+                    {item.venda_atual ? `R$ ${item.venda_atual}` : '-'}
+                  </td>
+                  <td className="p-4 text-center">
+                     {/* Badge Simples de Status */}
+                     <span className={`px-2 py-1 rounded text-xs font-bold ${
+                        (item.status || '').includes('CRITIC') ? 'bg-red-500/20 text-red-400' :
+                        (item.status || '').includes('PRONTO') ? 'bg-emerald-500/20 text-emerald-400' :
+                        'bg-blue-500/20 text-blue-400'
+                     }`}>
+                       {item.status || 'OK'}
+                     </span>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan="5" className="p-8 text-center text-slate-500">
+                  Nenhum revendedor encontrado com esses filtros.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      
+      <div className="mt-4 text-right text-slate-500 text-sm">
+        Total visualizado: {dadosFiltrados.length} revendedores
+      </div>
     </div>
-  )
-}
+  );
+};
+
+export default Admin;
