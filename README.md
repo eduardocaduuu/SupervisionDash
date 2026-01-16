@@ -224,7 +224,7 @@ Adicione no Render (Environment Variables):
 ```
 SLACK_BOT_TOKEN=xoxb-seu-token-aqui
 SLACK_TEST_USER_ID=U0895CZ8HU7
-SLACK_BASE_URL=https://supervisiondash.onrender.com
+SLACK_BASE_URL=https://dashsupervision.onrender.com
 ```
 
 ### Endpoints Admin

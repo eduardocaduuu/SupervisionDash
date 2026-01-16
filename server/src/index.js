@@ -47,7 +47,7 @@ const defaultConfig = {
   mensagemRecompensa: null,  // { titulo: '', texto: '', ativa: false }
   // Configuração Slack Alerts
   slack: {
-    enabled: false,              // Ativa/desativa alertas Slack
+    enabled: true,               // Ativa/desativa alertas Slack
     testMode: true,              // Se true, envia para SLACK_TEST_USER_ID
     riskThresholdPercent: 50,    // Threshold de risco (percentManter < X)
     sendWhenZero: false,         // Enviar quando não há revendedores em risco
@@ -661,7 +661,7 @@ const cronSlackAlerts = require('./jobs/cronSlackAlerts');
 // Get Slack status (admin)
 app.get('/api/admin/slack/status', (req, res) => {
   const slackConfig = config.slack || {};
-  const baseUrl = process.env.SLACK_BASE_URL || 'https://supervisiondash.onrender.com';
+  const baseUrl = process.env.SLACK_BASE_URL || 'https://dashsupervision.onrender.com';
 
   res.json({
     enabled: slackConfig.enabled || false,
