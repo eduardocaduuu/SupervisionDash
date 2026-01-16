@@ -4,7 +4,7 @@ import { useParams } from 'react-router-dom'
 import {
   DollarSign, Users, TrendingUp, AlertTriangle,
   Search, SlidersHorizontal, Grid, List, Download,
-  Gift, X, Sparkles
+  Gift, X, Sparkles, Filter
 } from 'lucide-react'
 import HUDHeader from '../components/HUDHeader'
 import MetricCard from '../components/MetricCard'
@@ -96,6 +96,7 @@ export default function Dashboard() {
   const [selectedDealer, setSelectedDealer] = useState(null)
   const [viewMode, setViewMode] = useState('grid')
   const [activeFilter, setActiveFilter] = useState('ALL') // 'ALL', 'NEAR_LEVEL_UP', 'AT_RISK'
+  const [segmentFilter, setSegmentFilter] = useState('TODOS') // Novo estado do filtro
 
   // Mensagem de recompensa do admin
   const [mensagemRecompensa, setMensagemRecompensa] = useState(null)
@@ -135,6 +136,9 @@ export default function Dashboard() {
 
   const { setor, cicloAtual, snapshotAtivo, kpis, dealers } = dashboardData
 
+  // Extrair segmentos únicos dinamicamente
+  const uniqueSegments = ['TODOS', ...new Set(dealers.map(d => d.segmento).filter(Boolean))].sort()
+
   // Filter and sort dealers
   let filteredDealers = dealers.filter(d => {
     // 1. Filtro de Busca (Texto)
@@ -143,7 +147,10 @@ export default function Dashboard() {
     
     if (!matchesSearch) return false
 
-    // 2. Filtro Ativo (Cards)
+    // 2. Filtro de Segmento (Novo)
+    if (segmentFilter !== 'TODOS' && d.segmento !== segmentFilter) return false
+
+    // 3. Filtro Ativo (Cards)
     if (activeFilter === 'NEAR_LEVEL_UP') return d.nearLevelUp
     if (activeFilter === 'AT_RISK') return d.atRisk
     
@@ -377,6 +384,23 @@ export default function Dashboard() {
                     <option value="risk">Maior risco</option>
                   </select>
                 </div>
+
+                {/* FILTRO DE SEGMENTO */}
+                <div className="sort-group">
+                  <Filter size={16} />
+                  <select
+                    className="sort-select"
+                    value={segmentFilter}
+                    onChange={(e) => setSegmentFilter(e.target.value)}
+                  >
+                    {uniqueSegments.map(seg => (
+                      <option key={seg} value={seg}>
+                        {seg === 'TODOS' ? 'Todos os Níveis' : seg}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="view-toggle">
                   <button
                     className={`view-toggle__btn ${viewMode === 'grid' ? 'active' : ''}`}
