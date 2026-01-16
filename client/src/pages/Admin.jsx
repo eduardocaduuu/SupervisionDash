@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   Shield, LogOut, Save, CheckCircle, AlertTriangle, FileSpreadsheet, TrendingUp,
   Gift, Trash2, Send, MessageSquare, Users, ChevronDown, ChevronUp, Filter,
-  Building2, Target, Rocket, Search, X
+  Building2, Target, Rocket, Search, X, Trophy, Star, Sparkles, RefreshCw
 } from 'lucide-react'
 import Panel from '../components/Panel'
 import DealerCard from '../components/DealerCard'
@@ -34,7 +34,12 @@ export default function Admin() {
   const [notes, setNotes] = useState({})
 
   // Active Tab
-  const [activeAdminTab, setActiveAdminTab] = useState('config') // 'config' ou 'bases'
+  const [activeAdminTab, setActiveAdminTab] = useState('config') // 'config', 'bases' ou 'missao'
+
+  // Missão Cumprida
+  const [missionData, setMissionData] = useState([])
+  const [loadingMission, setLoadingMission] = useState(false)
+  const [missionLoaded, setMissionLoaded] = useState(false)
 
   useEffect(() => {
     fetch('/api/admin/config')
@@ -105,6 +110,63 @@ export default function Admin() {
       console.error('Erro ao salvar nota:', error)
     }
   }
+
+  // Carregar dados da Missão Cumprida
+  const loadMissionData = async () => {
+    setLoadingMission(true)
+
+    try {
+      const results = []
+
+      // Carregar dados de todas as bases em paralelo (em lotes para não sobrecarregar)
+      const batchSize = 5
+      for (let i = 0; i < setores.length; i += batchSize) {
+        const batch = setores.slice(i, i + batchSize)
+        const batchPromises = batch.map(async (setor) => {
+          try {
+            const res = await fetch(`/api/dashboard?setorId=${setor.id}`)
+            const data = await res.json()
+
+            // Filtrar revendedores que bateram a meta do ciclo (percentCiclo >= 100)
+            const missionAccomplished = (data.dealers || []).filter(d => d.percentCiclo >= 100)
+
+            if (missionAccomplished.length > 0) {
+              return {
+                setor: data.setor,
+                setorId: setor.id,
+                dealers: missionAccomplished,
+                totalDealers: data.kpis?.qtdRevendedores || 0
+              }
+            }
+            return null
+          } catch (err) {
+            console.error(`Erro ao carregar setor ${setor.id}:`, err)
+            return null
+          }
+        })
+
+        const batchResults = await Promise.all(batchPromises)
+        results.push(...batchResults.filter(Boolean))
+      }
+
+      // Ordenar por quantidade de dealers que cumpriram a missão
+      results.sort((a, b) => b.dealers.length - a.dealers.length)
+
+      setMissionData(results)
+      setMissionLoaded(true)
+    } catch (error) {
+      console.error('Erro ao carregar missão:', error)
+    }
+
+    setLoadingMission(false)
+  }
+
+  // Carregar missão quando mudar para a aba
+  useEffect(() => {
+    if (activeAdminTab === 'missao' && !missionLoaded && setores.length > 0) {
+      loadMissionData()
+    }
+  }, [activeAdminTab, setores, missionLoaded])
 
   const handleCicloChange = async (ciclo) => {
     try {
@@ -279,6 +341,16 @@ export default function Admin() {
         >
           <Building2 size={16} />
           BASES ({setores.length})
+        </button>
+        <button
+          className={`admin__tab admin__tab--mission ${activeAdminTab === 'missao' ? 'admin__tab--active' : ''}`}
+          onClick={() => setActiveAdminTab('missao')}
+        >
+          <Trophy size={16} />
+          MISSÃO CUMPRIDA
+          {missionLoaded && missionData.length > 0 && (
+            <span className="admin__tab-badge">{missionData.reduce((acc, b) => acc + b.dealers.length, 0)}</span>
+          )}
         </button>
       </div>
 
@@ -617,6 +689,149 @@ export default function Admin() {
                 <h3>Nenhuma base encontrada</h3>
                 <p>Tente ajustar o filtro de busca.</p>
               </div>
+            )}
+          </div>
+          )}
+
+          {/* TAB: MISSÃO CUMPRIDA */}
+          {activeAdminTab === 'missao' && (
+          <div className="admin__mission">
+            {/* HEADER DA MISSÃO */}
+            <div className="admin__mission-header">
+              <div className="admin__mission-title">
+                <Trophy size={32} className="admin__mission-icon" />
+                <div>
+                  <h2>MISSÃO DADA É MISSÃO CUMPRIDA!</h2>
+                  <p>
+                    Revendedores que atingiram <strong>100%</strong> da meta do ciclo atual
+                    <span className="admin__mission-meta">
+                      (Meta: {config?.representatividade?.[config?.cicloAtual]}% do ciclo {config?.cicloAtual})
+                    </span>
+                  </p>
+                </div>
+              </div>
+              <button
+                className="btn btn--ghost"
+                onClick={() => { setMissionLoaded(false); loadMissionData(); }}
+                disabled={loadingMission}
+              >
+                <RefreshCw size={16} className={loadingMission ? 'spin' : ''} />
+                ATUALIZAR
+              </button>
+            </div>
+
+            {/* LOADING */}
+            {loadingMission && (
+              <div className="admin__mission-loading">
+                <div className="admin-loading__spinner"></div>
+                <span>Analisando todas as bases...</span>
+                <p className="text-muted">Isso pode levar alguns segundos</p>
+              </div>
+            )}
+
+            {/* RESULTADOS */}
+            {!loadingMission && missionLoaded && (
+              <>
+                {/* RESUMO */}
+                <div className="admin__mission-summary">
+                  <div className="admin__mission-stat">
+                    <Star size={24} />
+                    <div>
+                      <span className="admin__mission-stat-value">
+                        {missionData.reduce((acc, b) => acc + b.dealers.length, 0)}
+                      </span>
+                      <span className="admin__mission-stat-label">Revendedores</span>
+                    </div>
+                  </div>
+                  <div className="admin__mission-stat">
+                    <Building2 size={24} />
+                    <div>
+                      <span className="admin__mission-stat-value">{missionData.length}</span>
+                      <span className="admin__mission-stat-label">Bases com Sucesso</span>
+                    </div>
+                  </div>
+                  <div className="admin__mission-stat">
+                    <Sparkles size={24} />
+                    <div>
+                      <span className="admin__mission-stat-value">
+                        {missionData.length > 0
+                          ? Math.round((missionData.reduce((acc, b) => acc + b.dealers.length, 0) /
+                              missionData.reduce((acc, b) => acc + b.totalDealers, 0)) * 100)
+                          : 0}%
+                      </span>
+                      <span className="admin__mission-stat-label">Taxa de Sucesso</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* LISTA DE BASES COM SUCESSO */}
+                {missionData.length > 0 ? (
+                  <div className="admin__mission-list">
+                    {missionData.map((base, idx) => (
+                      <div key={base.setorId} className="admin__mission-base">
+                        <div className="admin__mission-base-header">
+                          <div className="admin__mission-base-rank">
+                            {idx < 3 ? (
+                              <Trophy size={24} className={`trophy-${idx + 1}`} />
+                            ) : (
+                              <span className="rank-number">{idx + 1}º</span>
+                            )}
+                          </div>
+                          <div className="admin__mission-base-info">
+                            <span className="admin__mission-base-id mono">{base.setorId}</span>
+                            <h3 className="admin__mission-base-name">{base.setor?.nome || 'Base'}</h3>
+                          </div>
+                          <div className="admin__mission-base-stats">
+                            <div className="admin__mission-base-achieved">
+                              <CheckCircle size={18} />
+                              <span><strong>{base.dealers.length}</strong> de {base.totalDealers}</span>
+                            </div>
+                            <div className="admin__mission-base-percent">
+                              {Math.round((base.dealers.length / base.totalDealers) * 100)}%
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="admin__mission-dealers">
+                          {base.dealers
+                            .sort((a, b) => b.percentCiclo - a.percentCiclo)
+                            .map((dealer, dealerIdx) => (
+                            <div key={dealer.codigo} className="admin__mission-dealer">
+                              <div className="admin__mission-dealer-rank">
+                                {dealerIdx === 0 && <Star size={14} className="star-gold" />}
+                                {dealerIdx === 1 && <Star size={14} className="star-silver" />}
+                                {dealerIdx === 2 && <Star size={14} className="star-bronze" />}
+                              </div>
+                              <div className="admin__mission-dealer-info">
+                                <span className="admin__mission-dealer-code mono">{dealer.codigo}</span>
+                                <span className="admin__mission-dealer-name">{dealer.nome}</span>
+                              </div>
+                              <BadgeSegment segment={dealer.segmento} />
+                              <div className="admin__mission-dealer-value">
+                                <span className="admin__mission-dealer-total">
+                                  R$ {dealer.totalCicloAtual?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </span>
+                                <span className="admin__mission-dealer-percent">
+                                  {dealer.percentCiclo?.toFixed(1)}%
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="admin__mission-empty">
+                    <Target size={64} />
+                    <h3>Nenhuma missão cumprida ainda</h3>
+                    <p>
+                      Quando revendedores atingirem 100% da meta do ciclo atual,
+                      eles aparecerão aqui. Continue incentivando suas equipes!
+                    </p>
+                  </div>
+                )}
+              </>
             )}
           </div>
           )}
