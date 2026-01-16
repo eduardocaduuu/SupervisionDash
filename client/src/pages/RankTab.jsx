@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Trophy, TrendingUp, TrendingDown, Zap, Target, Rocket } from 'lucide-react'
+import { Trophy, Zap } from 'lucide-react'
 import Panel from '../components/Panel'
 import BadgeSegment from '../components/BadgeSegment'
 import './RankTab.css'
@@ -88,15 +88,6 @@ export default function RankTab({ setorId }) {
                   <span className="rank-item__value mono">{formatCurrency(dealer.totalCicloAtual)}</span>
                 </div>
               </div>
-              <div className={`rank-item__delta ${dealer.deltaDia >= 0 ? 'rank-item__delta--positive' : 'rank-item__delta--negative'}`}>
-                {dealer.deltaDia >= 0 ? <TrendingUp size={20} /> : <TrendingDown size={20} />}
-                <div className="rank-item__delta-info">
-                  <span className="rank-item__label">Δ HOJE</span>
-                  <span className="rank-item__delta-value mono">
-                    {dealer.deltaDia >= 0 ? '+' : '-'}{formatCurrency(dealer.deltaDia)}
-                  </span>
-                </div>
-              </div>
             </div>
           ))}
         </div>
@@ -115,10 +106,6 @@ export default function RankTab({ setorId }) {
         <div className="rank-legend__item">
           <Trophy size={14} className="rank-legend__icon rank-legend__icon--bronze" />
           <span>3º Lugar</span>
-        </div>
-        <div className="rank-legend__item">
-          <Target size={14} />
-          <span className="text-muted">Δ = Tarde - Manhã</span>
         </div>
       </div>
     </div>
