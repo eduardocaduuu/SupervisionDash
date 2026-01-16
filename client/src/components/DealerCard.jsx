@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { TrendingUp, TrendingDown, ChevronRight, Target, Rocket, Zap, StickyNote, X, Check, Edit3 } from 'lucide-react'
+import { ChevronRight, Target, Rocket, Zap, StickyNote, X, Check, Edit3 } from 'lucide-react'
 import BadgeSegment from './BadgeSegment'
 import ProgressBar from './ProgressBar'
 import AlertChip from './AlertChip'
@@ -20,7 +20,6 @@ export default function DealerCard({ dealer, onClick, note, onSaveNote }) {
     percentSubir,
     metaCicloPonderada,
     percentCiclo,
-    deltaDia,
     impulso,
     nearLevelUp,
     atRisk
@@ -179,10 +178,6 @@ export default function DealerCard({ dealer, onClick, note, onSaveNote }) {
       <div className="dealer-card__footer">
         <div className="dealer-card__impulso">
           <AlertChip type={getImpulsoType()}>{impulso}</AlertChip>
-        </div>
-        <div className={`dealer-card__delta ${deltaDia >= 0 ? 'dealer-card__delta--positive' : 'dealer-card__delta--negative'}`}>
-          {deltaDia >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-          <span className="mono">Δ {deltaDia >= 0 ? '+' : ''}{formatCurrency(deltaDia)}</span>
         </div>
       </div>
 

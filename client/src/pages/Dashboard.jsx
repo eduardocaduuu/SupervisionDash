@@ -377,7 +377,7 @@ export default function Dashboard() {
                 className={`tab ${activeTab === 'rank' ? 'tab--active' : ''}`}
                 onClick={() => setActiveTab('rank')}
               >
-                RANK DO DIA
+                RANK DO CICLO
               </button>
             </div>
           </div>

@@ -489,14 +489,14 @@ app.get('/api/revendedor', (req, res) => {
   res.json(calculateDealerMetrics(dealer));
 });
 
-// Rank do dia
+// Rank do ciclo
 app.get('/api/setor/:setorId/rank', (req, res) => {
   const setorId = normalizeSetorId(req.params.setorId);
   const dealers = getDealersForSetor(setorId);
   const dealersWithMetrics = dealers.map(d => calculateDealerMetrics(d));
 
   const ranked = dealersWithMetrics
-    .sort((a, b) => b.deltaDia - a.deltaDia)
+    .sort((a, b) => b.totalCicloAtual - a.totalCicloAtual)
     .slice(0, 10);
 
   const nearLevelUpCount = dealersWithMetrics.filter(d => d.nearLevelUp).length;
@@ -509,8 +509,8 @@ app.get('/api/setor/:setorId/rank', (req, res) => {
   if (atRiskCount > 0) {
     missionBoosters.push(`⚠️ ${atRiskCount} revendedores precisam de BOOST urgente!`);
   }
-  if (ranked[0]?.deltaDia > 0) {
-    missionBoosters.push(`🔥 ${ranked[0].nome} lidera o dia com +R$ ${ranked[0].deltaDia.toFixed(2)}!`);
+  if (ranked[0]?.totalCicloAtual > 0) {
+    missionBoosters.push(`🔥 ${ranked[0].nome} lidera o ciclo com R$ ${ranked[0].totalCicloAtual.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}!`);
   }
 
   res.json({ ranking: ranked, missionBoosters });
