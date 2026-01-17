@@ -433,14 +433,83 @@
   color: var(--color-neon-primary);
 }
 
-/* RESPONSIVE */
-@media (max-width: 768px) {
+/* ═══ RESPONSIVE - TABLET ═══ */
+@media (max-width: 1024px) {
   .dealer-card__total-value {
     font-size: var(--text-xl);
+  }
+}
+
+/* ═══ RESPONSIVE - MOBILE ═══ */
+@media (max-width: 768px) {
+  .dealer-card {
+    gap: var(--space-sm);
+  }
+
+  .dealer-card__header {
+    padding: var(--space-sm);
+    padding-bottom: 0;
+  }
+
+  .dealer-card__name {
+    font-size: var(--text-sm);
+  }
+
+  .dealer-card__total {
+    padding: 0 var(--space-sm);
+  }
+
+  .dealer-card__total-value {
+    font-size: var(--text-lg);
+  }
+
+  .dealer-card__progress {
+    padding: 0 var(--space-sm);
+  }
+
+  .dealer-card__targets {
+    padding: 0 var(--space-sm);
+  }
+
+  .dealer-card__note {
+    padding: 0 var(--space-sm);
+  }
+
+  .dealer-card__footer {
+    padding: var(--space-xs) var(--space-sm);
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .dealer-card__details {
+    padding: var(--space-xs) var(--space-sm);
+  }
+
+  /* Disable hover effects on touch */
+  .dealer-card:hover {
+    transform: none;
+    box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--shadow-color);
+  }
+
+  .dealer-card:active {
+    transform: scale(0.98);
+  }
+}
+
+/* ═══ RESPONSIVE - SMALL MOBILE ═══ */
+@media (max-width: 480px) {
+  .dealer-card__header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .dealer-card__footer {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+    gap: var(--space-xs);
+  }
+
+  .dealer-card__delta {
+    justify-content: center;
   }
 }

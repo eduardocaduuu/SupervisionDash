@@ -77,12 +77,13 @@
   color: var(--color-neon-primary);
 }
 
-/* PERCENT BAR */
+/* PERCENT BAR - Fixed overlap issue */
 .ciclos-percent-bar {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  min-width: 150px;
+  min-width: 120px;
+  position: relative;
 }
 
 .ciclos-percent-bar__fill {
@@ -90,15 +91,32 @@
   background: var(--color-neon-secondary);
   flex-shrink: 0;
   transition: width 0.3s ease;
+  min-width: 4px;
 }
 
 .ciclos-percent-bar span {
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
   flex-shrink: 0;
+  white-space: nowrap;
+  min-width: 45px;
+  text-align: right;
 }
 
-/* RESPONSIVE */
+/* ═══ RESPONSIVE - TABLET ═══ */
+@media (max-width: 1024px) {
+  .ciclos-tab .table-neo th,
+  .ciclos-tab .table-neo td {
+    padding: var(--space-sm);
+    font-size: var(--text-xs);
+  }
+
+  .ciclos-percent-bar {
+    min-width: 80px;
+  }
+}
+
+/* ═══ RESPONSIVE - MOBILE ═══ */
 @media (max-width: 768px) {
   .ciclos-info {
     flex-direction: column;
@@ -106,7 +124,40 @@
     align-items: center;
   }
 
+  .ciclos-chart-container {
+    padding: var(--space-sm);
+  }
+
+  /* Hide less important columns on mobile */
+  .ciclos-tab .table-neo th:nth-child(3),
+  .ciclos-tab .table-neo td:nth-child(3) {
+    display: none;
+  }
+
+  .ciclos-tab .table-neo th:nth-child(5),
+  .ciclos-tab .table-neo td:nth-child(5) {
+    display: none;
+  }
+
+  .ciclos-tab .table-neo th,
+  .ciclos-tab .table-neo td {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 11px;
+  }
+
   .ciclos-percent-bar {
-    min-width: 100px;
+    display: none;
+  }
+}
+
+/* ═══ RESPONSIVE - SMALL MOBILE ═══ */
+@media (max-width: 480px) {
+  .ciclos-tab .table-neo th:nth-child(4),
+  .ciclos-tab .table-neo td:nth-child(4) {
+    display: none;
+  }
+
+  .ciclos-info p {
+    font-size: var(--text-xs);
   }
 }
