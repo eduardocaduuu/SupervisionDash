@@ -237,7 +237,7 @@ GET /api/admin/slack/status
 GET /api/admin/slack/connection
 
 # Testar envio de alerta (usa testMode)
-POST /api/admin/slack/test?setorId=19698
+POST /api/admin/slack/test?setorId=4005
 
 # Atualizar configuração
 PUT /api/admin/slack/config
@@ -247,7 +247,7 @@ PUT /api/admin/slack/config
   "riskThresholdPercent": 50,
   "sendWhenZero": false,
   "supervisoresPorSetor": {
-    "19698": "U0895CZ8HU7",
+    "4005": "U0895CZ8HU7",
     "14245": "UXXXXXXXX"
   }
 }
@@ -258,7 +258,7 @@ PUT /api/admin/slack/config
 1. **Testar primeiro** (testMode=true):
    ```bash
    # Configure SLACK_BOT_TOKEN e SLACK_TEST_USER_ID no Render
-   # Acesse: POST /api/admin/slack/test?setorId=19698
+   # Acesse: POST /api/admin/slack/test?setorId=4005
    # Verifique se recebeu a DM no Slack
    ```
 
@@ -269,7 +269,7 @@ PUT /api/admin/slack/config
      "enabled": true,
      "testMode": false,
      "supervisoresPorSetor": {
-       "19698": "U0895CZ8HU7"
+       "4005": "U0895CZ8HU7"
      }
    }
    ```
@@ -277,7 +277,7 @@ PUT /api/admin/slack/config
 ### Estrutura da Mensagem
 
 ```
-⚠️ EM RISCO — Setor 19698
+⚠️ EM RISCO — Setor 4005
 📍 Nome do Setor
 
 5 de 20 revendedores estão abaixo de 50% da meta de manter (9 ciclos).

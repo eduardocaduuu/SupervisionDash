@@ -51,7 +51,7 @@ const defaultConfig = {
     testMode: true,              // Se true, envia para SLACK_TEST_USER_ID
     riskThresholdPercent: 50,    // Threshold de risco (percentManter < X)
     sendWhenZero: false,         // Enviar quando não há revendedores em risco
-    supervisoresPorSetor: {}     // Mapeamento: { "19698": "U0895CZ8HU7", ... }
+    supervisoresPorSetor: {}     // Mapeamento: { "4005": "U0895CZ8HU7", ... }
   }
 };
 
@@ -686,7 +686,7 @@ app.post('/api/admin/slack/test', async (req, res) => {
   const { setorId } = req.query;
 
   if (!setorId) {
-    return res.status(400).json({ error: 'setorId is required (e.g., ?setorId=19698)' });
+    return res.status(400).json({ error: 'setorId is required (e.g., ?setorId=4005)' });
   }
 
   // Check if Slack token is configured
