@@ -187,7 +187,10 @@ function getSectorRiskSummary(setorId) {
   const setor = setores.find(s => s.id === setorId);
 
   const baseUrl = process.env.SLACK_BASE_URL || 'https://dashsupervision.onrender.com';
+  const dashboardUrl = `${baseUrl}/dashboard/${setorId}`;
   const threshold = config.slack?.riskThresholdPercent || 50;
+
+  console.log(`[RiskService] Dashboard URL: ${dashboardUrl}`);
 
   if (!setor) {
     return {
@@ -196,7 +199,7 @@ function getSectorRiskSummary(setorId) {
       riskCount: 0,
       totalDealers: 0,
       threshold,
-      dashboardUrl: `${baseUrl}/dashboard/${setorId}`,
+      dashboardUrl,
       top5: [],
       error: 'Setor não encontrado'
     };
@@ -205,12 +208,12 @@ function getSectorRiskSummary(setorId) {
   const dealers = getDealersForSetor(setorId, config);
   const dealersWithMetrics = dealers.map(d => calculateDealerMetrics(d, config));
 
-  // Filter at-risk dealers (percentManter < threshold)
+  // Filter at-risk dealers (percentManter < threshold AND totalGeral > 0)
   const atRiskDealers = dealersWithMetrics
-    .filter(d => d.percentManter < threshold)
+    .filter(d => d.percentManter < threshold && d.totalGeral > 0)
     .sort((a, b) => a.percentManter - b.percentManter); // Most critical first
 
-  // Top 5 most critical
+  // Top 5 most critical (only with purchases > 0)
   const top5 = atRiskDealers.slice(0, 5).map(d => ({
     codigo: d.codigo,
     nome: d.nome,
@@ -226,7 +229,7 @@ function getSectorRiskSummary(setorId) {
     riskCount: atRiskDealers.length,
     totalDealers: dealersWithMetrics.length,
     threshold,
-    dashboardUrl: `${baseUrl}/dashboard/${setorId}`,
+    dashboardUrl,
     top5
   };
 }
