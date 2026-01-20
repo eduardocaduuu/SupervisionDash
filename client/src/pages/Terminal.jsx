@@ -177,33 +177,33 @@ export default function Terminal() {
         <div className="terminal-info-card">
           <div className="terminal-info-card__header">
             <Info size={18} />
-            <span>Informacoes Importantes</span>
+            <span>Informações Importantes</span>
           </div>
           <div className="terminal-info-card__body">
             <div className="terminal-info-card__item">
               <Clock size={16} className="terminal-info-card__icon" />
               <div>
-                <strong>Atualizacao de Dados</strong>
-                <p>Esta plataforma e atualizada automaticamente com os dados de vendas <strong>3 vezes ao dia</strong>: 08:30, 14:30 e 17:00.</p>
+                <strong>Atualização de Dados</strong>
+                <p>Esta plataforma é atualizada automaticamente com os dados de vendas <strong>3 vezes ao dia</strong>: 08:30, 14:30 e 17:00.</p>
               </div>
             </div>
             <div className="terminal-info-card__item">
               <RefreshCw size={16} className="terminal-info-card__icon" />
               <div>
-                <strong>Segmentacoes</strong>
-                <p>As segmentacoes dos revendedores sao atualizadas no <strong>segundo dia util</strong> de cada novo ciclo, conforme os resultados consolidados.</p>
+                <strong>Segmentações</strong>
+                <p>As segmentações dos revendedores são atualizadas no <strong>segundo dia útil</strong> de cada novo ciclo, conforme os resultados consolidados.</p>
               </div>
             </div>
             <div className="terminal-info-card__item">
               <Bell size={16} className="terminal-info-card__icon" />
               <div>
                 <strong>Alertas Slack</strong>
-                <p>O bot de alertas envia notificacoes somente as <strong>segundas e sextas-feiras</strong>, nos horarios: 09:00 e 17:00.</p>
+                <p>O bot de alertas envia notificações somente às <strong>segundas e sextas-feiras</strong>, nos horários: 09:00 e 17:00.</p>
               </div>
             </div>
           </div>
           <div className="terminal-info-card__footer">
-            <span>Essas informacoes servem como apoio a gestao e acompanhamento das metas de cada base.</span>
+            <span>Essas informações servem como apoio à gestão e acompanhamento das metas de cada base.</span>
           </div>
         </div>
 
