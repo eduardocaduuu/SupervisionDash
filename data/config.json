@@ -13,5 +13,28 @@
   },
   "adminUser": "acqua",
   "adminPassword": "13707",
-  "mensagemRecompensa": null
+  "mensagemRecompensa": null,
+  "slack": {
+    "enabled": true,
+    "testMode": false,
+    "riskThresholdPercent": 50,
+    "sendWhenZero": false,
+    "supervisoresPorSetor": {
+      "1260": "U0A6WDA1LSF",
+      "4005": "U088986S1L0",
+      "8238": "U0929MZMW5C",
+      "8239": "U0875QNU02K",
+      "1414": "U0875QNU02K",
+      "15775": "U088MU33XRC",
+      "17539": "U08JJ7VF0N6",
+      "9540": "U08JJ7VF0N6",
+      "1415": "U08JJH9BWP5",
+      "3124": "U08M7D0EVR9",
+      "14245": "U08UMBX0CP4",
+      "14246": "U08JJ6JMH50",
+      "15774": "U087HG1B4DB",
+      "23032": "U08NTGXEK26",
+      "8317": "U08NTGXEK26"
+    }
+  }
 }
