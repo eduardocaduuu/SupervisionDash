@@ -16,7 +16,7 @@
   "mensagemRecompensa": null,
   "slack": {
     "enabled": true,
-    "testMode": false,
+    "testMode": true,
     "riskThresholdPercent": 50,
     "sendWhenZero": false,
     "supervisoresPorSetor": {
