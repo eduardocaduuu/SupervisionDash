@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Terminal as TerminalIcon, Key, ChevronRight, Activity, Shield, AlertTriangle, Loader } from 'lucide-react'
+import { Terminal as TerminalIcon, Key, ChevronRight, Activity, Shield, AlertTriangle, Loader, Info, Clock, RefreshCw, Bell } from 'lucide-react'
 import './Terminal.css'
 
 export default function Terminal() {
@@ -170,6 +170,40 @@ export default function Terminal() {
                 </span>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* INFO CARD */}
+        <div className="terminal-info-card">
+          <div className="terminal-info-card__header">
+            <Info size={18} />
+            <span>Informacoes Importantes</span>
+          </div>
+          <div className="terminal-info-card__body">
+            <div className="terminal-info-card__item">
+              <Clock size={16} className="terminal-info-card__icon" />
+              <div>
+                <strong>Atualizacao de Dados</strong>
+                <p>Esta plataforma e atualizada automaticamente com os dados de vendas <strong>3 vezes ao dia</strong>: 08:30, 14:30 e 17:00.</p>
+              </div>
+            </div>
+            <div className="terminal-info-card__item">
+              <RefreshCw size={16} className="terminal-info-card__icon" />
+              <div>
+                <strong>Segmentacoes</strong>
+                <p>As segmentacoes dos revendedores sao atualizadas no <strong>segundo dia util</strong> de cada novo ciclo, conforme os resultados consolidados.</p>
+              </div>
+            </div>
+            <div className="terminal-info-card__item">
+              <Bell size={16} className="terminal-info-card__icon" />
+              <div>
+                <strong>Alertas Slack</strong>
+                <p>O bot de alertas envia notificacoes somente as <strong>segundas e sextas-feiras</strong>, nos horarios: 09:00 e 17:00.</p>
+              </div>
+            </div>
+          </div>
+          <div className="terminal-info-card__footer">
+            <span>Essas informacoes servem como apoio a gestao e acompanhamento das metas de cada base.</span>
           </div>
         </div>
 
