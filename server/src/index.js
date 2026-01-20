@@ -121,6 +121,18 @@ function getSegmentoByTotal(total) {
   return 'Bronze';
 }
 
+// Normalizar segmento (remove sufixo GB e trata valores invalidos)
+function normalizeSegmento(segmento) {
+  if (!segmento) return null;
+  // Remove sufixo " GB" se existir (ex: "Diamante GB" -> "Diamante")
+  let normalized = segmento.replace(/\s*GB$/i, '').trim();
+  // Capitaliza primeira letra
+  normalized = normalized.charAt(0).toUpperCase() + normalized.slice(1).toLowerCase();
+  // Retorna null para valores invalidos (ex: "Revendedor")
+  if (!SEGMENTOS[normalized]) return null;
+  return normalized;
+}
+
 // ═══════════════════════════════════════════════════════════════
 // LISTA DINÂMICA DE SETORES (gerada a partir de Segmentos_bd.xlsx)
 // ═══════════════════════════════════════════════════════════════
@@ -316,9 +328,9 @@ function calculateDealerMetrics(dealer) {
   // Total do ciclo atual
   const totalCicloAtual = dealer.ciclos[config.cicloAtual] || 0;
 
-  // Determinar segmento: Prioriza o oficial do cadastro se for valido, senao usa calculado
-  let segmento = dealer.segmentoOficial;
-  if (!segmento || !SEGMENTOS[segmento]) {
+  // Determinar segmento: Prioriza o oficial do cadastro (normalizado) se for valido, senao usa calculado
+  let segmento = normalizeSegmento(dealer.segmentoOficial);
+  if (!segmento) {
     segmento = getSegmentoByTotal(totalGeral);
   }
 

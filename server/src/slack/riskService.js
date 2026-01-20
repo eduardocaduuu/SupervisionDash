@@ -64,6 +64,15 @@ function getSegmentoByTotal(total) {
   return 'Bronze';
 }
 
+// Normalizar segmento (remove sufixo GB e trata valores invalidos)
+function normalizeSegmento(segmento) {
+  if (!segmento) return null;
+  let normalized = segmento.replace(/\s*GB$/i, '').trim();
+  normalized = normalized.charAt(0).toUpperCase() + normalized.slice(1).toLowerCase();
+  if (!SEGMENTOS[normalized]) return null;
+  return normalized;
+}
+
 // ═══════════════════════════════════════════════════════════════
 // SETORES LOADER
 // ═══════════════════════════════════════════════════════════════
@@ -144,8 +153,8 @@ function calculateDealerMetrics(dealer, config) {
 
   const totalCicloAtual = dealer.ciclos[config.cicloAtual] || 0;
 
-  let segmento = dealer.segmentoOficial;
-  if (!segmento || !SEGMENTOS[segmento]) {
+  let segmento = normalizeSegmento(dealer.segmentoOficial);
+  if (!segmento) {
     segmento = getSegmentoByTotal(totalGeral);
   }
 
