@@ -359,28 +359,7 @@ export default function Admin() {
           {/* TAB: CONFIGURAÇÕES */}
           {activeAdminTab === 'config' && (
           <div className="admin__grid admin__grid--simple">
-            {/* CICLO ATUAL */}
-            <Panel title="CICLO ATUAL" variant="cyan" className="admin__config">
-              <div className="config-section">
-                <p className="config-hint">
-                  Selecione o ciclo atual para calcular as metas ponderadas de todas as supervisoras.
-                </p>
-                <div className="ciclo-select-wrapper">
-                  <FileSpreadsheet size={20} />
-                  <select
-                    className="config-select config-select--large"
-                    value={config.cicloAtual}
-                    onChange={(e) => handleCicloChange(e.target.value)}
-                  >
-                    {ciclos.map(ciclo => (
-                      <option key={ciclo} value={ciclo}>{ciclo}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </Panel>
-
-            {/* REPRESENTATIVIDADE */}
+            {/* REPRESENTATIVIDADE COM SELEÇÃO DE CICLO VIGENTE */}
             <Panel
               title="REPRESENTATIVIDADE POR CICLO"
               variant="pink"
@@ -413,32 +392,56 @@ export default function Admin() {
               }
             >
               <div className="repr-grid">
-                {ciclos.map(ciclo => (
-                  <div key={ciclo} className="repr-item">
-                    <label className="repr-item__label">{ciclo}</label>
-                    <div className="repr-item__input-wrapper">
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        className="repr-item__input"
-                        value={representatividade[ciclo]}
-                        onChange={(e) => handleRepresentatividadeChange(ciclo, e.target.value)}
-                      />
-                      <span className="repr-item__suffix">%</span>
-                    </div>
+                {ciclos.map(ciclo => {
+                  const isVigente = config.cicloAtual === ciclo
+                  return (
                     <div
-                      className="repr-item__bar"
-                      style={{ width: `${representatividade[ciclo]}%` }}
-                    />
-                  </div>
-                ))}
+                      key={ciclo}
+                      className={`repr-item ${isVigente ? 'repr-item--vigente' : ''}`}
+                      onClick={() => handleCicloChange(ciclo)}
+                    >
+                      <div className="repr-item__radio">
+                        <input
+                          type="radio"
+                          name="cicloVigente"
+                          checked={isVigente}
+                          onChange={() => handleCicloChange(ciclo)}
+                          className="repr-item__radio-input"
+                        />
+                        <span className="repr-item__radio-custom"></span>
+                      </div>
+                      <label className="repr-item__label">{ciclo}</label>
+                      <div className="repr-item__input-wrapper">
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          className="repr-item__input"
+                          value={representatividade[ciclo]}
+                          onChange={(e) => {
+                            e.stopPropagation()
+                            handleRepresentatividadeChange(ciclo, e.target.value)
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <span className="repr-item__suffix">%</span>
+                      </div>
+                      <div
+                        className="repr-item__bar"
+                        style={{ width: `${representatividade[ciclo]}%` }}
+                      />
+                      {isVigente && (
+                        <span className="repr-item__badge">VIGENTE</span>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
               <div className="repr-help">
                 <TrendingUp size={16} />
                 <p>
-                  <strong>Ajuste as metas em tempo real!</strong> Ao alterar a % do ciclo atual,
-                  a meta ponderada muda automaticamente para todas as supervisoras.
+                  <strong>Clique no ciclo para defini-lo como vigente!</strong> A meta ponderada
+                  de todas as supervisoras será calculada com base na % do ciclo selecionado.
                 </p>
               </div>
             </Panel>
