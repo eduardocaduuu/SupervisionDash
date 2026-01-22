@@ -4,6 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const SegmentService = require('./SegmentService');
 const VendasService = require('./VendasService');
+const { connectMongoDB, isMongoConnected } = require('./db/mongodb');
+const PersistenceService = require('./services/PersistenceService');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -18,84 +20,18 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 const dataDir = path.join(__dirname, '../data');
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
-// Diretório de dados persistentes (na raiz do projeto, junto com as planilhas)
-const persistentDataDir = path.join(__dirname, '../../data');
-
 // ═══════════════════════════════════════════════════════════════
-// CONFIGURATION
+// CONFIGURATION (usando PersistenceService - MongoDB com fallback JSON)
 // ═══════════════════════════════════════════════════════════════
-// Config salvo junto com os dados persistentes (data/ na raiz)
-const configPath = path.join(persistentDataDir, 'config.json');
-const notesPath = path.join(__dirname, '../../data/notes.json');
+let config = { ...PersistenceService.defaultConfig };
 
-const defaultConfig = {
-  cicloAtual: '01/2026',
-  representatividade: {
-    '01/2026': 8,
-    '02/2026': 11,
-    '03/2026': 11,
-    '04/2026': 12,
-    '05/2026': 11,
-    '06/2026': 15,
-    '07/2026': 10,
-    '08/2026': 11,
-    '09/2026': 10
-  },
-  adminUser: 'acqua',
-  adminPassword: '13707',
-  // Mensagem de recompensa/motivação (visível para todas supervisoras)
-  mensagemRecompensa: null,  // { titulo: '', texto: '', ativa: false }
-  // Configuração Slack Alerts
-  slack: {
-    enabled: true,               // Ativa/desativa alertas Slack
-    testMode: true,              // Se true, envia para SLACK_TEST_USER_ID
-    riskThresholdPercent: 50,    // Threshold de risco (percentManter < X)
-    sendWhenZero: false,         // Enviar quando não há revendedores em risco
-    supervisoresPorSetor: {}     // Mapeamento: { "4005": "U0895CZ8HU7", ... }
-  }
-};
-
-function loadConfig() {
-  try {
-    if (fs.existsSync(configPath)) {
-      const saved = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-      // Deep merge for slack config
-      return {
-        ...defaultConfig,
-        ...saved,
-        slack: { ...defaultConfig.slack, ...(saved.slack || {}) }
-      };
-    }
-  } catch (e) {
-    console.error('Error loading config:', e);
-  }
-  return { ...defaultConfig };
+// Funcoes wrapper para compatibilidade com codigo existente
+async function saveConfig(cfg) {
+  await PersistenceService.saveConfig(cfg);
 }
 
-function saveConfig(cfg) {
-  fs.writeFileSync(configPath, JSON.stringify(cfg, null, 2));
-}
-
-let config = loadConfig();
-saveConfig(config);
-
-// ═══════════════════════════════════════════════════════════════
-// NOTES (POST-ITS)
-// ═══════════════════════════════════════════════════════════════
-function loadNotes() {
-  try {
-    if (fs.existsSync(notesPath)) {
-      return JSON.parse(fs.readFileSync(notesPath, 'utf-8'));
-    }
-  } catch (e) {
-    console.error('Error loading notes:', e);
-  }
-  return {};
-}
-
-function saveNotes(notes) {
-  fs.writeFileSync(notesPath, JSON.stringify(notes, null, 2));
-}
+// Cache de notes em memoria (atualizado em cada operacao)
+let notesCache = {};
 
 // ═══════════════════════════════════════════════════════════════
 // SEGMENTAÇÕES (REGRAS DE NEGÓCIO)
@@ -585,7 +521,7 @@ app.get('/api/admin/config', (req, res) => {
 });
 
 // Update config
-app.put('/api/admin/config', (req, res) => {
+app.put('/api/admin/config', async (req, res) => {
   const { cicloAtual, representatividade } = req.body;
 
   if (cicloAtual) config.cicloAtual = cicloAtual;
@@ -593,20 +529,20 @@ app.put('/api/admin/config', (req, res) => {
     config.representatividade = representatividade;
   }
 
-  saveConfig(config);
+  await saveConfig(config);
   res.json({ success: true, config });
 });
 
 // Update ciclo (legado)
-app.post('/api/admin/ciclo', (req, res) => {
+app.post('/api/admin/ciclo', async (req, res) => {
   const { ciclo } = req.body;
   config.cicloAtual = ciclo;
-  saveConfig(config);
+  await saveConfig(config);
   res.json({ success: true, cicloAtual: ciclo });
 });
 
 // Update representatividade
-app.post('/api/admin/representatividade', (req, res) => {
+app.post('/api/admin/representatividade', async (req, res) => {
   const { representatividade } = req.body;
 
   if (!representatividade || typeof representatividade !== 'object') {
@@ -614,12 +550,12 @@ app.post('/api/admin/representatividade', (req, res) => {
   }
 
   config.representatividade = { ...config.representatividade, ...representatividade };
-  saveConfig(config);
+  await saveConfig(config);
   res.json({ success: true, representatividade: config.representatividade });
 });
 
 // Salvar mensagem de recompensa
-app.post('/api/admin/mensagem-recompensa', (req, res) => {
+app.post('/api/admin/mensagem-recompensa', async (req, res) => {
   const { titulo, texto } = req.body;
 
   config.mensagemRecompensa = {
@@ -629,14 +565,14 @@ app.post('/api/admin/mensagem-recompensa', (req, res) => {
     criadaEm: new Date().toISOString()
   };
 
-  saveConfig(config);
+  await saveConfig(config);
   res.json({ success: true, mensagem: config.mensagemRecompensa });
 });
 
 // Remover mensagem de recompensa
-app.delete('/api/admin/mensagem-recompensa', (req, res) => {
+app.delete('/api/admin/mensagem-recompensa', async (req, res) => {
   config.mensagemRecompensa = null;
-  saveConfig(config);
+  await saveConfig(config);
   res.json({ success: true });
 });
 
@@ -646,20 +582,30 @@ app.get('/api/mensagem-recompensa', (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
-// NOTES ROUTES
+// NOTES ROUTES (usando PersistenceService - MongoDB com fallback JSON)
 // ═══════════════════════════════════════════════════════════════
-app.get('/api/notes', (req, res) => {
-  res.json(loadNotes());
+app.get('/api/notes', async (req, res) => {
+  try {
+    notesCache = await PersistenceService.loadNotes();
+    res.json(notesCache);
+  } catch (error) {
+    console.error('[Notes] Erro ao carregar:', error);
+    res.json(notesCache);
+  }
 });
 
-app.post('/api/notes', (req, res) => {
+app.post('/api/notes', async (req, res) => {
   const { resellerId, note } = req.body;
   if (!resellerId) return res.status(400).json({ error: 'resellerId required' });
-  
-  const notes = loadNotes();
-  notes[resellerId] = note;
-  saveNotes(notes);
-  res.json({ success: true });
+
+  try {
+    notesCache[resellerId] = note;
+    await PersistenceService.saveNote(resellerId, note, notesCache);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[Notes] Erro ao salvar:', error);
+    res.status(500).json({ error: 'Erro ao salvar nota' });
+  }
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -770,11 +716,11 @@ app.post('/api/admin/slack/test', async (req, res) => {
 });
 
 // Update Slack config (admin)
-app.put('/api/admin/slack/config', (req, res) => {
+app.put('/api/admin/slack/config', async (req, res) => {
   const { enabled, testMode, riskThresholdPercent, sendWhenZero, supervisoresPorSetor } = req.body;
 
   if (!config.slack) {
-    config.slack = { ...defaultConfig.slack };
+    config.slack = { ...PersistenceService.defaultConfig.slack };
   }
 
   if (typeof enabled === 'boolean') config.slack.enabled = enabled;
@@ -785,7 +731,7 @@ app.put('/api/admin/slack/config', (req, res) => {
     config.slack.supervisoresPorSetor = supervisoresPorSetor;
   }
 
-  saveConfig(config);
+  await saveConfig(config);
 
   res.json({
     success: true,
@@ -815,22 +761,47 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// START SERVER
+// START SERVER (com inicializacao async para MongoDB)
 // ═══════════════════════════════════════════════════════════════
-app.listen(PORT, () => {
-  const slackStatus = config.slack?.enabled ? 'ENABLED' : 'DISABLED';
+async function startServer() {
+  // 1. Tentar conectar ao MongoDB
+  const mongoConnected = await connectMongoDB();
 
-  console.log(`
+  // 2. Se conectou, migrar dados existentes (JSON -> MongoDB)
+  if (mongoConnected) {
+    await PersistenceService.migrateToMongo();
+  }
+
+  // 3. Carregar config (do MongoDB ou arquivo)
+  config = await PersistenceService.loadConfig();
+
+  // 4. Carregar notes em cache
+  notesCache = await PersistenceService.loadNotes();
+
+  // 5. Iniciar servidor HTTP
+  app.listen(PORT, () => {
+    const slackStatus = config.slack?.enabled ? 'ENABLED' : 'DISABLED';
+    const dbStatus = isMongoConnected() ? 'MongoDB' : 'JSON Files';
+
+    console.log(`
 ╔══════════════════════════════════════════════════════════════╗
 ║     SUPERVISION SEGMENTS - SERVER ONLINE                     ║
 ║     Port: ${PORT}                                                ║
 ║     Mode: ${(process.env.NODE_ENV || 'development').padEnd(12)}                             ║
+║     Database: ${dbStatus.padEnd(10)}                                  ║
 ║     Ciclo: ${config.cicloAtual}                                       ║
 ║     Slack Alerts: ${slackStatus.padEnd(8)}                                   ║
 ║     Status: OPERATIONAL                                      ║
 ╚══════════════════════════════════════════════════════════════╝
-  `);
+    `);
 
-  // Initialize Slack cron jobs
-  cronSlackAlerts.initCronJobs();
+    // Initialize Slack cron jobs
+    cronSlackAlerts.initCronJobs();
+  });
+}
+
+// Iniciar servidor
+startServer().catch(error => {
+  console.error('Erro fatal ao iniciar servidor:', error);
+  process.exit(1);
 });
