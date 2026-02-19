@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Terminal as TerminalIcon, Key, ChevronRight, Activity, Shield, AlertTriangle, Loader, Info, Clock, RefreshCw, Bell } from 'lucide-react'
+import HeatMapAlagoas from '../components/HeatMapAlagoas'
 import './Terminal.css'
 
 export default function Terminal() {
@@ -206,6 +207,9 @@ export default function Terminal() {
             <span>Essas informações servem como apoio à gestão e acompanhamento das metas de cada base.</span>
           </div>
         </div>
+
+        {/* MAPA DE CALOR - ALAGOAS */}
+        <HeatMapAlagoas />
 
         {/* DECORATIVE ASCII */}
         <div className="terminal-ascii">

@@ -621,6 +621,19 @@
   }
 }
 
+/* ═══ HEATMAP INTEGRATION ═══ */
+.terminal-page__content .heatmap-container {
+  width: 100%;
+  max-width: 900px;
+  animation: fadeIn 0.5s ease 0.5s both;
+}
+
+@media (max-width: 768px) {
+  .terminal-page__content .heatmap-container {
+    max-width: 100%;
+  }
+}
+
 /* ═══ RESPONSIVE - SMALL MOBILE ═══ */
 @media (max-width: 480px) {
   .terminal-page__header {

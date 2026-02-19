@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const SegmentService = require('./SegmentService');
 const VendasService = require('./VendasService');
+const MapService = require('./MapService');
 const { connectMongoDB, isMongoConnected } = require('./db/mongodb');
 const PersistenceService = require('./services/PersistenceService');
 
@@ -493,6 +494,22 @@ app.get('/api/setor/:setorId/ciclos', (req, res) => {
   });
 
   res.json(ciclosData);
+});
+
+// ═══════════════════════════════════════════════════════════════
+// MAP ROUTES (Mapa de Calor)
+// ═══════════════════════════════════════════════════════════════
+
+// Dados do mapa de calor
+app.get('/api/map/data', (req, res) => {
+  const result = MapService.loadMapData();
+  res.json(result);
+});
+
+// Dados agrupados por responsável
+app.get('/api/map/responsaveis', (req, res) => {
+  const result = MapService.getDataByResponsavel();
+  res.json(result);
 });
 
 // ═══════════════════════════════════════════════════════════════
