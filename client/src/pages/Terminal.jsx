@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Terminal as TerminalIcon, Key, ChevronRight, Activity, Shield, AlertTriangle, Loader, Info, Clock, RefreshCw, Bell } from 'lucide-react'
-import HeatMapAlagoas from '../components/HeatMapAlagoas'
+import { Terminal as TerminalIcon, Key, ChevronRight, Activity, Shield, AlertTriangle, Loader, Info, Clock, RefreshCw, Bell, MapPin, Flame } from 'lucide-react'
 import './Terminal.css'
 
 export default function Terminal() {
@@ -208,8 +207,21 @@ export default function Terminal() {
           </div>
         </div>
 
-        {/* MAPA DE CALOR - ALAGOAS */}
-        <HeatMapAlagoas />
+        {/* BOTÃO MAPA DE CALOR */}
+        <button
+          className="terminal-mapa-btn"
+          onClick={() => navigate('/mapa')}
+        >
+          <div className="terminal-mapa-btn__icon">
+            <Flame size={28} className="terminal-mapa-btn__flame" />
+            <MapPin size={24} />
+          </div>
+          <div className="terminal-mapa-btn__content">
+            <span className="terminal-mapa-btn__title">MAPA DE CALOR</span>
+            <span className="terminal-mapa-btn__subtitle">Visualizar vendas por cidade em Alagoas</span>
+          </div>
+          <ChevronRight size={24} className="terminal-mapa-btn__arrow" />
+        </button>
 
         {/* DECORATIVE ASCII */}
         <div className="terminal-ascii">
