@@ -18,6 +18,8 @@ L.Icon.Default.mergeOptions({
 export default function MapaCalor() {
   const navigate = useNavigate()
   const [mapData, setMapData] = useState(null)
+  const [allResponsaveis, setAllResponsaveis] = useState([])
+  const [totalGeral, setTotalGeral] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [selectedResponsavel, setSelectedResponsavel] = useState('all')
@@ -30,20 +32,35 @@ export default function MapaCalor() {
   const mapInstanceRef = useRef(null)
   const markersLayerRef = useRef(null)
 
-  // Carregar dados da API
+  // Carregar dados da API (recarrega quando filtro muda)
   useEffect(() => {
-    fetchMapData()
-  }, [])
+    fetchMapData(selectedResponsavel)
+  }, [selectedResponsavel])
 
-  const fetchMapData = async () => {
+  const fetchMapData = async (responsavel) => {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch('/api/map/data')
+      // Passar filtro de responsável para a API
+      const url = responsavel && responsavel !== 'all'
+        ? `/api/map/data?responsavel=${encodeURIComponent(responsavel)}`
+        : '/api/map/data'
+
+      const res = await fetch(url)
       const data = await res.json()
 
       if (data.success) {
         setMapData(data)
+
+        // Salvar lista de responsáveis e total geral no primeiro carregamento
+        if (responsavel === 'all' || !responsavel) {
+          setAllResponsaveis(data.stats?.responsaveis || [])
+          setTotalGeral({
+            cidades: data.stats?.totalCidades || 0,
+            valor: data.stats?.totalValor || 0,
+            pedidos: data.stats?.totalPedidos || 0
+          })
+        }
       } else {
         setError(data.error || 'Erro ao carregar dados do mapa')
       }
@@ -55,24 +72,15 @@ export default function MapaCalor() {
     }
   }
 
-  // Filtrar dados por responsável
+  // Dados já vêm filtrados do backend
   const filteredData = useMemo(() => {
-    if (!mapData?.data) return []
-
-    if (selectedResponsavel === 'all') {
-      return mapData.data
-    }
-
-    return mapData.data.filter(city =>
-      city.responsaveis.includes(selectedResponsavel)
-    )
-  }, [mapData, selectedResponsavel])
-
-  // Lista de responsáveis únicos
-  const responsaveis = useMemo(() => {
-    if (!mapData?.stats?.responsaveis) return []
-    return mapData.stats.responsaveis.sort()
+    return mapData?.data || []
   }, [mapData])
+
+  // Lista de responsáveis únicos (carregada no primeiro load)
+  const responsaveis = useMemo(() => {
+    return allResponsaveis
+  }, [allResponsaveis])
 
   // Inicializar mapa
   useEffect(() => {
@@ -364,21 +372,17 @@ export default function MapaCalor() {
                 onClick={() => setSelectedResponsavel('all')}
               >
                 <span>Todas as Supervisoras</span>
-                <span className="mapa-filter-btn__count">{mapData?.data?.length || 0}</span>
+                <span className="mapa-filter-btn__count">{totalGeral?.cidades || 0}</span>
               </button>
-              {responsaveis.map(resp => {
-                const count = mapData?.data?.filter(c => c.responsaveis.includes(resp)).length || 0
-                return (
-                  <button
-                    key={resp}
-                    className={`mapa-filter-btn ${selectedResponsavel === resp ? 'active' : ''}`}
-                    onClick={() => setSelectedResponsavel(resp)}
-                  >
-                    <span>{resp}</span>
-                    <span className="mapa-filter-btn__count">{count}</span>
-                  </button>
-                )
-              })}
+              {responsaveis.map(resp => (
+                <button
+                  key={resp}
+                  className={`mapa-filter-btn ${selectedResponsavel === resp ? 'active' : ''}`}
+                  onClick={() => setSelectedResponsavel(resp)}
+                >
+                  <span>{resp}</span>
+                </button>
+              ))}
             </div>
           </aside>
         )}

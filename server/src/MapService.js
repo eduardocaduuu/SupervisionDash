@@ -188,7 +188,7 @@ function getCityCoordinates(cityName) {
 // ═══════════════════════════════════════════════════════════════
 // CARREGAR DADOS DO MAP.XLSX
 // ═══════════════════════════════════════════════════════════════
-function loadMapData() {
+function loadMapData(responsavelFilter = null) {
   try {
     const mapPath = path.join(__dirname, '../../data/map.xlsx');
 
@@ -201,7 +201,16 @@ function loadMapData() {
     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
     const rawData = XLSX.utils.sheet_to_json(worksheet);
 
-    // Agregar dados por cidade
+    // Coletar todos os responsáveis únicos (antes do filtro)
+    const allResponsaveis = new Set();
+    rawData.forEach(row => {
+      const responsavel = row['Responsável Estrutura'] || row.ResponsavelEstrutura || row.Responsavel || row.Supervisor || row.Supervisora || '';
+      if (responsavel) {
+        allResponsaveis.add(responsavel.trim());
+      }
+    });
+
+    // Agregar dados por cidade (filtrando por responsável se especificado)
     const cidadeMap = new Map();
 
     rawData.forEach(row => {
@@ -212,6 +221,11 @@ function loadMapData() {
       const responsavel = row['Responsável Estrutura'] || row.ResponsavelEstrutura || row.Responsavel || row.Supervisor || row.Supervisora || '';
 
       if (!cidade) return;
+
+      // Se há filtro de responsável, ignorar linhas de outros responsáveis
+      if (responsavelFilter && responsavel.trim() !== responsavelFilter) {
+        return;
+      }
 
       const cidadeKey = cidade.trim();
 
@@ -242,7 +256,7 @@ function loadMapData() {
       ticketMedio: entry.qtdPedidos > 0 ? entry.totalValor / entry.qtdPedidos : 0
     }));
 
-    // Calcular max para normalização
+    // Calcular max para normalização (baseado nos dados filtrados)
     const maxValor = Math.max(...cities.map(c => c.totalValor), 1);
     const maxItens = Math.max(...cities.map(c => c.totalItens), 1);
 
@@ -260,15 +274,16 @@ function loadMapData() {
       console.log('[MapService] Cidades sem coordenadas:', citiesWithoutCoords);
     }
 
-    console.log(`[MapService] ${citiesWithCoords.length} cidades carregadas com coordenadas`);
+    console.log(`[MapService] ${citiesWithCoords.length} cidades carregadas com coordenadas${responsavelFilter ? ` (filtro: ${responsavelFilter})` : ''}`);
 
-    // Estatísticas gerais
+    // Estatísticas (baseadas nos dados filtrados, mas lista completa de responsáveis)
     const stats = {
       totalCidades: citiesWithCoords.length,
       totalValor: cities.reduce((sum, c) => sum + c.totalValor, 0),
       totalItens: cities.reduce((sum, c) => sum + c.totalItens, 0),
       totalPedidos: cities.reduce((sum, c) => sum + c.qtdPedidos, 0),
-      responsaveis: [...new Set(cities.flatMap(c => c.responsaveis))]
+      responsaveis: [...allResponsaveis].sort(),
+      filtroAtivo: responsavelFilter || null
     };
 
     return {

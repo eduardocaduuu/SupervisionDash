@@ -500,9 +500,10 @@ app.get('/api/setor/:setorId/ciclos', (req, res) => {
 // MAP ROUTES (Mapa de Calor)
 // ═══════════════════════════════════════════════════════════════
 
-// Dados do mapa de calor
+// Dados do mapa de calor (com filtro opcional por responsável)
 app.get('/api/map/data', (req, res) => {
-  const result = MapService.loadMapData();
+  const responsavel = req.query.responsavel || null;
+  const result = MapService.loadMapData(responsavel);
   res.json(result);
 });
 
