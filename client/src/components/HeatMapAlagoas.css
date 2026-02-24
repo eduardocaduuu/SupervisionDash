@@ -196,7 +196,7 @@
 .heatmap-stat__content {
   display: flex;
   flex-direction: column;
-  min-width: 0;
+  min-width: auto;
 }
 
 .heatmap-stat__value {
@@ -205,8 +205,6 @@
   font-weight: 700;
   color: var(--color-text-primary);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .heatmap-stat__label {
