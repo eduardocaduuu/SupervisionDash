@@ -171,7 +171,7 @@ export default function HeatMapAlagoas() {
         const customIcon = L.divIcon({
           className: 'custom-marker',
           html: `<div class="marker-pin" style="--intensity: ${city.intensidade}">
-                   <span class="marker-label">${formatCurrency(city.totalValor, true)}</span>
+                   <span class="marker-label">${formatCurrency(city.totalValor)}</span>
                  </div>`,
           iconSize: [60, 30],
           iconAnchor: [30, 15]
@@ -346,7 +346,7 @@ export default function HeatMapAlagoas() {
           <div className="heatmap-stat heatmap-stat--primary">
             <DollarSign size={16} />
             <div className="heatmap-stat__content">
-              <span className="heatmap-stat__value">{formatCurrency(stats.totalValor, true)}</span>
+              <span className="heatmap-stat__value">{formatCurrency(stats.totalValor)}</span>
               <span className="heatmap-stat__label">Valor Total</span>
             </div>
           </div>
@@ -360,7 +360,7 @@ export default function HeatMapAlagoas() {
           <div className="heatmap-stat">
             <TrendingUp size={16} />
             <div className="heatmap-stat__content">
-              <span className="heatmap-stat__value">{formatCurrency(stats.ticketMedio, true)}</span>
+              <span className="heatmap-stat__value">{formatCurrency(stats.ticketMedio)}</span>
               <span className="heatmap-stat__label">Ticket Médio</span>
             </div>
           </div>
@@ -411,7 +411,7 @@ export default function HeatMapAlagoas() {
               <div key={city.cidade} className="heatmap-ranking__item">
                 <span className="heatmap-ranking__position">#{index + 1}</span>
                 <span className="heatmap-ranking__city">{city.cidade}</span>
-                <span className="heatmap-ranking__value">{formatCurrency(city.totalValor, true)}</span>
+                <span className="heatmap-ranking__value">{formatCurrency(city.totalValor)}</span>
               </div>
             ))}
         </div>

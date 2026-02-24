@@ -170,7 +170,7 @@ export default function MapaCalor() {
         const customIcon = L.divIcon({
           className: 'mapa-marker',
           html: `<div class="mapa-marker-pin">
-                   <span class="mapa-marker-label">${formatCurrency(city.totalValor, true)}</span>
+                   <span class="mapa-marker-label">${formatCurrency(city.totalValor)}</span>
                  </div>`,
           iconSize: [80, 35],
           iconAnchor: [40, 17]
@@ -336,7 +336,7 @@ export default function MapaCalor() {
           <div className="mapa-stat mapa-stat--highlight">
             <DollarSign size={18} />
             <div className="mapa-stat__content">
-              <span className="mapa-stat__value">{formatCurrency(stats.totalValor, true)}</span>
+              <span className="mapa-stat__value">{formatCurrency(stats.totalValor)}</span>
               <span className="mapa-stat__label">Valor Total</span>
             </div>
           </div>
@@ -350,7 +350,7 @@ export default function MapaCalor() {
           <div className="mapa-stat">
             <TrendingUp size={18} />
             <div className="mapa-stat__content">
-              <span className="mapa-stat__value">{formatCurrency(stats.ticketMedio, true)}</span>
+              <span className="mapa-stat__value">{formatCurrency(stats.ticketMedio)}</span>
               <span className="mapa-stat__label">Ticket Médio</span>
             </div>
           </div>
@@ -440,7 +440,7 @@ export default function MapaCalor() {
                       <span className="mapa-ranking__city">{city.cidade}</span>
                       <span className="mapa-ranking__pedidos">{city.qtdPedidos} pedidos</span>
                     </div>
-                    <span className="mapa-ranking__value">{formatCurrency(city.totalValor, true)}</span>
+                    <span className="mapa-ranking__value">{formatCurrency(city.totalValor)}</span>
                   </div>
                 ))}
             </div>
