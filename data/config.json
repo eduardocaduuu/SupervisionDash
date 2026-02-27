@@ -20,21 +20,23 @@
     "riskThresholdPercent": 50,
     "sendWhenZero": false,
     "supervisoresPorSetor": {
-      "1260": "U0A6WDA1LSF",
-      "4005": "U088986S1L0",
-      "8238": "U0929MZMW5C",
-      "8239": "U0875QNU02K",
-      "1414": "U0875QNU02K",
-      "15775": "U088MU33XRC",
-      "17539": "U08JJ7VF0N6",
-      "9540": "U08JJ7VF0N6",
-      "1415": "U08JJH9BWP5",
+      "1414": "U09G04R3CNP",
+      "1415": "U0875QNU02K",
       "3124": "U08M7D0EVR9",
+      "8317": "U08NTGXEK26",
+      "9540": "U08JJ7VF0N6",
+      "10677": "U08P5GH6C3Z",
+      "14244": "U08F7PSCPK6",
       "14245": "U08UMBX0CP4",
       "14246": "U08JJ6JMH50",
-      "15774": "U087HG1B4DB",
-      "23032": "U08NTGXEK26",
-      "8317": "U08NTGXEK26"
+      "15774": "U08JJH9BWP5",
+      "16285": "U0AA4R2LSUS",
+      "1260": "U0A6WDA1LSF",
+      "4005": "U088986S1L0",
+      "8239": "U088986S1L0",
+      "8238": "U0929MZMW5C",
+      "15775": "U08JJH9BWP5",
+      "23032": "U087M32A18B"
     }
   }
 }
