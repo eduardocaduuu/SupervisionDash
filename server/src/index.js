@@ -5,6 +5,7 @@ const path = require('path');
 const SegmentService = require('./SegmentService');
 const VendasService = require('./VendasService');
 const MapService = require('./MapService');
+const ProdutosService = require('./ProdutosService');
 const { connectMongoDB, isMongoConnected } = require('./db/mongodb');
 const PersistenceService = require('./services/PersistenceService');
 
@@ -494,6 +495,31 @@ app.get('/api/setor/:setorId/ciclos', (req, res) => {
   });
 
   res.json(ciclosData);
+});
+
+// Produtos do setor (análise de associação)
+app.get('/api/setor/:setorId/produtos', (req, res) => {
+  const setorId = normalizeSetorId(req.params.setorId);
+
+  if (GERENCIAS_BLOQUEADAS.includes(setorId)) {
+    return res.status(400).json({ error: 'Código de gerência não permitido' });
+  }
+
+  const setor = SETORES.find(s => s.id === setorId);
+  if (!setor) {
+    return res.status(404).json({ error: 'Setor não encontrado' });
+  }
+
+  try {
+    const data = ProdutosService.getAssociacoesBySetor(setorId);
+    res.json({
+      setor,
+      ...data
+    });
+  } catch (error) {
+    console.error('[Produtos] Erro:', error);
+    res.status(500).json({ error: 'Erro ao processar dados de produtos' });
+  }
 });
 
 // ═══════════════════════════════════════════════════════════════

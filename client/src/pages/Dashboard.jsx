@@ -12,6 +12,7 @@ import DealerCard from '../components/DealerCard'
 import DealerModal from '../components/DealerModal'
 import CiclosTab from './CiclosTab'
 import RankTab from './RankTab'
+import ProdutosTab from './ProdutosTab'
 import './Dashboard.css'
 
 // SAFELIST: text-red-500 bg-red-500/10 border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.2)]
@@ -379,6 +380,12 @@ export default function Dashboard() {
               >
                 RANK DO CICLO
               </button>
+              <button
+                className={`tab ${activeTab === 'produtos' ? 'tab--active' : ''}`}
+                onClick={() => setActiveTab('produtos')}
+              >
+                PRODUTOS
+              </button>
             </div>
           </div>
 
@@ -478,6 +485,10 @@ export default function Dashboard() {
 
           {activeTab === 'rank' && (
             <RankTab setorId={setorId} />
+          )}
+
+          {activeTab === 'produtos' && (
+            <ProdutosTab setorId={setorId} />
           )}
         </div>
       </main>
