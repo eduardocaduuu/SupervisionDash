@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const multer = require('multer');
 const SegmentService = require('./SegmentService');
 const VendasService = require('./VendasService');
 const MapService = require('./MapService');
@@ -842,6 +843,136 @@ app.put('/api/admin/slack/config', async (req, res) => {
 app.get('/api/admin/slack/connection', async (req, res) => {
   const result = await slackClient.testConnection();
   res.json(result);
+});
+
+// ═══════════════════════════════════════════════════════════════
+// FILE UPLOAD ROUTES (Admin)
+// ═══════════════════════════════════════════════════════════════
+const uploadDir = path.join(__dirname, '../../data');
+
+// Configurar multer para upload de arquivos
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    // Mapear nomes aceitos
+    const fileMap = {
+      'vendas': 'vendas_bd.csv',
+      'segmentos': 'Segmentos_bd.xlsx'
+    };
+    const tipo = req.body.tipo || req.query.tipo;
+    const targetName = fileMap[tipo];
+
+    if (targetName) {
+      cb(null, targetName);
+    } else {
+      cb(new Error('Tipo de arquivo inválido'));
+    }
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max
+  fileFilter: (req, file, cb) => {
+    const tipo = req.body.tipo || req.query.tipo;
+
+    if (tipo === 'vendas') {
+      // Aceitar CSV
+      if (file.mimetype === 'text/csv' ||
+          file.originalname.endsWith('.csv') ||
+          file.mimetype === 'application/vnd.ms-excel') {
+        cb(null, true);
+      } else {
+        cb(new Error('Arquivo de vendas deve ser CSV'));
+      }
+    } else if (tipo === 'segmentos') {
+      // Aceitar XLSX
+      if (file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+          file.originalname.endsWith('.xlsx')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Arquivo de segmentos deve ser XLSX'));
+      }
+    } else {
+      cb(new Error('Tipo de arquivo não especificado'));
+    }
+  }
+});
+
+// Status dos arquivos de dados
+app.get('/api/admin/files/status', (req, res) => {
+  const vendasPath = path.join(uploadDir, 'vendas_bd.csv');
+  const segmentosPath = path.join(uploadDir, 'Segmentos_bd.xlsx');
+
+  const getFileInfo = (filePath) => {
+    try {
+      if (fs.existsSync(filePath)) {
+        const stats = fs.statSync(filePath);
+        return {
+          exists: true,
+          size: stats.size,
+          sizeFormatted: `${(stats.size / 1024 / 1024).toFixed(2)} MB`,
+          lastModified: stats.mtime.toISOString(),
+          lastModifiedFormatted: new Date(stats.mtime).toLocaleString('pt-BR')
+        };
+      }
+    } catch (e) {}
+    return { exists: false };
+  };
+
+  res.json({
+    vendas: getFileInfo(vendasPath),
+    segmentos: getFileInfo(segmentosPath)
+  });
+});
+
+// Upload de arquivo
+app.post('/api/admin/files/upload', upload.single('file'), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+  }
+
+  const tipo = req.body.tipo || req.query.tipo;
+
+  // Recarregar dados após upload
+  if (tipo === 'segmentos') {
+    // Recarregar lista de setores
+    SETORES = getSetoresDinamicos();
+  }
+
+  // Limpar caches dos serviços
+  if (tipo === 'vendas') {
+    VendasService.clearCache && VendasService.clearCache();
+  }
+  if (tipo === 'segmentos') {
+    SegmentService.clearCache && SegmentService.clearCache();
+  }
+
+  res.json({
+    success: true,
+    message: `Arquivo ${req.file.filename} enviado com sucesso`,
+    file: {
+      name: req.file.filename,
+      size: req.file.size,
+      sizeFormatted: `${(req.file.size / 1024 / 1024).toFixed(2)} MB`
+    }
+  });
+});
+
+// Tratamento de erros do multer
+app.use((err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ error: 'Arquivo muito grande (máx 50MB)' });
+    }
+    return res.status(400).json({ error: err.message });
+  }
+  if (err) {
+    return res.status(400).json({ error: err.message });
+  }
+  next();
 });
 
 // ═══════════════════════════════════════════════════════════════

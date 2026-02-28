@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import {
   Shield, LogOut, Save, CheckCircle, AlertTriangle, FileSpreadsheet, TrendingUp,
   Gift, Trash2, Send, MessageSquare, Users, ChevronDown, ChevronUp, Filter,
-  Building2, Target, Rocket, Search, X, Trophy, Star, Sparkles, RefreshCw
+  Building2, Target, Rocket, Search, X, Trophy, Star, Sparkles, RefreshCw,
+  Upload, File, Database, Clock
 } from 'lucide-react'
 import Panel from '../components/Panel'
 import DealerCard from '../components/DealerCard'
@@ -40,6 +41,11 @@ export default function Admin() {
   const [missionData, setMissionData] = useState([])
   const [loadingMission, setLoadingMission] = useState(false)
   const [missionLoaded, setMissionLoaded] = useState(false)
+
+  // Upload de arquivos
+  const [filesStatus, setFilesStatus] = useState({ vendas: {}, segmentos: {} })
+  const [uploading, setUploading] = useState(null)
+  const [uploadStatus, setUploadStatus] = useState(null)
 
   useEffect(() => {
     fetch('/api/admin/config')
@@ -167,6 +173,56 @@ export default function Admin() {
       loadMissionData()
     }
   }, [activeAdminTab, setores, missionLoaded])
+
+  // Carregar status dos arquivos quando mudar para a aba dados
+  const loadFilesStatus = async () => {
+    try {
+      const res = await fetch('/api/admin/files/status')
+      const data = await res.json()
+      setFilesStatus(data)
+    } catch (err) {
+      console.error('Erro ao carregar status dos arquivos:', err)
+    }
+  }
+
+  useEffect(() => {
+    if (activeAdminTab === 'dados') {
+      loadFilesStatus()
+    }
+  }, [activeAdminTab])
+
+  // Upload de arquivo
+  const handleFileUpload = async (tipo, file) => {
+    if (!file) return
+
+    setUploading(tipo)
+    setUploadStatus(null)
+
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('tipo', tipo)
+
+    try {
+      const res = await fetch('/api/admin/files/upload', {
+        method: 'POST',
+        body: formData
+      })
+
+      const data = await res.json()
+
+      if (res.ok) {
+        setUploadStatus({ tipo, success: true, message: data.message })
+        loadFilesStatus()
+      } else {
+        setUploadStatus({ tipo, success: false, message: data.error })
+      }
+    } catch (err) {
+      setUploadStatus({ tipo, success: false, message: 'Erro ao enviar arquivo' })
+    }
+
+    setUploading(null)
+    setTimeout(() => setUploadStatus(null), 5000)
+  }
 
   const handleCicloChange = async (ciclo) => {
     try {
@@ -351,6 +407,13 @@ export default function Admin() {
           {missionLoaded && missionData.length > 0 && (
             <span className="admin__tab-badge">{missionData.reduce((acc, b) => acc + b.dealers.length, 0)}</span>
           )}
+        </button>
+        <button
+          className={`admin__tab ${activeAdminTab === 'dados' ? 'admin__tab--active' : ''}`}
+          onClick={() => setActiveAdminTab('dados')}
+        >
+          <Database size={16} />
+          IMPORTAR DADOS
         </button>
       </div>
 
@@ -836,6 +899,170 @@ export default function Admin() {
                 )}
               </>
             )}
+          </div>
+          )}
+
+          {/* TAB: IMPORTAR DADOS */}
+          {activeAdminTab === 'dados' && (
+          <div className="admin__dados">
+            <div className="admin__dados-header">
+              <Database size={32} />
+              <div>
+                <h2>IMPORTAR PLANILHAS</h2>
+                <p>Atualize os dados do sistema importando novas planilhas de vendas e segmentos.</p>
+              </div>
+              <button className="btn btn--ghost" onClick={loadFilesStatus}>
+                <RefreshCw size={16} />
+                ATUALIZAR STATUS
+              </button>
+            </div>
+
+            <div className="admin__dados-grid">
+              {/* VENDAS */}
+              <div className="admin__dados-card">
+                <div className="admin__dados-card-header">
+                  <FileSpreadsheet size={24} />
+                  <div>
+                    <h3>Planilha de Vendas</h3>
+                    <span className="admin__dados-filename mono">vendas_bd.csv</span>
+                  </div>
+                </div>
+
+                <div className="admin__dados-card-status">
+                  {filesStatus.vendas?.exists ? (
+                    <>
+                      <div className="admin__dados-status-row">
+                        <CheckCircle size={16} className="text-success" />
+                        <span>Arquivo presente</span>
+                      </div>
+                      <div className="admin__dados-status-row">
+                        <File size={16} />
+                        <span>{filesStatus.vendas.sizeFormatted}</span>
+                      </div>
+                      <div className="admin__dados-status-row">
+                        <Clock size={16} />
+                        <span>Atualizado em: {filesStatus.vendas.lastModifiedFormatted}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="admin__dados-status-row">
+                      <AlertTriangle size={16} className="text-warning" />
+                      <span>Arquivo não encontrado</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="admin__dados-card-upload">
+                  <label className={`admin__dados-upload-btn ${uploading === 'vendas' ? 'admin__dados-upload-btn--loading' : ''}`}>
+                    {uploading === 'vendas' ? (
+                      <>
+                        <div className="admin-loading__spinner" style={{ width: 18, height: 18 }}></div>
+                        <span>ENVIANDO...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload size={18} />
+                        <span>ENVIAR NOVO CSV</span>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept=".csv"
+                      onChange={(e) => handleFileUpload('vendas', e.target.files[0])}
+                      disabled={uploading === 'vendas'}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+                </div>
+
+                {uploadStatus?.tipo === 'vendas' && (
+                  <div className={`admin__dados-feedback ${uploadStatus.success ? 'admin__dados-feedback--success' : 'admin__dados-feedback--error'}`}>
+                    {uploadStatus.success ? <CheckCircle size={16} /> : <AlertTriangle size={16} />}
+                    <span>{uploadStatus.message}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* SEGMENTOS */}
+              <div className="admin__dados-card">
+                <div className="admin__dados-card-header">
+                  <FileSpreadsheet size={24} />
+                  <div>
+                    <h3>Planilha de Segmentos</h3>
+                    <span className="admin__dados-filename mono">Segmentos_bd.xlsx</span>
+                  </div>
+                </div>
+
+                <div className="admin__dados-card-status">
+                  {filesStatus.segmentos?.exists ? (
+                    <>
+                      <div className="admin__dados-status-row">
+                        <CheckCircle size={16} className="text-success" />
+                        <span>Arquivo presente</span>
+                      </div>
+                      <div className="admin__dados-status-row">
+                        <File size={16} />
+                        <span>{filesStatus.segmentos.sizeFormatted}</span>
+                      </div>
+                      <div className="admin__dados-status-row">
+                        <Clock size={16} />
+                        <span>Atualizado em: {filesStatus.segmentos.lastModifiedFormatted}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="admin__dados-status-row">
+                      <AlertTriangle size={16} className="text-warning" />
+                      <span>Arquivo não encontrado</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="admin__dados-card-upload">
+                  <label className={`admin__dados-upload-btn ${uploading === 'segmentos' ? 'admin__dados-upload-btn--loading' : ''}`}>
+                    {uploading === 'segmentos' ? (
+                      <>
+                        <div className="admin-loading__spinner" style={{ width: 18, height: 18 }}></div>
+                        <span>ENVIANDO...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload size={18} />
+                        <span>ENVIAR NOVO XLSX</span>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept=".xlsx"
+                      onChange={(e) => handleFileUpload('segmentos', e.target.files[0])}
+                      disabled={uploading === 'segmentos'}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+                </div>
+
+                {uploadStatus?.tipo === 'segmentos' && (
+                  <div className={`admin__dados-feedback ${uploadStatus.success ? 'admin__dados-feedback--success' : 'admin__dados-feedback--error'}`}>
+                    {uploadStatus.success ? <CheckCircle size={16} /> : <AlertTriangle size={16} />}
+                    <span>{uploadStatus.message}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="admin__dados-info">
+              <AlertTriangle size={18} />
+              <div>
+                <strong>Atenção:</strong>
+                <p>
+                  Ao importar novos arquivos, os dados anteriores serão substituídos.
+                  Certifique-se de que os arquivos estão no formato correto antes de enviar.
+                </p>
+                <ul>
+                  <li><strong>vendas_bd.csv:</strong> Arquivo CSV com dados de vendas por ciclo</li>
+                  <li><strong>Segmentos_bd.xlsx:</strong> Arquivo Excel com cadastro de revendedores e segmentos</li>
+                </ul>
+              </div>
+            </div>
           </div>
           )}
         </div>
