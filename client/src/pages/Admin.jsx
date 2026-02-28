@@ -924,7 +924,9 @@ export default function Admin() {
                   <FileSpreadsheet size={24} />
                   <div>
                     <h3>Planilha de Vendas</h3>
-                    <span className="admin__dados-filename mono">vendas_bd.csv</span>
+                    <span className="admin__dados-filename mono">
+                      {filesStatus.vendas?.filename || 'vendas_bd.csv / .xlsx'}
+                    </span>
                   </div>
                 </div>
 
@@ -962,12 +964,12 @@ export default function Admin() {
                     ) : (
                       <>
                         <Upload size={18} />
-                        <span>ENVIAR NOVO CSV</span>
+                        <span>ENVIAR CSV OU EXCEL</span>
                       </>
                     )}
                     <input
                       type="file"
-                      accept=".csv"
+                      accept=".csv,.xlsx"
                       onChange={(e) => handleFileUpload('vendas', e.target.files[0])}
                       disabled={uploading === 'vendas'}
                       style={{ display: 'none' }}
@@ -1058,8 +1060,8 @@ export default function Admin() {
                   Certifique-se de que os arquivos estão no formato correto antes de enviar.
                 </p>
                 <ul>
-                  <li><strong>vendas_bd.csv:</strong> Arquivo CSV com dados de vendas por ciclo</li>
-                  <li><strong>Segmentos_bd.xlsx:</strong> Arquivo Excel com cadastro de revendedores e segmentos</li>
+                  <li><strong>Vendas:</strong> Arquivo CSV ou Excel (.xlsx) com dados de vendas por ciclo</li>
+                  <li><strong>Segmentos:</strong> Arquivo Excel (.xlsx) com cadastro de revendedores e segmentos</li>
                 </ul>
               </div>
             </div>

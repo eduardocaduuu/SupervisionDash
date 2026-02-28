@@ -856,16 +856,14 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    // Mapear nomes aceitos
-    const fileMap = {
-      'vendas': 'vendas_bd.csv',
-      'segmentos': 'Segmentos_bd.xlsx'
-    };
     const tipo = req.body.tipo || req.query.tipo;
-    const targetName = fileMap[tipo];
+    const ext = path.extname(file.originalname).toLowerCase();
 
-    if (targetName) {
-      cb(null, targetName);
+    if (tipo === 'vendas') {
+      // Aceita .csv ou .xlsx para vendas
+      cb(null, `vendas_bd${ext}`);
+    } else if (tipo === 'segmentos') {
+      cb(null, 'Segmentos_bd.xlsx');
     } else {
       cb(new Error('Tipo de arquivo inválido'));
     }
@@ -877,23 +875,25 @@ const upload = multer({
   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max
   fileFilter: (req, file, cb) => {
     const tipo = req.body.tipo || req.query.tipo;
+    const ext = path.extname(file.originalname).toLowerCase();
 
     if (tipo === 'vendas') {
-      // Aceitar CSV
-      if (file.mimetype === 'text/csv' ||
-          file.originalname.endsWith('.csv') ||
-          file.mimetype === 'application/vnd.ms-excel') {
+      // Aceitar CSV ou XLSX para vendas
+      if (ext === '.csv' || ext === '.xlsx' ||
+          file.mimetype === 'text/csv' ||
+          file.mimetype === 'application/vnd.ms-excel' ||
+          file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
         cb(null, true);
       } else {
-        cb(new Error('Arquivo de vendas deve ser CSV'));
+        cb(new Error('Arquivo de vendas deve ser CSV ou Excel (.xlsx)'));
       }
     } else if (tipo === 'segmentos') {
       // Aceitar XLSX
-      if (file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-          file.originalname.endsWith('.xlsx')) {
+      if (ext === '.xlsx' ||
+          file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
         cb(null, true);
       } else {
-        cb(new Error('Arquivo de segmentos deve ser XLSX'));
+        cb(new Error('Arquivo de segmentos deve ser Excel (.xlsx)'));
       }
     } else {
       cb(new Error('Tipo de arquivo não especificado'));
@@ -903,7 +903,8 @@ const upload = multer({
 
 // Status dos arquivos de dados
 app.get('/api/admin/files/status', (req, res) => {
-  const vendasPath = path.join(uploadDir, 'vendas_bd.csv');
+  const vendasCsvPath = path.join(uploadDir, 'vendas_bd.csv');
+  const vendasXlsxPath = path.join(uploadDir, 'vendas_bd.xlsx');
   const segmentosPath = path.join(uploadDir, 'Segmentos_bd.xlsx');
 
   const getFileInfo = (filePath) => {
@@ -912,6 +913,7 @@ app.get('/api/admin/files/status', (req, res) => {
         const stats = fs.statSync(filePath);
         return {
           exists: true,
+          filename: path.basename(filePath),
           size: stats.size,
           sizeFormatted: `${(stats.size / 1024 / 1024).toFixed(2)} MB`,
           lastModified: stats.mtime.toISOString(),
@@ -922,8 +924,14 @@ app.get('/api/admin/files/status', (req, res) => {
     return { exists: false };
   };
 
+  // Verificar qual arquivo de vendas existe (prioriza xlsx)
+  let vendasInfo = getFileInfo(vendasXlsxPath);
+  if (!vendasInfo.exists) {
+    vendasInfo = getFileInfo(vendasCsvPath);
+  }
+
   res.json({
-    vendas: getFileInfo(vendasPath),
+    vendas: vendasInfo,
     segmentos: getFileInfo(segmentosPath)
   });
 });
