@@ -653,6 +653,61 @@ app.post('/api/notes', async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+// DEALER DATA ROUTES (Meta + Acoes + Note)
+// ═══════════════════════════════════════════════════════════════
+let dealerDataCache = {};
+
+app.get('/api/dealer-data', async (req, res) => {
+  try {
+    dealerDataCache = await PersistenceService.loadDealerData();
+    res.json(dealerDataCache);
+  } catch (error) {
+    console.error('[DealerData] Erro ao carregar:', error);
+    res.json(dealerDataCache);
+  }
+});
+
+app.post('/api/dealer-data', async (req, res) => {
+  const { resellerId, note, meta, acao } = req.body;
+  if (!resellerId) return res.status(400).json({ error: 'resellerId required' });
+
+  try {
+    // Inicializa se não existe
+    if (!dealerDataCache[resellerId]) {
+      dealerDataCache[resellerId] = { note: '', meta: null, acoes: [] };
+    }
+
+    const data = dealerDataCache[resellerId];
+
+    // Atualiza nota se fornecida
+    if (note !== undefined) {
+      data.note = note;
+    }
+
+    // Atualiza meta se fornecida
+    if (meta !== undefined) {
+      data.meta = meta;
+    }
+
+    // Adiciona ação se fornecida
+    if (acao) {
+      data.acoes.unshift({ tipo: acao, data: new Date().toISOString() });
+      // Mantém apenas as últimas 10 ações
+      if (data.acoes.length > 10) {
+        data.acoes = data.acoes.slice(0, 10);
+      }
+    }
+
+    dealerDataCache[resellerId] = data;
+    await PersistenceService.saveDealerData(resellerId, data, dealerDataCache);
+    res.json({ success: true, data });
+  } catch (error) {
+    console.error('[DealerData] Erro ao salvar:', error);
+    res.status(500).json({ error: 'Erro ao salvar dados' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
 // SLACK ALERTS ROUTES (Admin)
 // ═══════════════════════════════════════════════════════════════
 const slackClient = require('./slack/slackClient');

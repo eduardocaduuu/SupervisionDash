@@ -6,6 +6,7 @@ const { isMongoConnected } = require('../db/mongodb');
 const persistentDataDir = path.join(__dirname, '../../../data');
 const configPath = path.join(persistentDataDir, 'config.json');
 const notesPath = path.join(persistentDataDir, 'notes.json');
+const dealerDataPath = path.join(persistentDataDir, 'dealerdata.json');
 
 // Config padrao
 const defaultConfig = {
@@ -205,6 +206,89 @@ async function saveNote(resellerId, note, allNotes) {
 }
 
 // ================================================================
+// DEALER DATA - MongoDB com fallback para JSON (meta + acoes + note)
+// ================================================================
+
+async function loadDealerDataFromMongo() {
+  const DealerData = require('../models/DealerData');
+  try {
+    const data = await DealerData.find({});
+    const dataObj = {};
+    data.forEach(d => {
+      dataObj[d.resellerId] = {
+        note: d.note || '',
+        meta: d.meta || null,
+        acoes: d.acoes || []
+      };
+    });
+    return dataObj;
+  } catch (error) {
+    console.error('[Persistence] Erro ao carregar dealerData do MongoDB:', error.message);
+    return null;
+  }
+}
+
+function loadDealerDataFromFile() {
+  try {
+    if (fs.existsSync(dealerDataPath)) {
+      return JSON.parse(fs.readFileSync(dealerDataPath, 'utf-8'));
+    }
+  } catch (e) {
+    console.error('[Persistence] Erro ao carregar dealerData do arquivo:', e.message);
+  }
+  return {};
+}
+
+async function loadDealerData() {
+  if (isMongoConnected()) {
+    const mongoData = await loadDealerDataFromMongo();
+    if (mongoData !== null) {
+      console.log('[Persistence] DealerData carregado do MongoDB');
+      return mongoData;
+    }
+  }
+  console.log('[Persistence] DealerData carregado do arquivo local');
+  return loadDealerDataFromFile();
+}
+
+async function saveDealerDataToMongo(resellerId, data) {
+  const DealerData = require('../models/DealerData');
+  try {
+    await DealerData.findOneAndUpdate(
+      { resellerId },
+      { resellerId, ...data },
+      { upsert: true }
+    );
+    return true;
+  } catch (error) {
+    console.error('[Persistence] Erro ao salvar dealerData no MongoDB:', error.message);
+    return false;
+  }
+}
+
+function saveDealerDataToFile(allData) {
+  try {
+    fs.writeFileSync(dealerDataPath, JSON.stringify(allData, null, 2));
+    return true;
+  } catch (error) {
+    console.error('[Persistence] Erro ao salvar dealerData no arquivo:', error.message);
+    return false;
+  }
+}
+
+async function saveDealerData(resellerId, data, allData) {
+  if (isMongoConnected()) {
+    const saved = await saveDealerDataToMongo(resellerId, data);
+    if (saved) {
+      console.log('[Persistence] DealerData salvo no MongoDB');
+      return true;
+    }
+  }
+  console.log('[Persistence] DealerData salvo no arquivo local');
+  return saveDealerDataToFile(allData);
+}
+
+// ================================================================
 // MIGRACAO - Importar dados JSON existentes para MongoDB
 // ================================================================
 
@@ -264,6 +348,8 @@ module.exports = {
   saveConfig,
   loadNotes,
   saveNote,
+  loadDealerData,
+  saveDealerData,
   migrateToMongo,
   defaultConfig
 };

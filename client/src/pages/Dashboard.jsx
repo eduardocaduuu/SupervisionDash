@@ -106,7 +106,10 @@ export default function Dashboard() {
   // Notes (post-its) das supervisoras
   const [notes, setNotes] = useState({})
 
-  // Buscar notas
+  // Dealer Data (meta + acoes + note)
+  const [dealerData, setDealerData] = useState({})
+
+  // Buscar notas (legado)
   useEffect(() => {
     fetch('/api/notes')
       .then(r => r.json())
@@ -114,17 +117,67 @@ export default function Dashboard() {
       .catch(console.error)
   }, [])
 
+  // Buscar dealer data
+  useEffect(() => {
+    fetch('/api/dealer-data')
+      .then(r => r.json())
+      .then(data => setDealerData(data || {}))
+      .catch(console.error)
+  }, [])
+
   // Salvar nota
   const handleSaveNote = useCallback(async (resellerId, noteText) => {
     try {
-      await fetch('/api/notes', {
+      await fetch('/api/dealer-data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ resellerId, note: noteText })
       })
+      setDealerData(prev => ({
+        ...prev,
+        [resellerId]: { ...prev[resellerId], note: noteText }
+      }))
+      // Também atualiza notes para compatibilidade
       setNotes(prev => ({ ...prev, [resellerId]: noteText }))
     } catch (error) {
       console.error('Erro ao salvar nota:', error)
+    }
+  }, [])
+
+  // Salvar meta pessoal
+  const handleSaveMeta = useCallback(async (resellerId, meta) => {
+    try {
+      await fetch('/api/dealer-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resellerId, meta })
+      })
+      setDealerData(prev => ({
+        ...prev,
+        [resellerId]: { ...prev[resellerId], meta }
+      }))
+    } catch (error) {
+      console.error('Erro ao salvar meta:', error)
+    }
+  }, [])
+
+  // Adicionar ação
+  const handleAddAcao = useCallback(async (resellerId, acao) => {
+    try {
+      const response = await fetch('/api/dealer-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resellerId, acao })
+      })
+      const result = await response.json()
+      if (result.success) {
+        setDealerData(prev => ({
+          ...prev,
+          [resellerId]: result.data
+        }))
+      }
+    } catch (error) {
+      console.error('Erro ao adicionar ação:', error)
     }
   }, [])
 
@@ -464,8 +517,11 @@ export default function Dashboard() {
                       key={dealer.codigo}
                       dealer={dealerDisplay}
                       onClick={() => handleDealerClick(dealerDisplay)}
-                      note={notes[dealer.codigo] || ''}
+                      note={dealerData[dealer.codigo]?.note || notes[dealer.codigo] || ''}
                       onSaveNote={(noteText) => handleSaveNote(dealer.codigo, noteText)}
+                      dealerData={dealerData[dealer.codigo]}
+                      onSaveMeta={(meta) => handleSaveMeta(dealer.codigo, meta)}
+                      onAddAcao={(acao) => handleAddAcao(dealer.codigo, acao)}
                     />
                   )
                 })}
