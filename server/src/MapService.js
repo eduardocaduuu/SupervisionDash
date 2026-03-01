@@ -185,10 +185,16 @@ function getCityCoordinates(cityName) {
   return null;
 }
 
+// Normalizar código de estrutura (remove pontos e espaços)
+function normalizeSetorCode(code) {
+  if (!code) return '';
+  return String(code).replace(/\./g, '').replace(/\s+/g, '').trim();
+}
+
 // ═══════════════════════════════════════════════════════════════
 // CARREGAR DADOS DO MAP.XLSX
 // ═══════════════════════════════════════════════════════════════
-function loadMapData(responsavelFilter = null) {
+function loadMapData(responsavelFilter = null, setorIdFilter = null) {
   try {
     const mapPath = path.join(__dirname, '../../data/map.xlsx');
 
@@ -201,16 +207,24 @@ function loadMapData(responsavelFilter = null) {
     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
     const rawData = XLSX.utils.sheet_to_json(worksheet);
 
-    // Coletar todos os responsáveis únicos (antes do filtro)
+    // Normalizar setorId do filtro
+    const normalizedSetorFilter = setorIdFilter ? normalizeSetorCode(setorIdFilter) : null;
+
+    // Coletar todos os responsáveis e setores únicos (antes do filtro)
     const allResponsaveis = new Set();
+    const allSetores = new Set();
     rawData.forEach(row => {
       const responsavel = row['Responsável Estrutura'] || row.ResponsavelEstrutura || row.Responsavel || row.Supervisor || row.Supervisora || '';
+      const codEstrutura = row['Cód Estrutura'] || row.CodEstrutura || row.CodigoEstrutura || '';
       if (responsavel) {
         allResponsaveis.add(responsavel.trim());
       }
+      if (codEstrutura) {
+        allSetores.add(normalizeSetorCode(codEstrutura));
+      }
     });
 
-    // Agregar dados por cidade (filtrando por responsável se especificado)
+    // Agregar dados por cidade (filtrando por responsável ou setor se especificado)
     const cidadeMap = new Map();
 
     rawData.forEach(row => {
@@ -219,11 +233,19 @@ function loadMapData(responsavelFilter = null) {
       const valorPraticado = row['Valor Praticado'] || row.ValorPraticado || row.valorpraticado || row.Valor || 0;
       const cidade = row.Cidade || row.cidade || row.CIDADE || '';
       const responsavel = row['Responsável Estrutura'] || row.ResponsavelEstrutura || row.Responsavel || row.Supervisor || row.Supervisora || '';
+      const codEstrutura = row['Cód Estrutura'] || row.CodEstrutura || row.CodigoEstrutura || '';
 
       if (!cidade) return;
 
-      // Se há filtro de responsável, ignorar linhas de outros responsáveis
-      if (responsavelFilter && responsavel.trim() !== responsavelFilter) {
+      // Filtro por setor (prioridade)
+      if (normalizedSetorFilter) {
+        const normalizedCod = normalizeSetorCode(codEstrutura);
+        if (normalizedCod !== normalizedSetorFilter) {
+          return;
+        }
+      }
+      // Filtro por responsável (se não houver filtro de setor)
+      else if (responsavelFilter && responsavel.trim() !== responsavelFilter) {
         return;
       }
 
@@ -274,7 +296,8 @@ function loadMapData(responsavelFilter = null) {
       console.log('[MapService] Cidades sem coordenadas:', citiesWithoutCoords);
     }
 
-    console.log(`[MapService] ${citiesWithCoords.length} cidades carregadas com coordenadas${responsavelFilter ? ` (filtro: ${responsavelFilter})` : ''}`);
+    const filterDesc = normalizedSetorFilter ? `setor: ${normalizedSetorFilter}` : (responsavelFilter ? `responsável: ${responsavelFilter}` : '');
+    console.log(`[MapService] ${citiesWithCoords.length} cidades carregadas com coordenadas${filterDesc ? ` (filtro: ${filterDesc})` : ''}`);
 
     // Estatísticas (baseadas nos dados filtrados, mas lista completa de responsáveis)
     const stats = {
@@ -283,7 +306,9 @@ function loadMapData(responsavelFilter = null) {
       totalItens: cities.reduce((sum, c) => sum + c.totalItens, 0),
       totalPedidos: cities.reduce((sum, c) => sum + c.qtdPedidos, 0),
       responsaveis: [...allResponsaveis].sort(),
-      filtroAtivo: responsavelFilter || null
+      setores: [...allSetores].sort(),
+      filtroAtivo: responsavelFilter || null,
+      setorFiltro: normalizedSetorFilter || null
     };
 
     return {

@@ -527,10 +527,11 @@ app.get('/api/setor/:setorId/produtos', (req, res) => {
 // MAP ROUTES (Mapa de Calor)
 // ═══════════════════════════════════════════════════════════════
 
-// Dados do mapa de calor (com filtro opcional por responsável)
+// Dados do mapa de calor (com filtro opcional por responsável ou setor)
 app.get('/api/map/data', (req, res) => {
   const responsavel = req.query.responsavel || null;
-  const result = MapService.loadMapData(responsavel);
+  const setorId = req.query.setorId || null;
+  const result = MapService.loadMapData(responsavel, setorId);
   res.json(result);
 });
 
