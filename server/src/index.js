@@ -856,7 +856,7 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    const tipo = req.body.tipo || req.query.tipo;
+    const tipo = req.query.tipo || req.body.tipo;
     const ext = path.extname(file.originalname).toLowerCase();
 
     if (tipo === 'vendas') {
@@ -874,7 +874,7 @@ const upload = multer({
   storage,
   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB max
   fileFilter: (req, file, cb) => {
-    const tipo = req.body.tipo || req.query.tipo;
+    const tipo = req.query.tipo || req.body.tipo;
     const ext = path.extname(file.originalname).toLowerCase();
 
     if (tipo === 'vendas') {
@@ -942,7 +942,7 @@ app.post('/api/admin/files/upload', upload.single('file'), (req, res) => {
     return res.status(400).json({ error: 'Nenhum arquivo enviado' });
   }
 
-  const tipo = req.body.tipo || req.query.tipo;
+  const tipo = req.query.tipo || req.body.tipo;
 
   // Recarregar dados após upload
   if (tipo === 'segmentos') {

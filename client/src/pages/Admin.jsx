@@ -200,10 +200,10 @@ export default function Admin() {
 
     const formData = new FormData()
     formData.append('file', file)
-    formData.append('tipo', tipo)
 
     try {
-      const res = await fetch('/api/admin/files/upload', {
+      // Passa tipo como query param para estar disponível antes do multer processar
+      const res = await fetch(`/api/admin/files/upload?tipo=${tipo}`, {
         method: 'POST',
         body: formData
       })
