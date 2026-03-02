@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MapPin, TrendingUp, Users, DollarSign, Package, Filter, RefreshCw, Flame, Eye, EyeOff, ArrowLeft, ChevronDown, ChevronUp, X } from 'lucide-react'
+import { MapPin, TrendingUp, Users, DollarSign, Package, Filter, RefreshCw, Flame, Eye, EyeOff, ArrowLeft, ChevronDown, ChevronUp, X, Maximize2, Minimize2 } from 'lucide-react'
 import './MapaCalor.css'
 
 // Importar Leaflet e CSS
@@ -27,10 +27,34 @@ export default function MapaCalor() {
   const [showFilters, setShowFilters] = useState(true)
   const [hoveredCity, setHoveredCity] = useState(null)
   const [showRanking, setShowRanking] = useState(true)
+  const [isFullscreen, setIsFullscreen] = useState(false)
 
   const mapRef = useRef(null)
   const mapInstanceRef = useRef(null)
   const markersLayerRef = useRef(null)
+
+  // Fechar fullscreen com ESC
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape' && isFullscreen) {
+        setIsFullscreen(false)
+      }
+    }
+    window.addEventListener('keydown', handleEsc)
+    return () => window.removeEventListener('keydown', handleEsc)
+  }, [isFullscreen])
+
+  // Bloquear scroll do body quando em fullscreen
+  useEffect(() => {
+    if (isFullscreen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isFullscreen])
 
   // Carregar dados da API (recarrega quando filtro muda)
   useEffect(() => {
@@ -285,7 +309,7 @@ export default function MapaCalor() {
   }
 
   return (
-    <div className="mapa-page">
+    <div className={`mapa-page ${isFullscreen ? 'mapa-page--fullscreen' : ''}`}>
       {/* Header */}
       <header className="mapa-header">
         <div className="mapa-header__left">
@@ -319,6 +343,17 @@ export default function MapaCalor() {
           >
             <TrendingUp size={18} />
             <span>Ranking</span>
+          </button>
+          <button
+            className={`mapa-header-btn mapa-header-btn--fullscreen ${isFullscreen ? 'active' : ''}`}
+            onClick={() => {
+              setIsFullscreen(!isFullscreen)
+              if (!isFullscreen) setShowFilters(true)
+            }}
+            title={isFullscreen ? 'Sair da tela cheia (ESC)' : 'Abrir em tela cheia'}
+          >
+            {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+            <span>{isFullscreen ? 'Sair' : 'Tela Cheia'}</span>
           </button>
         </div>
       </header>

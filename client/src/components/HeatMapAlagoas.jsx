@@ -29,6 +29,29 @@ export default function HeatMapAlagoas() {
   const heatLayerRef = useRef(null)
   const markersLayerRef = useRef(null)
 
+  // Fechar fullscreen com ESC
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape' && isExpanded) {
+        setIsExpanded(false)
+      }
+    }
+    window.addEventListener('keydown', handleEsc)
+    return () => window.removeEventListener('keydown', handleEsc)
+  }, [isExpanded])
+
+  // Bloquear scroll do body quando expandido
+  useEffect(() => {
+    if (isExpanded) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isExpanded])
+
   // Carregar dados da API
   useEffect(() => {
     fetchMapData()
@@ -279,7 +302,16 @@ export default function HeatMapAlagoas() {
   }
 
   return (
-    <div className={`heatmap-container ${isExpanded ? 'heatmap-container--expanded' : ''}`}>
+    <>
+      {/* Backdrop para modo fullscreen */}
+      {isExpanded && (
+        <div
+          className="heatmap-backdrop"
+          onClick={() => setIsExpanded(false)}
+        />
+      )}
+
+      <div className={`heatmap-container ${isExpanded ? 'heatmap-container--expanded' : ''}`}>
       {/* Header */}
       <div className="heatmap-header">
         <div className="heatmap-header__title">
@@ -302,9 +334,12 @@ export default function HeatMapAlagoas() {
             {showMarkers ? <Eye size={18} /> : <EyeOff size={18} />}
           </button>
           <button
-            className="heatmap-icon-btn"
-            onClick={() => setIsExpanded(!isExpanded)}
-            title={isExpanded ? 'Minimizar' : 'Expandir'}
+            className="heatmap-icon-btn heatmap-icon-btn--fullscreen"
+            onClick={() => {
+              setIsExpanded(!isExpanded)
+              if (!isExpanded) setShowFilters(true)
+            }}
+            title={isExpanded ? 'Sair da tela cheia' : 'Abrir em tela cheia'}
           >
             {isExpanded ? <X size={18} /> : <Maximize2 size={18} />}
           </button>
@@ -417,5 +452,6 @@ export default function HeatMapAlagoas() {
         </div>
       </div>
     </div>
+    </>
   )
 }

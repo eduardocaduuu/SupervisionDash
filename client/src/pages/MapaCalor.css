@@ -110,6 +110,39 @@
   color: var(--color-text-dark);
 }
 
+.mapa-header-btn--fullscreen {
+  background: var(--color-neon-secondary);
+  border-color: var(--color-neon-secondary);
+  color: var(--color-text-dark);
+}
+
+.mapa-header-btn--fullscreen:hover {
+  background: var(--color-neon-primary);
+  border-color: var(--color-neon-primary);
+  color: var(--color-text-dark);
+  box-shadow: 0 0 12px rgba(184, 217, 119, 0.5);
+}
+
+.mapa-header-btn--fullscreen.active {
+  background: var(--color-neon-danger);
+  border-color: var(--color-neon-danger);
+  animation: pulse 1.5s infinite;
+}
+
+/* ═══ FULLSCREEN MODE ═══ */
+.mapa-page--fullscreen {
+  z-index: 9999;
+}
+
+.mapa-page--fullscreen .mapa-header {
+  background: rgba(26, 26, 26, 0.95);
+}
+
+.mapa-page--fullscreen .mapa-sidebar,
+.mapa-page--fullscreen .mapa-ranking {
+  background: rgba(26, 26, 26, 0.95);
+}
+
 /* ═══ STATS BAR ═══ */
 .mapa-stats {
   display: flex;
