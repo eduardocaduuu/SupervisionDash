@@ -20,7 +20,6 @@ export default function HeatMapAlagoas() {
   const [error, setError] = useState(null)
   const [selectedResponsavel, setSelectedResponsavel] = useState('all')
   const [showMarkers, setShowMarkers] = useState(true)
-  const [isExpanded, setIsExpanded] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [hoveredCity, setHoveredCity] = useState(null)
 
@@ -28,29 +27,6 @@ export default function HeatMapAlagoas() {
   const mapInstanceRef = useRef(null)
   const heatLayerRef = useRef(null)
   const markersLayerRef = useRef(null)
-
-  // Fechar fullscreen com ESC
-  useEffect(() => {
-    const handleEsc = (e) => {
-      if (e.key === 'Escape' && isExpanded) {
-        setIsExpanded(false)
-      }
-    }
-    window.addEventListener('keydown', handleEsc)
-    return () => window.removeEventListener('keydown', handleEsc)
-  }, [isExpanded])
-
-  // Bloquear scroll do body quando expandido
-  useEffect(() => {
-    if (isExpanded) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
-    return () => {
-      document.body.style.overflow = ''
-    }
-  }, [isExpanded])
 
   // Carregar dados da API
   useEffect(() => {
@@ -302,16 +278,7 @@ export default function HeatMapAlagoas() {
   }
 
   return (
-    <>
-      {/* Backdrop para modo fullscreen */}
-      {isExpanded && (
-        <div
-          className="heatmap-backdrop"
-          onClick={() => setIsExpanded(false)}
-        />
-      )}
-
-      <div className={`heatmap-container ${isExpanded ? 'heatmap-container--expanded' : ''}`}>
+    <div className="heatmap-container">
       {/* Header */}
       <div className="heatmap-header">
         <div className="heatmap-header__title">
@@ -335,13 +302,10 @@ export default function HeatMapAlagoas() {
           </button>
           <button
             className="heatmap-icon-btn heatmap-icon-btn--fullscreen"
-            onClick={() => {
-              setIsExpanded(!isExpanded)
-              if (!isExpanded) setShowFilters(true)
-            }}
-            title={isExpanded ? 'Sair da tela cheia' : 'Abrir em tela cheia'}
+            onClick={() => window.open('/mapa-calor', '_blank')}
+            title="Abrir em nova aba"
           >
-            {isExpanded ? <X size={18} /> : <Maximize2 size={18} />}
+            <Maximize2 size={18} />
           </button>
         </div>
       </div>
@@ -452,6 +416,5 @@ export default function HeatMapAlagoas() {
         </div>
       </div>
     </div>
-    </>
   )
 }
