@@ -710,6 +710,118 @@ app.post('/api/dealer-data', async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+// MENSAGENS ROUTES (Admin) - Sistema de mensagens direcionadas
+// ═══════════════════════════════════════════════════════════════
+
+// Listar todas as mensagens (admin)
+app.get('/api/admin/mensagens', async (req, res) => {
+  try {
+    const mensagens = await PersistenceService.loadMensagens();
+    res.json(mensagens);
+  } catch (error) {
+    console.error('[Mensagens] Erro ao carregar:', error);
+    res.status(500).json({ error: 'Erro ao carregar mensagens' });
+  }
+});
+
+// Criar nova mensagem
+app.post('/api/admin/mensagens', async (req, res) => {
+  const { titulo, texto, targetType, targetSetores } = req.body;
+
+  if (!texto) {
+    return res.status(400).json({ error: 'Texto da mensagem é obrigatório' });
+  }
+
+  try {
+    const mensagem = await PersistenceService.createMensagem({
+      titulo: titulo || 'Nova Mensagem',
+      texto,
+      targetType: targetType || 'all',
+      targetSetores: targetSetores || [],
+      ativa: true
+    });
+
+    res.json({ success: true, mensagem });
+  } catch (error) {
+    console.error('[Mensagens] Erro ao criar:', error);
+    res.status(500).json({ error: 'Erro ao criar mensagem' });
+  }
+});
+
+// Atualizar mensagem
+app.put('/api/admin/mensagens/:id', async (req, res) => {
+  const { id } = req.params;
+  const { titulo, texto, targetType, targetSetores, ativa } = req.body;
+
+  try {
+    const updates = {};
+    if (titulo !== undefined) updates.titulo = titulo;
+    if (texto !== undefined) updates.texto = texto;
+    if (targetType !== undefined) updates.targetType = targetType;
+    if (targetSetores !== undefined) updates.targetSetores = targetSetores;
+    if (ativa !== undefined) updates.ativa = ativa;
+
+    const mensagem = await PersistenceService.updateMensagem(id, updates);
+
+    if (!mensagem) {
+      return res.status(404).json({ error: 'Mensagem não encontrada' });
+    }
+
+    res.json({ success: true, mensagem });
+  } catch (error) {
+    console.error('[Mensagens] Erro ao atualizar:', error);
+    res.status(500).json({ error: 'Erro ao atualizar mensagem' });
+  }
+});
+
+// Deletar mensagem
+app.delete('/api/admin/mensagens/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const deleted = await PersistenceService.deleteMensagem(id);
+
+    if (!deleted) {
+      return res.status(404).json({ error: 'Mensagem não encontrada' });
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[Mensagens] Erro ao deletar:', error);
+    res.status(500).json({ error: 'Erro ao deletar mensagem' });
+  }
+});
+
+// Obter mensagens para um setor específico (público - para supervisoras)
+app.get('/api/mensagens/:setorId', async (req, res) => {
+  const { setorId } = req.params;
+
+  try {
+    const todasMensagens = await PersistenceService.loadMensagens();
+
+    // Filtrar mensagens ativas relevantes para este setor
+    const mensagensFiltradas = todasMensagens.filter(m => {
+      if (!m.ativa) return false;
+
+      // Se for mensagem global, inclui
+      if (m.targetType === 'all') return true;
+
+      // Se for grupo ou single, verifica se o setor está na lista
+      if (m.targetType === 'group' || m.targetType === 'single') {
+        return m.targetSetores && m.targetSetores.includes(setorId);
+      }
+
+      return false;
+    });
+
+    res.json(mensagensFiltradas);
+  } catch (error) {
+    console.error('[Mensagens] Erro ao carregar para setor:', error);
+    res.json([]);
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════
 // SLACK ALERTS ROUTES (Admin)
 // ═══════════════════════════════════════════════════════════════
 const slackClient = require('./slack/slackClient');

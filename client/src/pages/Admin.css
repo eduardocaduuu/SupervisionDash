@@ -1576,3 +1576,379 @@
   background: var(--color-bg-primary);
   padding: var(--space-lg);
 }
+
+/* ═══ MENSAGENS TAB ═══ */
+.admin__tab--mensagens {
+  color: var(--color-neon-secondary);
+}
+
+.admin__tab--mensagens.admin__tab--active {
+  color: var(--color-neon-secondary);
+  border-bottom-color: var(--color-neon-secondary);
+  background: rgba(119, 217, 184, 0.05);
+}
+
+.admin__tab-badge--mensagens {
+  background: var(--color-neon-secondary);
+  color: #000;
+}
+
+/* MENSAGENS SECTION */
+.admin__mensagens {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.admin__mensagens-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-xl);
+  padding: var(--space-lg);
+  background: linear-gradient(135deg, rgba(119, 217, 184, 0.1) 0%, rgba(119, 217, 184, 0.05) 100%);
+  border: 2px solid rgba(119, 217, 184, 0.3);
+  border-radius: 4px;
+}
+
+.admin__mensagens-header > svg {
+  color: var(--color-neon-secondary);
+  flex-shrink: 0;
+}
+
+.admin__mensagens-header > div {
+  flex: 1;
+}
+
+.admin__mensagens-header h2 {
+  font-family: var(--font-mono);
+  font-size: var(--text-xl);
+  color: var(--color-neon-secondary);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.admin__mensagens-header p {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: var(--space-xs) 0 0;
+}
+
+.admin__mensagens-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-xl);
+}
+
+@media (max-width: 1024px) {
+  .admin__mensagens-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* FORM NOVA MENSAGEM */
+.mensagem-form-new {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* TARGET SELECTOR */
+.mensagem-target-selector {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm);
+}
+
+.mensagem-target-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  background: var(--color-bg-secondary);
+  border: 2px solid var(--border-color);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.mensagem-target-btn:hover {
+  background: var(--color-bg-tertiary);
+  border-color: var(--color-text-muted);
+  color: var(--color-text-primary);
+}
+
+.mensagem-target-btn.active {
+  background: rgba(217, 119, 184, 0.1);
+  border-color: var(--color-neon-accent);
+  color: var(--color-neon-accent);
+}
+
+.mensagem-target-btn span {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.mensagem-target-btn small {
+  font-size: var(--text-xs);
+  opacity: 0.7;
+  text-align: center;
+}
+
+/* SETORES LIST */
+.mensagem-setores-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  max-height: 200px;
+  overflow-y: auto;
+  padding: var(--space-sm);
+  background: var(--color-bg-secondary);
+  border: var(--border-width) solid var(--border-color);
+}
+
+.mensagem-setor-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  border-radius: 4px;
+}
+
+.mensagem-setor-chip:hover {
+  border-color: var(--color-neon-accent);
+  color: var(--color-text-primary);
+}
+
+.mensagem-setor-chip.selected {
+  background: rgba(217, 119, 184, 0.15);
+  border-color: var(--color-neon-accent);
+  color: var(--color-neon-accent);
+}
+
+.mensagem-setor-chip .mono {
+  font-weight: 700;
+}
+
+.mensagem-setor-nome {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mensagem-setores-hint {
+  display: block;
+  margin-top: var(--space-sm);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* MENSAGENS LISTA */
+.admin__mensagens-loading,
+.admin__mensagens-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-2xl);
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.admin__mensagens-empty svg {
+  opacity: 0.3;
+}
+
+.admin__mensagens-empty h3 {
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.admin__mensagens-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+/* MENSAGEM CARD */
+.admin__mensagem-card {
+  padding: var(--space-md);
+  background: var(--color-bg-secondary);
+  border: var(--border-width) solid var(--border-color);
+  transition: var(--transition-fast);
+}
+
+.admin__mensagem-card:hover {
+  border-color: var(--color-neon-accent);
+}
+
+.admin__mensagem-card--inativa {
+  opacity: 0.5;
+}
+
+.admin__mensagem-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-md);
+  margin-bottom: var(--space-sm);
+}
+
+.admin__mensagem-card-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.admin__mensagem-card-title svg {
+  color: var(--color-neon-warning);
+}
+
+.admin__mensagem-card-title h4 {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+
+.admin__mensagem-card-badges {
+  display: flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.admin__mensagem-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  border-radius: 4px;
+}
+
+.admin__mensagem-badge--all {
+  background: rgba(119, 217, 184, 0.2);
+  color: var(--color-neon-secondary);
+}
+
+.admin__mensagem-badge--group {
+  background: rgba(217, 119, 184, 0.2);
+  color: var(--color-neon-accent);
+}
+
+.admin__mensagem-badge--single {
+  background: rgba(119, 184, 217, 0.2);
+  color: #77b9d9;
+}
+
+.admin__mensagem-badge--ativa {
+  background: rgba(184, 217, 119, 0.2);
+  color: var(--color-neon-primary);
+}
+
+.admin__mensagem-badge--inativa {
+  background: rgba(217, 119, 119, 0.2);
+  color: var(--color-neon-danger);
+}
+
+.admin__mensagem-card-texto {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-sm);
+  line-height: 1.5;
+}
+
+.admin__mensagem-card-setores {
+  margin-bottom: var(--space-sm);
+}
+
+.admin__mensagem-card-setores small {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.admin__mensagem-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border-color);
+}
+
+.admin__mensagem-card-date {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+.admin__mensagem-card-actions {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.admin__mensagem-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  border-radius: 4px;
+}
+
+.admin__mensagem-btn:hover {
+  background: var(--color-bg-tertiary);
+}
+
+.admin__mensagem-btn--toggle:hover {
+  border-color: var(--color-neon-primary);
+  color: var(--color-neon-primary);
+}
+
+.admin__mensagem-btn--edit:hover {
+  border-color: var(--color-neon-accent);
+  color: var(--color-neon-accent);
+}
+
+.admin__mensagem-btn--delete:hover {
+  border-color: var(--color-neon-danger);
+  color: var(--color-neon-danger);
+}
+
+@media (max-width: 768px) {
+  .mensagem-target-selector {
+    grid-template-columns: 1fr;
+  }
+
+  .admin__mensagem-card-header {
+    flex-direction: column;
+  }
+
+  .admin__mensagem-card-footer {
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+}

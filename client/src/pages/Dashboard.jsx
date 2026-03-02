@@ -100,7 +100,12 @@ export default function Dashboard() {
   const [activeFilter, setActiveFilter] = useState('ALL') // 'ALL', 'NEAR_LEVEL_UP', 'AT_RISK'
   const [segmentFilter, setSegmentFilter] = useState('TODOS') // Novo estado do filtro
 
-  // Mensagem de recompensa do admin
+  // Mensagens do admin (novo sistema)
+  const [mensagens, setMensagens] = useState([])
+  const [showMensagemModal, setShowMensagemModal] = useState(false)
+  const [mensagemAtual, setMensagemAtual] = useState(null)
+
+  // Mensagem de recompensa do admin (legado - mantido para compatibilidade)
   const [mensagemRecompensa, setMensagemRecompensa] = useState(null)
   const [showMensagem, setShowMensagem] = useState(false)
 
@@ -182,7 +187,7 @@ export default function Dashboard() {
     }
   }, [])
 
-  // Buscar mensagem de recompensa
+  // Buscar mensagem de recompensa (legado)
   useEffect(() => {
     fetch('/api/mensagem-recompensa')
       .then(r => r.json())
@@ -194,6 +199,23 @@ export default function Dashboard() {
       })
       .catch(console.error)
   }, [])
+
+  // Buscar mensagens direcionadas para este setor
+  useEffect(() => {
+    if (setorId) {
+      fetch(`/api/mensagens/${setorId}`)
+        .then(r => r.json())
+        .then(data => {
+          if (Array.isArray(data) && data.length > 0) {
+            setMensagens(data)
+            // Mostrar a primeira mensagem no modal
+            setMensagemAtual(data[0])
+            setShowMensagemModal(true)
+          }
+        })
+        .catch(console.error)
+    }
+  }, [setorId])
 
   useEffect(() => {
     fetch(`/api/setor/${setorId}`)
@@ -300,8 +322,21 @@ export default function Dashboard() {
 
       <main className="main-content">
         <div className="container">
-          {/* BANNER DE MENSAGEM DE RECOMPENSA (permanente) */}
-          {mensagemRecompensa?.ativa && (
+          {/* BANNERS DE MENSAGENS (novo sistema) */}
+          {mensagens.length > 0 && mensagens.map((msg, idx) => (
+            <div key={msg.id || idx} className="recompensa-banner">
+              <div className="recompensa-banner__icon">
+                <Gift size={24} />
+              </div>
+              <div className="recompensa-banner__content">
+                <h3>{msg.titulo}</h3>
+                <p>{msg.texto}</p>
+              </div>
+              <Sparkles size={20} className="recompensa-banner__sparkle" />
+            </div>
+          ))}
+          {/* BANNER DE MENSAGEM DE RECOMPENSA LEGADO (mantido para compatibilidade) */}
+          {mensagens.length === 0 && mensagemRecompensa?.ativa && (
             <div className="recompensa-banner">
               <div className="recompensa-banner__icon">
                 <Gift size={24} />
@@ -560,8 +595,57 @@ export default function Dashboard() {
         </div>
       </main>
 
-      {/* MENSAGEM DE RECOMPENSA MODAL */}
-      {showMensagem && mensagemRecompensa && (
+      {/* MODAL DE MENSAGENS (novo sistema) */}
+      {showMensagemModal && mensagemAtual && (
+        <div className="recompensa-modal-overlay" onClick={() => {
+          // Ir para próxima mensagem ou fechar
+          const idx = mensagens.findIndex(m => m.id === mensagemAtual.id)
+          if (idx < mensagens.length - 1) {
+            setMensagemAtual(mensagens[idx + 1])
+          } else {
+            setShowMensagemModal(false)
+          }
+        }}>
+          <div className="recompensa-modal" onClick={e => e.stopPropagation()}>
+            <button className="recompensa-modal__close" onClick={() => setShowMensagemModal(false)}>
+              <X size={24} />
+            </button>
+
+            <div className="recompensa-modal__icon">
+              <Sparkles size={48} />
+            </div>
+
+            <h2 className="recompensa-modal__title">
+              <Gift size={24} />
+              {mensagemAtual.titulo}
+            </h2>
+
+            <p className="recompensa-modal__texto">
+              {mensagemAtual.texto}
+            </p>
+
+            {mensagens.length > 1 && (
+              <p className="recompensa-modal__counter">
+                {mensagens.findIndex(m => m.id === mensagemAtual.id) + 1} de {mensagens.length}
+              </p>
+            )}
+
+            <button className="btn recompensa-modal__btn" onClick={() => {
+              const idx = mensagens.findIndex(m => m.id === mensagemAtual.id)
+              if (idx < mensagens.length - 1) {
+                setMensagemAtual(mensagens[idx + 1])
+              } else {
+                setShowMensagemModal(false)
+              }
+            }}>
+              {mensagens.findIndex(m => m.id === mensagemAtual.id) < mensagens.length - 1 ? 'PRÓXIMA' : 'VAMOS LÁ!'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* MENSAGEM DE RECOMPENSA MODAL (legado - mantido para compatibilidade) */}
+      {!showMensagemModal && showMensagem && mensagemRecompensa && mensagens.length === 0 && (
         <div className="recompensa-modal-overlay" onClick={() => setShowMensagem(false)}>
           <div className="recompensa-modal" onClick={e => e.stopPropagation()}>
             <button className="recompensa-modal__close" onClick={() => setShowMensagem(false)}>

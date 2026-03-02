@@ -4,7 +4,7 @@ import {
   Shield, LogOut, Save, CheckCircle, AlertTriangle, FileSpreadsheet, TrendingUp,
   Gift, Trash2, Send, MessageSquare, Users, ChevronDown, ChevronUp, Filter,
   Building2, Target, Rocket, Search, X, Trophy, Star, Sparkles, RefreshCw,
-  Upload, File, Database, Clock, Flame
+  Upload, File, Database, Clock, Flame, Mail, Edit3, Plus, Globe, User
 } from 'lucide-react'
 import Panel from '../components/Panel'
 import DealerCard from '../components/DealerCard'
@@ -47,6 +47,18 @@ export default function Admin() {
   const [filesStatus, setFilesStatus] = useState({ vendas: {}, segmentos: {} })
   const [uploading, setUploading] = useState(null)
   const [uploadStatus, setUploadStatus] = useState(null)
+
+  // Sistema de Mensagens
+  const [mensagens, setMensagens] = useState([])
+  const [loadingMensagens, setLoadingMensagens] = useState(false)
+  const [editingMensagem, setEditingMensagem] = useState(null)
+  const [novaMensagem, setNovaMensagem] = useState({
+    titulo: '',
+    texto: '',
+    targetType: 'all',
+    targetSetores: []
+  })
+  const [mensagemFormStatus, setMensagemFormStatus] = useState(null)
 
   useEffect(() => {
     fetch('/api/admin/config')
@@ -191,6 +203,123 @@ export default function Admin() {
       loadFilesStatus()
     }
   }, [activeAdminTab])
+
+  // Carregar mensagens quando mudar para a aba
+  const loadMensagens = async () => {
+    setLoadingMensagens(true)
+    try {
+      const res = await fetch('/api/admin/mensagens')
+      const data = await res.json()
+      setMensagens(data)
+    } catch (err) {
+      console.error('Erro ao carregar mensagens:', err)
+    }
+    setLoadingMensagens(false)
+  }
+
+  useEffect(() => {
+    if (activeAdminTab === 'mensagens') {
+      loadMensagens()
+    }
+  }, [activeAdminTab])
+
+  // Criar nova mensagem
+  const handleCreateMensagem = async () => {
+    if (!novaMensagem.texto.trim()) return
+
+    setMensagemFormStatus('loading')
+    try {
+      const res = await fetch('/api/admin/mensagens', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(novaMensagem)
+      })
+
+      if (res.ok) {
+        setMensagemFormStatus('success')
+        setNovaMensagem({ titulo: '', texto: '', targetType: 'all', targetSetores: [] })
+        loadMensagens()
+      } else {
+        setMensagemFormStatus('error')
+      }
+    } catch (err) {
+      setMensagemFormStatus('error')
+    }
+    setTimeout(() => setMensagemFormStatus(null), 3000)
+  }
+
+  // Atualizar mensagem existente
+  const handleUpdateMensagem = async () => {
+    if (!editingMensagem) return
+
+    setMensagemFormStatus('loading')
+    try {
+      const res = await fetch(`/api/admin/mensagens/${editingMensagem.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(editingMensagem)
+      })
+
+      if (res.ok) {
+        setMensagemFormStatus('success')
+        setEditingMensagem(null)
+        loadMensagens()
+      } else {
+        setMensagemFormStatus('error')
+      }
+    } catch (err) {
+      setMensagemFormStatus('error')
+    }
+    setTimeout(() => setMensagemFormStatus(null), 3000)
+  }
+
+  // Deletar mensagem
+  const handleDeleteMensagem = async (id) => {
+    if (!confirm('Tem certeza que deseja excluir esta mensagem?')) return
+
+    try {
+      const res = await fetch(`/api/admin/mensagens/${id}`, {
+        method: 'DELETE'
+      })
+
+      if (res.ok) {
+        loadMensagens()
+      }
+    } catch (err) {
+      console.error('Erro ao deletar mensagem:', err)
+    }
+  }
+
+  // Toggle ativa/inativa
+  const handleToggleMensagemAtiva = async (mensagem) => {
+    try {
+      await fetch(`/api/admin/mensagens/${mensagem.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ativa: !mensagem.ativa })
+      })
+      loadMensagens()
+    } catch (err) {
+      console.error('Erro ao atualizar mensagem:', err)
+    }
+  }
+
+  // Handler para selecionar setores
+  const handleSetorSelect = (setorId, isEditing = false) => {
+    if (isEditing && editingMensagem) {
+      const current = editingMensagem.targetSetores || []
+      const updated = current.includes(setorId)
+        ? current.filter(s => s !== setorId)
+        : [...current, setorId]
+      setEditingMensagem({ ...editingMensagem, targetSetores: updated })
+    } else {
+      const current = novaMensagem.targetSetores || []
+      const updated = current.includes(setorId)
+        ? current.filter(s => s !== setorId)
+        : [...current, setorId]
+      setNovaMensagem({ ...novaMensagem, targetSetores: updated })
+    }
+  }
 
   // Upload de arquivo
   const handleFileUpload = async (tipo, file) => {
@@ -422,6 +551,16 @@ export default function Admin() {
         >
           <Flame size={16} />
           MAPA DE CALOR
+        </button>
+        <button
+          className={`admin__tab admin__tab--mensagens ${activeAdminTab === 'mensagens' ? 'admin__tab--active' : ''}`}
+          onClick={() => setActiveAdminTab('mensagens')}
+        >
+          <Mail size={16} />
+          MENSAGENS
+          {mensagens.filter(m => m.ativa).length > 0 && (
+            <span className="admin__tab-badge admin__tab-badge--mensagens">{mensagens.filter(m => m.ativa).length}</span>
+          )}
         </button>
       </div>
 
@@ -1080,6 +1219,308 @@ export default function Admin() {
           {activeAdminTab === 'mapa' && (
           <div className="admin__mapa">
             <HeatMapAlagoas />
+          </div>
+          )}
+
+          {/* TAB: MENSAGENS */}
+          {activeAdminTab === 'mensagens' && (
+          <div className="admin__mensagens">
+            {/* HEADER */}
+            <div className="admin__mensagens-header">
+              <Mail size={32} />
+              <div>
+                <h2>SISTEMA DE MENSAGENS</h2>
+                <p>Envie mensagens para todas as supervisoras ou para grupos específicos.</p>
+              </div>
+              <button className="btn btn--ghost" onClick={loadMensagens}>
+                <RefreshCw size={16} className={loadingMensagens ? 'spin' : ''} />
+                ATUALIZAR
+              </button>
+            </div>
+
+            <div className="admin__mensagens-grid">
+              {/* FORMULÁRIO DE NOVA MENSAGEM */}
+              <Panel
+                title={editingMensagem ? "EDITAR MENSAGEM" : "NOVA MENSAGEM"}
+                variant="accent"
+                className="admin__mensagem-form-panel"
+              >
+                <div className="mensagem-form-new">
+                  {/* Título */}
+                  <div className="mensagem-form__field">
+                    <label>
+                      <Gift size={16} />
+                      Título
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Meta Especial do Ciclo!"
+                      value={editingMensagem ? editingMensagem.titulo : novaMensagem.titulo}
+                      onChange={(e) => editingMensagem
+                        ? setEditingMensagem({ ...editingMensagem, titulo: e.target.value })
+                        : setNovaMensagem({ ...novaMensagem, titulo: e.target.value })
+                      }
+                      className="mensagem-input"
+                    />
+                  </div>
+
+                  {/* Texto */}
+                  <div className="mensagem-form__field">
+                    <label>
+                      <MessageSquare size={16} />
+                      Mensagem
+                    </label>
+                    <textarea
+                      placeholder="Digite a mensagem para as supervisoras..."
+                      value={editingMensagem ? editingMensagem.texto : novaMensagem.texto}
+                      onChange={(e) => editingMensagem
+                        ? setEditingMensagem({ ...editingMensagem, texto: e.target.value })
+                        : setNovaMensagem({ ...novaMensagem, texto: e.target.value })
+                      }
+                      className="mensagem-textarea"
+                      rows={4}
+                    />
+                  </div>
+
+                  {/* Tipo de Destinatário */}
+                  <div className="mensagem-form__field">
+                    <label>
+                      <Users size={16} />
+                      Destinatários
+                    </label>
+                    <div className="mensagem-target-selector">
+                      <button
+                        type="button"
+                        className={`mensagem-target-btn ${(editingMensagem ? editingMensagem.targetType : novaMensagem.targetType) === 'all' ? 'active' : ''}`}
+                        onClick={() => editingMensagem
+                          ? setEditingMensagem({ ...editingMensagem, targetType: 'all', targetSetores: [] })
+                          : setNovaMensagem({ ...novaMensagem, targetType: 'all', targetSetores: [] })
+                        }
+                      >
+                        <Globe size={18} />
+                        <span>TODAS</span>
+                        <small>Envia para todas as supervisoras</small>
+                      </button>
+                      <button
+                        type="button"
+                        className={`mensagem-target-btn ${(editingMensagem ? editingMensagem.targetType : novaMensagem.targetType) === 'group' ? 'active' : ''}`}
+                        onClick={() => editingMensagem
+                          ? setEditingMensagem({ ...editingMensagem, targetType: 'group' })
+                          : setNovaMensagem({ ...novaMensagem, targetType: 'group' })
+                        }
+                      >
+                        <Users size={18} />
+                        <span>GRUPO</span>
+                        <small>Selecione múltiplos setores</small>
+                      </button>
+                      <button
+                        type="button"
+                        className={`mensagem-target-btn ${(editingMensagem ? editingMensagem.targetType : novaMensagem.targetType) === 'single' ? 'active' : ''}`}
+                        onClick={() => editingMensagem
+                          ? setEditingMensagem({ ...editingMensagem, targetType: 'single' })
+                          : setNovaMensagem({ ...novaMensagem, targetType: 'single' })
+                        }
+                      >
+                        <User size={18} />
+                        <span>INDIVIDUAL</span>
+                        <small>Apenas um setor</small>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Seleção de Setores (se não for ALL) */}
+                  {(editingMensagem ? editingMensagem.targetType : novaMensagem.targetType) !== 'all' && (
+                    <div className="mensagem-form__field">
+                      <label>
+                        <Building2 size={16} />
+                        Selecione {(editingMensagem ? editingMensagem.targetType : novaMensagem.targetType) === 'single' ? 'o setor' : 'os setores'}
+                      </label>
+                      <div className="mensagem-setores-list">
+                        {setores.map(setor => {
+                          const isSelected = editingMensagem
+                            ? (editingMensagem.targetSetores || []).includes(setor.id)
+                            : (novaMensagem.targetSetores || []).includes(setor.id)
+                          const targetType = editingMensagem ? editingMensagem.targetType : novaMensagem.targetType
+
+                          return (
+                            <button
+                              key={setor.id}
+                              type="button"
+                              className={`mensagem-setor-chip ${isSelected ? 'selected' : ''}`}
+                              onClick={() => {
+                                // Se for single, limpa antes de adicionar
+                                if (targetType === 'single') {
+                                  if (editingMensagem) {
+                                    setEditingMensagem({ ...editingMensagem, targetSetores: isSelected ? [] : [setor.id] })
+                                  } else {
+                                    setNovaMensagem({ ...novaMensagem, targetSetores: isSelected ? [] : [setor.id] })
+                                  }
+                                } else {
+                                  handleSetorSelect(setor.id, !!editingMensagem)
+                                }
+                              }}
+                            >
+                              <span className="mono">{setor.id}</span>
+                              <span className="mensagem-setor-nome">{setor.nome.substring(0, 30)}{setor.nome.length > 30 ? '...' : ''}</span>
+                              {isSelected && <CheckCircle size={14} />}
+                            </button>
+                          )
+                        })}
+                      </div>
+                      <small className="mensagem-setores-hint">
+                        {(editingMensagem ? editingMensagem.targetSetores : novaMensagem.targetSetores)?.length || 0} setor(es) selecionado(s)
+                      </small>
+                    </div>
+                  )}
+
+                  {/* Botões de Ação */}
+                  <div className="mensagem-form__actions">
+                    {editingMensagem ? (
+                      <>
+                        <button
+                          className={`btn ${mensagemFormStatus === 'success' ? 'btn--secondary' : ''}`}
+                          onClick={handleUpdateMensagem}
+                          disabled={!editingMensagem.texto?.trim() || mensagemFormStatus === 'loading'}
+                        >
+                          {mensagemFormStatus === 'loading' ? (
+                            <span>SALVANDO...</span>
+                          ) : mensagemFormStatus === 'success' ? (
+                            <>
+                              <CheckCircle size={14} />
+                              <span>SALVO!</span>
+                            </>
+                          ) : (
+                            <>
+                              <Save size={14} />
+                              <span>SALVAR ALTERAÇÕES</span>
+                            </>
+                          )}
+                        </button>
+                        <button
+                          className="btn btn--ghost"
+                          onClick={() => setEditingMensagem(null)}
+                        >
+                          <X size={14} />
+                          CANCELAR
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        className={`btn ${mensagemFormStatus === 'success' ? 'btn--secondary' : ''}`}
+                        onClick={handleCreateMensagem}
+                        disabled={!novaMensagem.texto?.trim() || mensagemFormStatus === 'loading' ||
+                          ((novaMensagem.targetType !== 'all') && (!novaMensagem.targetSetores?.length))}
+                      >
+                        {mensagemFormStatus === 'loading' ? (
+                          <span>ENVIANDO...</span>
+                        ) : mensagemFormStatus === 'success' ? (
+                          <>
+                            <CheckCircle size={14} />
+                            <span>MENSAGEM CRIADA!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Plus size={14} />
+                            <span>CRIAR MENSAGEM</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </Panel>
+
+              {/* LISTA DE MENSAGENS */}
+              <Panel
+                title="MENSAGENS ATIVAS"
+                variant="pink"
+                className="admin__mensagens-lista-panel"
+              >
+                {loadingMensagens ? (
+                  <div className="admin__mensagens-loading">
+                    <div className="admin-loading__spinner"></div>
+                    <span>Carregando mensagens...</span>
+                  </div>
+                ) : mensagens.length === 0 ? (
+                  <div className="admin__mensagens-empty">
+                    <Mail size={48} />
+                    <h3>Nenhuma mensagem</h3>
+                    <p>Crie sua primeira mensagem para as supervisoras.</p>
+                  </div>
+                ) : (
+                  <div className="admin__mensagens-list">
+                    {mensagens.map(msg => (
+                      <div key={msg.id} className={`admin__mensagem-card ${msg.ativa ? '' : 'admin__mensagem-card--inativa'}`}>
+                        <div className="admin__mensagem-card-header">
+                          <div className="admin__mensagem-card-title">
+                            <Gift size={16} />
+                            <h4>{msg.titulo || 'Sem título'}</h4>
+                          </div>
+                          <div className="admin__mensagem-card-badges">
+                            {msg.targetType === 'all' && (
+                              <span className="admin__mensagem-badge admin__mensagem-badge--all">
+                                <Globe size={12} /> TODAS
+                              </span>
+                            )}
+                            {msg.targetType === 'group' && (
+                              <span className="admin__mensagem-badge admin__mensagem-badge--group">
+                                <Users size={12} /> {msg.targetSetores?.length || 0} SETORES
+                              </span>
+                            )}
+                            {msg.targetType === 'single' && (
+                              <span className="admin__mensagem-badge admin__mensagem-badge--single">
+                                <User size={12} /> {msg.targetSetores?.[0] || '---'}
+                              </span>
+                            )}
+                            <span className={`admin__mensagem-badge ${msg.ativa ? 'admin__mensagem-badge--ativa' : 'admin__mensagem-badge--inativa'}`}>
+                              {msg.ativa ? 'ATIVA' : 'INATIVA'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <p className="admin__mensagem-card-texto">{msg.texto}</p>
+
+                        {msg.targetType !== 'all' && msg.targetSetores?.length > 0 && (
+                          <div className="admin__mensagem-card-setores">
+                            <small>Setores: {msg.targetSetores.join(', ')}</small>
+                          </div>
+                        )}
+
+                        <div className="admin__mensagem-card-footer">
+                          <span className="admin__mensagem-card-date">
+                            <Clock size={12} />
+                            {new Date(msg.createdAt).toLocaleDateString('pt-BR')} às {new Date(msg.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                          <div className="admin__mensagem-card-actions">
+                            <button
+                              className="admin__mensagem-btn admin__mensagem-btn--toggle"
+                              onClick={() => handleToggleMensagemAtiva(msg)}
+                              title={msg.ativa ? 'Desativar' : 'Ativar'}
+                            >
+                              {msg.ativa ? <X size={14} /> : <CheckCircle size={14} />}
+                            </button>
+                            <button
+                              className="admin__mensagem-btn admin__mensagem-btn--edit"
+                              onClick={() => setEditingMensagem(msg)}
+                              title="Editar"
+                            >
+                              <Edit3 size={14} />
+                            </button>
+                            <button
+                              className="admin__mensagem-btn admin__mensagem-btn--delete"
+                              onClick={() => handleDeleteMensagem(msg.id)}
+                              title="Excluir"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Panel>
+            </div>
           </div>
           )}
         </div>

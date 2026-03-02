@@ -7,6 +7,7 @@ const persistentDataDir = path.join(__dirname, '../../../data');
 const configPath = path.join(persistentDataDir, 'config.json');
 const notesPath = path.join(persistentDataDir, 'notes.json');
 const dealerDataPath = path.join(persistentDataDir, 'dealerdata.json');
+const mensagensPath = path.join(persistentDataDir, 'mensagens.json');
 
 // Config padrao
 const defaultConfig = {
@@ -289,6 +290,181 @@ async function saveDealerData(resellerId, data, allData) {
 }
 
 // ================================================================
+// MENSAGENS - MongoDB com fallback para JSON
+// ================================================================
+
+async function loadMensagensFromMongo() {
+  const Mensagem = require('../models/Mensagem');
+  try {
+    const mensagens = await Mensagem.find({}).sort({ createdAt: -1 });
+    return mensagens.map(m => ({
+      id: m._id.toString(),
+      titulo: m.titulo,
+      texto: m.texto,
+      targetType: m.targetType,
+      targetSetores: m.targetSetores || [],
+      ativa: m.ativa,
+      createdAt: m.createdAt,
+      updatedAt: m.updatedAt
+    }));
+  } catch (error) {
+    console.error('[Persistence] Erro ao carregar mensagens do MongoDB:', error.message);
+    return null;
+  }
+}
+
+function loadMensagensFromFile() {
+  try {
+    if (fs.existsSync(mensagensPath)) {
+      return JSON.parse(fs.readFileSync(mensagensPath, 'utf-8'));
+    }
+  } catch (e) {
+    console.error('[Persistence] Erro ao carregar mensagens do arquivo:', e.message);
+  }
+  return [];
+}
+
+async function loadMensagens() {
+  if (isMongoConnected()) {
+    const mongoMensagens = await loadMensagensFromMongo();
+    if (mongoMensagens !== null) {
+      console.log('[Persistence] Mensagens carregadas do MongoDB');
+      return mongoMensagens;
+    }
+  }
+  console.log('[Persistence] Mensagens carregadas do arquivo local');
+  return loadMensagensFromFile();
+}
+
+async function createMensagemInMongo(mensagem) {
+  const Mensagem = require('../models/Mensagem');
+  try {
+    const nova = await Mensagem.create(mensagem);
+    return {
+      id: nova._id.toString(),
+      titulo: nova.titulo,
+      texto: nova.texto,
+      targetType: nova.targetType,
+      targetSetores: nova.targetSetores || [],
+      ativa: nova.ativa,
+      createdAt: nova.createdAt,
+      updatedAt: nova.updatedAt
+    };
+  } catch (error) {
+    console.error('[Persistence] Erro ao criar mensagem no MongoDB:', error.message);
+    return null;
+  }
+}
+
+function saveMensagensToFile(mensagens) {
+  try {
+    fs.writeFileSync(mensagensPath, JSON.stringify(mensagens, null, 2));
+    return true;
+  } catch (error) {
+    console.error('[Persistence] Erro ao salvar mensagens no arquivo:', error.message);
+    return false;
+  }
+}
+
+async function createMensagem(mensagem) {
+  if (isMongoConnected()) {
+    const created = await createMensagemInMongo(mensagem);
+    if (created) {
+      console.log('[Persistence] Mensagem criada no MongoDB');
+      return created;
+    }
+  }
+  // Fallback para arquivo
+  const mensagens = loadMensagensFromFile();
+  const nova = {
+    id: Date.now().toString(),
+    ...mensagem,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  mensagens.unshift(nova);
+  saveMensagensToFile(mensagens);
+  console.log('[Persistence] Mensagem criada no arquivo local');
+  return nova;
+}
+
+async function updateMensagemInMongo(id, updates) {
+  const Mensagem = require('../models/Mensagem');
+  try {
+    const updated = await Mensagem.findByIdAndUpdate(
+      id,
+      { ...updates, updatedAt: new Date() },
+      { new: true }
+    );
+    if (!updated) return null;
+    return {
+      id: updated._id.toString(),
+      titulo: updated.titulo,
+      texto: updated.texto,
+      targetType: updated.targetType,
+      targetSetores: updated.targetSetores || [],
+      ativa: updated.ativa,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt
+    };
+  } catch (error) {
+    console.error('[Persistence] Erro ao atualizar mensagem no MongoDB:', error.message);
+    return null;
+  }
+}
+
+async function updateMensagem(id, updates) {
+  if (isMongoConnected()) {
+    const updated = await updateMensagemInMongo(id, updates);
+    if (updated) {
+      console.log('[Persistence] Mensagem atualizada no MongoDB');
+      return updated;
+    }
+  }
+  // Fallback para arquivo
+  const mensagens = loadMensagensFromFile();
+  const idx = mensagens.findIndex(m => m.id === id);
+  if (idx === -1) return null;
+  mensagens[idx] = {
+    ...mensagens[idx],
+    ...updates,
+    updatedAt: new Date().toISOString()
+  };
+  saveMensagensToFile(mensagens);
+  console.log('[Persistence] Mensagem atualizada no arquivo local');
+  return mensagens[idx];
+}
+
+async function deleteMensagemFromMongo(id) {
+  const Mensagem = require('../models/Mensagem');
+  try {
+    await Mensagem.findByIdAndDelete(id);
+    return true;
+  } catch (error) {
+    console.error('[Persistence] Erro ao deletar mensagem do MongoDB:', error.message);
+    return false;
+  }
+}
+
+async function deleteMensagem(id) {
+  if (isMongoConnected()) {
+    const deleted = await deleteMensagemFromMongo(id);
+    if (deleted) {
+      console.log('[Persistence] Mensagem deletada do MongoDB');
+      return true;
+    }
+  }
+  // Fallback para arquivo
+  const mensagens = loadMensagensFromFile();
+  const idx = mensagens.findIndex(m => m.id === id);
+  if (idx === -1) return false;
+  mensagens.splice(idx, 1);
+  saveMensagensToFile(mensagens);
+  console.log('[Persistence] Mensagem deletada do arquivo local');
+  return true;
+}
+
+// ================================================================
 // MIGRACAO - Importar dados JSON existentes para MongoDB
 // ================================================================
 
@@ -350,6 +526,10 @@ module.exports = {
   saveNote,
   loadDealerData,
   saveDealerData,
+  loadMensagens,
+  createMensagem,
+  updateMensagem,
+  deleteMensagem,
   migrateToMongo,
   defaultConfig
 };

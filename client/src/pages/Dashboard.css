@@ -425,6 +425,14 @@
   box-shadow: 0 0 20px rgba(217, 195, 119, 0.5);
 }
 
+.recompensa-modal__counter {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  text-align: center;
+  margin: var(--space-sm) 0;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
