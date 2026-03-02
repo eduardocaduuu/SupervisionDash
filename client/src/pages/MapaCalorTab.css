@@ -86,7 +86,13 @@
   letter-spacing: 0.05em;
 }
 
-.mapa-tab__refresh {
+.mapa-tab__actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.mapa-tab__refresh,
+.mapa-tab__expand {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -102,6 +108,16 @@
 .mapa-tab__refresh:hover {
   border-color: var(--color-neon-accent);
   color: var(--color-neon-accent);
+}
+
+.mapa-tab__expand {
+  border-color: var(--color-neon-secondary);
+  color: var(--color-neon-secondary);
+}
+
+.mapa-tab__expand:hover {
+  background: var(--color-neon-secondary);
+  color: var(--color-text-dark);
 }
 
 /* Stats */

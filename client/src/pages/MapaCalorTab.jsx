@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
-import { MapPin, TrendingUp, DollarSign, Package, RefreshCw, Flame } from 'lucide-react'
+import { MapPin, TrendingUp, DollarSign, Package, RefreshCw, Flame, Maximize2 } from 'lucide-react'
 import './MapaCalorTab.css'
 
 // Importar Leaflet e CSS
@@ -215,9 +215,18 @@ export default function MapaCalorTab({ setorId }) {
           <Flame size={24} />
           <h2>MAPA DE CALOR</h2>
         </div>
-        <button className="mapa-tab__refresh" onClick={fetchMapData}>
-          <RefreshCw size={16} />
-        </button>
+        <div className="mapa-tab__actions">
+          <button className="mapa-tab__refresh" onClick={fetchMapData} title="Atualizar">
+            <RefreshCw size={16} />
+          </button>
+          <button
+            className="mapa-tab__expand"
+            onClick={() => window.open('/mapa-calor', '_blank')}
+            title="Abrir em nova aba"
+          >
+            <Maximize2 size={16} />
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
