@@ -4,6 +4,7 @@ import Terminal from './pages/Terminal'
 import Dashboard from './pages/Dashboard'
 import Admin from './pages/Admin'
 import AdminLogin from './pages/AdminLogin'
+import MapaCalor from './pages/MapaCalor'
 import './styles/components.css'
 
 // Context for effects toggle
@@ -26,6 +27,7 @@ function App() {
           <Route path="/dashboard/:setorId" element={<Dashboard />} />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/mapa-calor" element={<MapaCalor />} />
         </Routes>
       </div>
     </EffectsContext.Provider>
