@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Users, Flame } from 'lucide-react'
 import './MapaCalor.css'
 
@@ -15,6 +16,9 @@ L.Icon.Default.mergeOptions({
 })
 
 export default function MapaCalor() {
+  const [searchParams] = useSearchParams()
+  const setorId = searchParams.get('setor')
+
   const [mapData, setMapData] = useState(null)
   const [allResponsaveis, setAllResponsaveis] = useState([])
   const [loading, setLoading] = useState(true)
@@ -29,22 +33,26 @@ export default function MapaCalor() {
   // Carregar dados da API (recarrega quando filtro muda)
   useEffect(() => {
     fetchMapData(selectedResponsavel)
-  }, [selectedResponsavel])
+  }, [selectedResponsavel, setorId])
 
   const fetchMapData = async (responsavel) => {
     setLoading(true)
     setError(null)
     try {
-      const url = responsavel && responsavel !== 'all'
-        ? `/api/map/data?responsavel=${encodeURIComponent(responsavel)}`
-        : '/api/map/data'
+      // Se tiver setorId, usa filtro por setor, senão usa filtro por responsável
+      let url = '/api/map/data'
+      if (setorId) {
+        url = `/api/map/data?setorId=${setorId}`
+      } else if (responsavel && responsavel !== 'all') {
+        url = `/api/map/data?responsavel=${encodeURIComponent(responsavel)}`
+      }
 
       const res = await fetch(url)
       const data = await res.json()
 
       if (data.success) {
         setMapData(data)
-        if (responsavel === 'all' || !responsavel) {
+        if (!setorId && (responsavel === 'all' || !responsavel)) {
           setAllResponsaveis(data.stats?.responsaveis || [])
         }
       } else {
@@ -217,20 +225,22 @@ export default function MapaCalor() {
       <div className="mapa-filter-float">
         <div className="mapa-filter-float__header">
           <Flame size={18} />
-          <span>MAPA DE CALOR</span>
+          <span>MAPA DE CALOR {setorId ? `- SETOR ${setorId}` : ''}</span>
         </div>
-        <div className="mapa-filter-float__select">
-          <Users size={14} />
-          <select
-            value={selectedResponsavel}
-            onChange={(e) => setSelectedResponsavel(e.target.value)}
-          >
-            <option value="all">Todas as Supervisoras</option>
-            {responsaveis.map(resp => (
-              <option key={resp} value={resp}>{resp}</option>
-            ))}
-          </select>
-        </div>
+        {!setorId && (
+          <div className="mapa-filter-float__select">
+            <Users size={14} />
+            <select
+              value={selectedResponsavel}
+              onChange={(e) => setSelectedResponsavel(e.target.value)}
+            >
+              <option value="all">Todas as Supervisoras</option>
+              {responsaveis.map(resp => (
+                <option key={resp} value={resp}>{resp}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Mapa */}

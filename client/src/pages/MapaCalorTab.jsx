@@ -221,7 +221,7 @@ export default function MapaCalorTab({ setorId }) {
           </button>
           <button
             className="mapa-tab__expand"
-            onClick={() => window.open('/mapa-calor', '_blank')}
+            onClick={() => window.open(`/mapa-calor?setor=${setorId}`, '_blank')}
             title="Abrir em nova aba"
           >
             <Maximize2 size={16} />
