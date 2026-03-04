@@ -1376,6 +1376,21 @@
   margin: var(--space-xs) 0 0;
 }
 
+.admin__dados-refresh-btn {
+  min-width: 185px;
+}
+
+.admin__dados-refresh-btn:disabled {
+  opacity: 0.85;
+  cursor: wait;
+}
+
+.admin__dados-refresh-btn--success {
+  color: var(--color-neon-secondary);
+  border-color: var(--color-neon-secondary);
+  box-shadow: 0 0 0 1px rgba(119, 217, 184, 0.25), 0 0 14px rgba(119, 217, 184, 0.2);
+}
+
 .admin__dados-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

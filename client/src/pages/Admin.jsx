@@ -47,6 +47,8 @@ export default function Admin() {
   const [filesStatus, setFilesStatus] = useState({ vendas: {}, segmentos: {} })
   const [uploading, setUploading] = useState(null)
   const [uploadStatus, setUploadStatus] = useState(null)
+  const [refreshingFilesStatus, setRefreshingFilesStatus] = useState(false)
+  const [filesStatusPulse, setFilesStatusPulse] = useState(false)
 
   // Sistema de Mensagens
   const [mensagens, setMensagens] = useState([])
@@ -188,13 +190,24 @@ export default function Admin() {
   }, [activeAdminTab, setores, missionLoaded])
 
   // Carregar status dos arquivos quando mudar para a aba dados
-  const loadFilesStatus = async () => {
+  const loadFilesStatus = async ({ withFeedback = false } = {}) => {
+    if (withFeedback) {
+      setRefreshingFilesStatus(true)
+      setFilesStatusPulse(false)
+    }
+
     try {
       const res = await fetch('/api/admin/files/status')
       const data = await res.json()
       setFilesStatus(data)
     } catch (err) {
       console.error('Erro ao carregar status dos arquivos:', err)
+    } finally {
+      if (withFeedback) {
+        setRefreshingFilesStatus(false)
+        setFilesStatusPulse(true)
+        setTimeout(() => setFilesStatusPulse(false), 1200)
+      }
     }
   }
 
@@ -342,7 +355,7 @@ export default function Admin() {
 
       if (res.ok) {
         setUploadStatus({ tipo, success: true, message: data.message })
-        loadFilesStatus()
+        loadFilesStatus({ withFeedback: true })
       } else {
         setUploadStatus({ tipo, success: false, message: data.error })
       }
@@ -1058,9 +1071,13 @@ export default function Admin() {
                 <h2>IMPORTAR PLANILHAS</h2>
                 <p>Atualize os dados do sistema importando novas planilhas de vendas e segmentos.</p>
               </div>
-              <button className="btn btn--ghost" onClick={loadFilesStatus}>
-                <RefreshCw size={16} />
-                ATUALIZAR STATUS
+              <button
+                className={`btn btn--ghost admin__dados-refresh-btn ${filesStatusPulse ? 'admin__dados-refresh-btn--success' : ''}`}
+                onClick={() => loadFilesStatus({ withFeedback: true })}
+                disabled={refreshingFilesStatus}
+              >
+                <RefreshCw size={16} className={refreshingFilesStatus ? 'spin' : ''} />
+                {refreshingFilesStatus ? 'ATUALIZANDO...' : filesStatusPulse ? 'ATUALIZADO' : 'ATUALIZAR STATUS'}
               </button>
             </div>
 
