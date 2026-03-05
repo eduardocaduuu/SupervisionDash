@@ -9,6 +9,7 @@ const MapService = require('./MapService');
 const ProdutosService = require('./ProdutosService');
 const { connectMongoDB, isMongoConnected } = require('./db/mongodb');
 const PersistenceService = require('./services/PersistenceService');
+const FileStorageService = require('./services/FileStorageService');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -962,6 +963,7 @@ app.get('/api/admin/slack/connection', async (req, res) => {
 // FILE UPLOAD ROUTES (Admin)
 // ═══════════════════════════════════════════════════════════════
 const uploadDir = path.join(__dirname, '../../data');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
 // Configurar multer para upload de arquivos
 const storage = multer.diskStorage({
@@ -1050,32 +1052,65 @@ app.get('/api/admin/files/status', (req, res) => {
 });
 
 // Upload de arquivo
-app.post('/api/admin/files/upload', upload.single('file'), (req, res) => {
+app.post('/api/admin/files/upload', upload.single('file'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'Nenhum arquivo enviado' });
   }
 
   const tipo = req.query.tipo || req.body.tipo;
+  const filename = req.file.filename;
+  let persistedToMongo = false;
 
-  // Recarregar dados após upload
+  try {
+    if (tipo === 'vendas') {
+      // Mantem apenas um formato ativo de vendas (csv ou xlsx)
+      const uploadedExt = path.extname(filename).toLowerCase();
+      const otherFile = uploadedExt === '.csv' ? 'vendas_bd.xlsx' : 'vendas_bd.csv';
+      const otherFilePath = path.join(uploadDir, otherFile);
+
+      if (fs.existsSync(otherFilePath)) {
+        fs.unlinkSync(otherFilePath);
+      }
+
+      if (isMongoConnected()) {
+        await FileStorageService.deleteFile(otherFile);
+      }
+    }
+
+    if (isMongoConnected()) {
+      persistedToMongo = await FileStorageService.saveFileFromDisk(
+        filename,
+        req.file.path,
+        req.file.mimetype || 'application/octet-stream'
+      );
+    }
+  } catch (error) {
+    console.error('[Upload] Erro ao persistir arquivo no MongoDB:', error);
+    return res.status(500).json({ error: 'Erro ao persistir arquivo no banco de dados' });
+  }
+
+  // Recarregar dados apos upload
   if (tipo === 'segmentos') {
-    // Recarregar lista de setores
     SETORES = getSetoresDinamicos();
   }
 
-  // Limpar caches dos serviços
+  // Limpar caches dos servicos
   if (tipo === 'vendas') {
     VendasService.clearCache && VendasService.clearCache();
+    ProdutosService.clearCache && ProdutosService.clearCache();
   }
   if (tipo === 'segmentos') {
     SegmentService.clearCache && SegmentService.clearCache();
+    VendasService.clearCache && VendasService.clearCache();
+    ProdutosService.clearCache && ProdutosService.clearCache();
   }
 
   res.json({
     success: true,
-    message: `Arquivo ${req.file.filename} enviado com sucesso`,
+    message: `Arquivo ${filename} enviado com sucesso`,
+    persistedToMongo,
     file: {
-      name: req.file.filename,
+      name: filename,
       size: req.file.size,
       sizeFormatted: `${(req.file.size / 1024 / 1024).toFixed(2)} MB`
     }
@@ -1121,6 +1156,11 @@ async function startServer() {
   // 2. Se conectou, migrar dados existentes (JSON -> MongoDB)
   if (mongoConnected) {
     await PersistenceService.migrateToMongo();
+    const restored = await FileStorageService.restoreKnownFilesToDisk(uploadDir);
+    if (restored.length > 0) {
+      console.log(`[FileStorage] Arquivos restaurados do MongoDB: ${restored.join(', ')}`);
+    }
+    SETORES = getSetoresDinamicos();
   }
 
   // 3. Carregar config (do MongoDB ou arquivo)
@@ -1156,3 +1196,4 @@ startServer().catch(error => {
   console.error('Erro fatal ao iniciar servidor:', error);
   process.exit(1);
 });
+
