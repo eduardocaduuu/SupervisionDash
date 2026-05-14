@@ -1560,37 +1560,6 @@
   font-size: inherit;
 }
 
-/* ═══ MAPA DE CALOR TAB ═══ */
-.admin__tab--mapa {
-  color: var(--color-neon-warning);
-}
-
-.admin__tab--mapa.admin__tab--active {
-  color: var(--color-neon-warning);
-  border-bottom-color: var(--color-neon-warning);
-  background: rgba(251, 191, 36, 0.05);
-}
-
-.admin__mapa {
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.admin__mapa .heatmap-container {
-  border: none;
-  background: transparent;
-}
-
-.admin__mapa .heatmap-container--expanded {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 1000;
-  background: var(--color-bg-primary);
-  padding: var(--space-lg);
-}
 
 /* ═══ MENSAGENS TAB ═══ */
 .admin__tab--mensagens {

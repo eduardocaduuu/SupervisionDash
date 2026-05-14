@@ -4,12 +4,11 @@ import {
   Shield, LogOut, Save, CheckCircle, AlertTriangle, FileSpreadsheet, TrendingUp,
   Gift, Trash2, Send, MessageSquare, Users, ChevronDown, ChevronUp, Filter,
   Building2, Target, Rocket, Search, X, Trophy, Star, Sparkles, RefreshCw,
-  Upload, File, Database, Clock, Flame, Mail, Edit3, Plus, Globe, User
+  Upload, File, Database, Clock, Mail, Edit3, Plus, Globe, User
 } from 'lucide-react'
 import Panel from '../components/Panel'
 import DealerCard from '../components/DealerCard'
 import BadgeSegment from '../components/BadgeSegment'
-import HeatMapAlagoas from '../components/HeatMapAlagoas'
 import './Admin.css'
 
 export default function Admin() {
@@ -557,13 +556,6 @@ export default function Admin() {
         >
           <Database size={16} />
           IMPORTAR DADOS
-        </button>
-        <button
-          className={`admin__tab admin__tab--mapa ${activeAdminTab === 'mapa' ? 'admin__tab--active' : ''}`}
-          onClick={() => setActiveAdminTab('mapa')}
-        >
-          <Flame size={16} />
-          MAPA DE CALOR
         </button>
         <button
           className={`admin__tab admin__tab--mensagens ${activeAdminTab === 'mensagens' ? 'admin__tab--active' : ''}`}
@@ -1229,13 +1221,6 @@ export default function Admin() {
                 </ul>
               </div>
             </div>
-          </div>
-          )}
-
-          {/* TAB: MAPA DE CALOR */}
-          {activeAdminTab === 'mapa' && (
-          <div className="admin__mapa">
-            <HeatMapAlagoas />
           </div>
           )}
 
