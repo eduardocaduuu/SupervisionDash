@@ -19,6 +19,17 @@ let cache = null;
 let lastMtime = 0;
 let setorNameToCodeMap = null;
 
+// Aliases dos nomes que aparecem no CSV de vendas (raiz) mas divergem do cadastro.
+// Mantêm o mapeamento nome → código para os setores 13706 cujos nomes na fonte de
+// vendas não batem com Segmentos_bd.xlsx.
+const SETOR_NAME_ALIASES = {
+  'PRATA 1/ Palmeira /': '1260',
+  'OURO Palmeira': '4005',
+  'PRATA 2 / Major / Cacimbinhas / Estrela / Quebrangulo / Minador /Igaci/': '8238',
+  'VIPS / PLATINA /Palmeira': '8239',
+  'BRONZE / Todas as cidades 13706': '23032',
+};
+
 // Converter moeda PT-BR para número (1.234,56 -> 1234.56)
 function parseCurrencyPTBR(value) {
   if (typeof value === 'number') return value;
@@ -75,6 +86,8 @@ function buildSetorNameToCodeMap() {
       console.error('[VendasService] Erro ao construir mapa de setores:', e);
     }
   }
+
+  Object.assign(setorNameToCodeMap, SETOR_NAME_ALIASES);
 
   return setorNameToCodeMap;
 }
