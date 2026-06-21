@@ -116,7 +116,12 @@ function forecast(papel, acumulado) {
   const faltaSubir = metaSubir != null ? Math.max(0, metaSubir - acumulado) : null;
   const mantem = acumulado >= metaManter;
   const cairiaPara = mantem ? null : anterior(seg);             // cai 1 nível na virada
-  const subiriaPara = (metaSubir != null && acumulado >= metaSubir) ? segmentoPorTotal(acumulado) : null;
+  // sobe só para um nível ESTRITAMENTE acima do atual (paridade com index.js)
+  let subiriaPara = null;
+  if (metaSubir != null && acumulado >= metaSubir) {
+    const alvo = segmentoPorTotal(acumulado);
+    if (LADDER.indexOf(alvo) > LADDER.indexOf(seg)) subiriaPara = alvo;
+  }
   return {
     segmento: seg,
     acumulado: Math.round(acumulado * 100) / 100,
