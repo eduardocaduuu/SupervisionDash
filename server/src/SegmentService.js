@@ -1,6 +1,6 @@
-const XLSX = require('xlsx');
 const path = require('path');
 const fs = require('fs');
+const { readAllRows } = require('./utils/xlsx');
 
 // Caminho para o arquivo estático: data/Segmentos_bd.xlsx (na raiz do projeto)
 // __dirname em src/ aponta para server/src, então ../../data sobe para a raiz/data
@@ -31,10 +31,8 @@ const SegmentService = {
       }
 
       console.log('[SegmentService] Carregando base de segmentos...');
-      const workbook = XLSX.readFile(DATA_FILE);
-      const firstSheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[firstSheetName];
-      const rawData = XLSX.utils.sheet_to_json(worksheet);
+      // Lê todas as abas (uma por unidade no export bruto) para não perder dados
+      const rawData = readAllRows(DATA_FILE);
 
       const normalizedData = rawData.map(row => {
         // Função auxiliar para buscar valor ignorando maiúsculas/minúsculas
@@ -67,6 +65,14 @@ const SegmentService = {
       console.error('[SegmentService] Erro crítico ao ler arquivo:', error);
       return [];
     }
+  },
+
+  /**
+   * Limpa o cache para forçar recarregamento na próxima leitura.
+   */
+  clearCache: () => {
+    cache = null;
+    lastMtime = 0;
   }
 };
 

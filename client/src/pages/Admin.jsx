@@ -13,6 +13,21 @@ import './Admin.css'
 
 export default function Admin() {
   const navigate = useNavigate()
+
+  // Chamadas autenticadas ao admin: injeta o token e, se receber 401,
+  // limpa o token e volta para o login.
+  const adminFetch = async (url, options = {}) => {
+    const token = sessionStorage.getItem('adminToken') || ''
+    const headers = { ...(options.headers || {}), Authorization: `Bearer ${token}` }
+    const res = await fetch(url, { ...options, headers })
+    if (res.status === 401) {
+      sessionStorage.removeItem('adminToken')
+      navigate('/admin/login')
+      throw new Error('unauthorized')
+    }
+    return res
+  }
+
   const [config, setConfig] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [saveStatus, setSaveStatus] = useState(null)
@@ -62,11 +77,11 @@ export default function Admin() {
   const [mensagemFormStatus, setMensagemFormStatus] = useState(null)
 
   useEffect(() => {
-    fetch('/api/admin/config')
+    adminFetch('/api/admin/config')
       .then(r => r.json())
       .then(data => {
         setConfig(data)
-        setRepresentatividade(data.representatividade)
+        setRepresentatividade(data.representatividade || {})
         // Carregar mensagem existente
         if (data.mensagemRecompensa) {
           setMensagemTitulo(data.mensagemRecompensa.titulo || '')
@@ -75,8 +90,10 @@ export default function Admin() {
         setIsLoading(false)
       })
       .catch(err => {
-        console.error(err)
-        navigate('/admin/login')
+        // adminFetch já redireciona no 401; não desloga por erro transitório (rede/500)
+        if (err.message === 'unauthorized') return
+        console.error('Erro ao carregar config admin:', err)
+        setIsLoading(false)
       })
   }, [navigate])
 
@@ -104,6 +121,8 @@ export default function Admin() {
       return
     }
 
+    // Reseta o filtro de segmento ao abrir outra base (o filtro é compartilhado)
+    setSegmentFilter('TODOS')
     setExpandedBase(setorId)
 
     if (!basesData[setorId]) {
@@ -196,7 +215,7 @@ export default function Admin() {
     }
 
     try {
-      const res = await fetch('/api/admin/files/status')
+      const res = await adminFetch('/api/admin/files/status')
       const data = await res.json()
       setFilesStatus(data)
     } catch (err) {
@@ -220,7 +239,7 @@ export default function Admin() {
   const loadMensagens = async () => {
     setLoadingMensagens(true)
     try {
-      const res = await fetch('/api/admin/mensagens')
+      const res = await adminFetch('/api/admin/mensagens')
       const data = await res.json()
       setMensagens(data)
     } catch (err) {
@@ -241,7 +260,7 @@ export default function Admin() {
 
     setMensagemFormStatus('loading')
     try {
-      const res = await fetch('/api/admin/mensagens', {
+      const res = await adminFetch('/api/admin/mensagens', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(novaMensagem)
@@ -266,7 +285,7 @@ export default function Admin() {
 
     setMensagemFormStatus('loading')
     try {
-      const res = await fetch(`/api/admin/mensagens/${editingMensagem.id}`, {
+      const res = await adminFetch(`/api/admin/mensagens/${editingMensagem.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(editingMensagem)
@@ -290,7 +309,7 @@ export default function Admin() {
     if (!confirm('Tem certeza que deseja excluir esta mensagem?')) return
 
     try {
-      const res = await fetch(`/api/admin/mensagens/${id}`, {
+      const res = await adminFetch(`/api/admin/mensagens/${id}`, {
         method: 'DELETE'
       })
 
@@ -305,7 +324,7 @@ export default function Admin() {
   // Toggle ativa/inativa
   const handleToggleMensagemAtiva = async (mensagem) => {
     try {
-      await fetch(`/api/admin/mensagens/${mensagem.id}`, {
+      await adminFetch(`/api/admin/mensagens/${mensagem.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ativa: !mensagem.ativa })
@@ -345,7 +364,7 @@ export default function Admin() {
 
     try {
       // Passa tipo como query param para estar disponível antes do multer processar
-      const res = await fetch(`/api/admin/files/upload?tipo=${tipo}`, {
+      const res = await adminFetch(`/api/admin/files/upload?tipo=${tipo}`, {
         method: 'POST',
         body: formData
       })
@@ -368,7 +387,7 @@ export default function Admin() {
 
   const handleCicloChange = async (ciclo) => {
     try {
-      await fetch('/api/admin/ciclo', {
+      await adminFetch('/api/admin/ciclo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ciclo })
@@ -388,7 +407,7 @@ export default function Admin() {
     setSaveStatus('loading')
 
     try {
-      const res = await fetch('/api/admin/representatividade', {
+      const res = await adminFetch('/api/admin/representatividade', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ representatividade })
@@ -396,7 +415,7 @@ export default function Admin() {
 
       if (res.ok) {
         setSaveStatus('success')
-        const configRes = await fetch('/api/admin/config')
+        const configRes = await adminFetch('/api/admin/config')
         const configData = await configRes.json()
         setConfig(configData)
       } else {
@@ -416,7 +435,7 @@ export default function Admin() {
     setMensagemStatus('loading')
 
     try {
-      const res = await fetch('/api/admin/mensagem-recompensa', {
+      const res = await adminFetch('/api/admin/mensagem-recompensa', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -427,7 +446,7 @@ export default function Admin() {
 
       if (res.ok) {
         setMensagemStatus('success')
-        const configRes = await fetch('/api/admin/config')
+        const configRes = await adminFetch('/api/admin/config')
         const configData = await configRes.json()
         setConfig(configData)
       } else {
@@ -445,7 +464,7 @@ export default function Admin() {
     setMensagemStatus('loading')
 
     try {
-      const res = await fetch('/api/admin/mensagem-recompensa', {
+      const res = await adminFetch('/api/admin/mensagem-recompensa', {
         method: 'DELETE'
       })
 
@@ -972,10 +991,11 @@ export default function Admin() {
                     <Sparkles size={24} />
                     <div>
                       <span className="admin__mission-stat-value">
-                        {missionData.length > 0
-                          ? Math.round((missionData.reduce((acc, b) => acc + b.dealers.length, 0) /
-                              missionData.reduce((acc, b) => acc + b.totalDealers, 0)) * 100)
-                          : 0}%
+                        {(() => {
+                          const totDealers = missionData.reduce((acc, b) => acc + (b.totalDealers || 0), 0)
+                          const totOk = missionData.reduce((acc, b) => acc + b.dealers.length, 0)
+                          return totDealers > 0 ? Math.round((totOk / totDealers) * 100) : 0
+                        })()}%
                       </span>
                       <span className="admin__mission-stat-label">Taxa de Sucesso</span>
                     </div>
@@ -1005,7 +1025,7 @@ export default function Admin() {
                               <span><strong>{base.dealers.length}</strong> de {base.totalDealers}</span>
                             </div>
                             <div className="admin__mission-base-percent">
-                              {Math.round((base.dealers.length / base.totalDealers) * 100)}%
+                              {base.totalDealers > 0 ? Math.round((base.dealers.length / base.totalDealers) * 100) : 0}%
                             </div>
                           </div>
                         </div>

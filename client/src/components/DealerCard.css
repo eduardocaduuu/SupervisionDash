@@ -713,6 +713,37 @@
   }
 }
 
+/* ═══ PREVISÃO NA VIRADA ═══ */
+.dealer-card__forecast {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  margin: 0 var(--space-md) var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  border: 2px solid;
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 1.3;
+}
+.dealer-card__forecast svg { flex-shrink: 0; }
+.dealer-card__forecast strong { font-weight: 700; }
+
+.dealer-card__forecast--down {
+  color: var(--color-neon-danger, #d97777);
+  border-color: rgba(217, 119, 119, 0.5);
+  background: rgba(217, 119, 119, 0.1);
+}
+.dealer-card__forecast--up {
+  color: var(--color-neon-secondary, #77d9c3);
+  border-color: rgba(119, 217, 195, 0.5);
+  background: rgba(119, 217, 195, 0.1);
+}
+.dealer-card__forecast--keep {
+  color: var(--color-neon-primary, #b8d977);
+  border-color: rgba(184, 217, 119, 0.4);
+  background: rgba(184, 217, 119, 0.08);
+}
+
 /* ═══ RESPONSIVE - SMALL MOBILE ═══ */
 @media (max-width: 480px) {
   .dealer-card__header {

@@ -26,7 +26,15 @@ export default function RankTab({ setorId }) {
     )
   }
 
-  const { ranking, missionBoosters } = rankData
+  if (!rankData || !Array.isArray(rankData.ranking)) {
+    return (
+      <div className="rank-loading">
+        <span className="mono">{rankData?.error || 'SEM DADOS DE RANK'}</span>
+      </div>
+    )
+  }
+
+  const { ranking, missionBoosters = [] } = rankData
 
   const formatCurrency = (val) =>
     `R$ ${Math.abs(val).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
@@ -68,7 +76,7 @@ export default function RankTab({ setorId }) {
         noPadding
       >
         <div className="rank-list">
-          {ranking.sort((a, b) => b.totalCicloAtual - a.totalCicloAtual).map((dealer, idx) => (
+          {[...ranking].sort((a, b) => b.totalCicloAtual - a.totalCicloAtual).map((dealer, idx) => (
             <div key={dealer.codigo} className={`rank-item ${getMedalClass(idx)}`}>
               <div className="rank-item__position">
                 {idx < 3 ? (

@@ -74,7 +74,7 @@ function composeRiskAlert(summary) {
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `*${riskCount}* de *${totalDealers}* revendedores estão abaixo de *${threshold}%* da meta de manter (9 ciclos).`
+        text: `*${riskCount}* de *${totalDealers}* revendedores vão *cair de segmentação* na próxima virada se mantiverem o acúmulo atual.`
       }
     });
 
@@ -90,7 +90,8 @@ function composeRiskAlert(summary) {
 
       const dealersList = top5.map((dealer, idx) => {
         const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`;
-        return `${medal} *${dealer.nome}* (${dealer.codigo})\n    └ ${dealer.percentManter.toFixed(1)}% da meta | Falta: ${formatCurrency(dealer.faltaManter)}`;
+        const caiPara = dealer.cairiaPara ? ` → cai p/ *${dealer.cairiaPara}*` : '';
+        return `${medal} *${dealer.nome}* (${dealer.codigo})${caiPara}\n    └ Falta ${formatCurrency(dealer.faltaManter)} p/ manter ${dealer.segmento}`;
       }).join('\n\n');
 
       blocks.push({
@@ -106,7 +107,7 @@ function composeRiskAlert(summary) {
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `🎉 *Parabéns!* Todos os ${totalDealers} revendedores estão acima de ${threshold}% da meta de manter.`
+        text: `🎉 *Parabéns!* Nenhum dos ${totalDealers} revendedores vai cair de segmentação na próxima virada.`
       }
     });
   }

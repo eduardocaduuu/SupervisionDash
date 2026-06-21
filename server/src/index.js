@@ -1,10 +1,13 @@
 const express = require('express');
 const cors = require('cors');
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
+const { readAllRows } = require('./utils/xlsx');
 const SegmentService = require('./SegmentService');
 const VendasService = require('./VendasService');
+const HistoryService = require('./HistoryService');
 const MapService = require('./MapService');
 const ProdutosService = require('./ProdutosService');
 const { connectMongoDB, isMongoConnected } = require('./db/mongodb');
@@ -61,6 +64,13 @@ function getSegmentoByTotal(total) {
   return 'Bronze';
 }
 
+// Ordem da escada de segmentos (para calcular queda de 1 nível na virada)
+const SEGMENTOS_ORDEM = ['Bronze', 'Prata', 'Ouro', 'Platina', 'Rubi', 'Esmeralda', 'Diamante'];
+function segmentoAnterior(seg) {
+  const i = SEGMENTOS_ORDEM.indexOf(seg);
+  return i > 0 ? SEGMENTOS_ORDEM[i - 1] : seg;
+}
+
 // Normalizar segmento (remove sufixo GB e trata valores invalidos)
 function normalizeSegmento(segmento) {
   if (!segmento) return null;
@@ -112,7 +122,6 @@ const SETORES_FALLBACK = [
 // Gerar lista de setores dinamicamente a partir da planilha
 function getSetoresDinamicos() {
   try {
-    const XLSX = require('xlsx');
     // Caminho correto: data/ na raiz do projeto (não server/data/)
     const segmentosPath = path.join(__dirname, '../../data/Segmentos_bd.xlsx');
 
@@ -121,9 +130,8 @@ function getSetoresDinamicos() {
       return SETORES_FALLBACK;
     }
 
-    const workbook = XLSX.readFile(segmentosPath);
-    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rawData = XLSX.utils.sheet_to_json(worksheet);
+    // Lê todas as abas (uma por unidade no export bruto)
+    const rawData = readAllRows(segmentosPath);
 
     // Mapa para agrupar setores únicos (id -> nome)
     const setoresMap = new Map();
@@ -226,7 +234,8 @@ function getDealersForSetor(setorId) {
       nome: dealer.nome,
       setorId: dealer.setorId,
       segmentoOficial: dealer.segmentoOficial,
-      ciclos: venda ? venda.ciclos : {}
+      // cópia para nunca mutar o cache do VendasService
+      ciclos: venda ? { ...venda.ciclos } : {}
     };
   });
 }
@@ -257,13 +266,41 @@ function generateDemoData(setorId) {
   return dealers;
 }
 
+// Enriquecer dealer.ciclos com o histórico do Mongo (ciclos fechados da janela).
+// O ciclo atual vem do arquivo recém-importado (mais fresco) e sobrescreve o do Mongo.
+// Sem Mongo, mantém apenas o que veio do arquivo (degrada, não quebra).
+async function enrichDealersWithHistory(dealers) {
+  if (!isMongoConnected()) return dealers;
+  try {
+    const detalhe = await HistoryService.getDetalheTodos(config.cicloAtual);
+    dealers.forEach(d => {
+      const hist = detalhe[d.codigo] || {};
+      d.ciclos = { ...hist, ...d.ciclos };
+    });
+  } catch (e) {
+    console.error('[History] Falha ao enriquecer com histórico:', e.message);
+  }
+  return dealers;
+}
+
+// Dealers de um setor já com histórico e métricas calculadas
+async function getDealersWithMetrics(setorId) {
+  const dealers = await enrichDealersWithHistory(getDealersForSetor(setorId));
+  return dealers.map(d => calculateDealerMetrics(d));
+}
+
 // Calcular métricas do revendedor
 function calculateDealerMetrics(dealer) {
-  // Total de todos os ciclos
+  // Acúmulo da JANELA atual (1–9 ou 10–17). Soma apenas os ciclos da janela,
+  // garantindo a regra "o acúmulo zera na virada" independentemente do que o
+  // arquivo de vendas contiver.
+  const ciclosJanela = HistoryService.ciclosDaJanela(config.cicloAtual);
   let totalGeral = 0;
-  Object.values(dealer.ciclos).forEach(valor => {
-    totalGeral += valor;
-  });
+  if (ciclosJanela.length > 0) {
+    for (const c of ciclosJanela) totalGeral += (dealer.ciclos[c] || 0);
+  } else {
+    Object.values(dealer.ciclos).forEach(valor => { totalGeral += valor; });
+  }
 
   // Total do ciclo atual
   const totalCicloAtual = dealer.ciclos[config.cicloAtual] || 0;
@@ -293,8 +330,16 @@ function calculateDealerMetrics(dealer) {
     : 0;
   const percentCiclo = metaCicloPonderada > 0 ? Math.min(100, (totalCicloAtual / metaCicloPonderada) * 100) : 0;
 
-  // Delta do dia (simulado - em produção viria da comparação manhã/tarde)
-  const deltaDia = Math.round((Math.random() - 0.3) * 3000 * 100) / 100;
+  // ── Previsão pela mecânica do negócio ──────────────────────────
+  // Sobe a qualquer momento; cai apenas 1 nível nas viradas (9→10 e 17→1).
+  const mantem = totalGeral >= metaManter;
+  const cairiaPara = mantem ? null : segmentoAnterior(segmento);        // onde cai na virada
+  // sobe só se o acúmulo leva a um nível ESTRITAMENTE acima do atual
+  let subiriaPara = null;
+  if (metaSubir && totalGeral >= metaSubir) {
+    const alvo = getSegmentoByTotal(totalGeral);
+    if (SEGMENTOS_ORDEM.indexOf(alvo) > SEGMENTOS_ORDEM.indexOf(segmento)) subiriaPara = alvo;
+  }
 
   // Impulso motivacional
   let impulso = '';
@@ -319,10 +364,13 @@ function calculateDealerMetrics(dealer) {
     percentSubir: percentSubir ? Math.round(percentSubir * 10) / 10 : null,
     metaCicloPonderada: Math.round(metaCicloPonderada * 100) / 100,
     percentCiclo: Math.round(percentCiclo * 10) / 10,
-    deltaDia,
+    // Previsão de segmentação na virada
+    mantem,
+    cairiaPara,
+    subiriaPara,
     impulso,
     nearLevelUp: percentSubir !== null && percentSubir >= 80,
-    atRisk: percentManter < 50
+    atRisk: !mantem // EM RISCO = vai cair de segmentação na virada
   };
 }
 
@@ -381,7 +429,7 @@ app.get('/api/validar-setor/:setorId', (req, res) => {
 });
 
 // Dashboard do setor
-app.get('/api/dashboard', (req, res) => {
+app.get('/api/dashboard', async (req, res) => {
   if (!req.query.setorId) {
     return res.status(400).json({ error: 'setorId é obrigatório' });
   }
@@ -400,8 +448,7 @@ app.get('/api/dashboard', (req, res) => {
     return res.status(404).json({ error: 'Setor não encontrado' });
   }
 
-  const dealers = getDealersForSetor(setorId);
-  const dealersWithMetrics = dealers.map(d => calculateDealerMetrics(d));
+  const dealersWithMetrics = await getDealersWithMetrics(setorId);
 
   // KPIs
   const totalSetor = dealersWithMetrics.reduce((sum, d) => sum + d.totalGeral, 0);
@@ -436,7 +483,7 @@ app.get('/api/setor/:setorId', (req, res) => {
 });
 
 // Detalhe do revendedor
-app.get('/api/revendedor', (req, res) => {
+app.get('/api/revendedor', async (req, res) => {
   if (!req.query.setorId || !req.query.codigoRevendedor) {
     return res.status(400).json({ error: 'setorId e codigoRevendedor são obrigatórios' });
   }
@@ -444,21 +491,20 @@ app.get('/api/revendedor', (req, res) => {
   const setorId = normalizeSetorId(req.query.setorId);
   const codigoRevendedor = normalizeSetorId(req.query.codigoRevendedor);
 
-  const dealers = getDealersForSetor(setorId);
-  const dealer = dealers.find(d => d.codigo === codigoRevendedor);
+  const dealersWithMetrics = await getDealersWithMetrics(setorId);
+  const dealer = dealersWithMetrics.find(d => d.codigo === codigoRevendedor);
 
   if (!dealer) {
     return res.status(404).json({ error: 'Revendedor não encontrado' });
   }
 
-  res.json(calculateDealerMetrics(dealer));
+  res.json(dealer);
 });
 
 // Rank do ciclo
-app.get('/api/setor/:setorId/rank', (req, res) => {
+app.get('/api/setor/:setorId/rank', async (req, res) => {
   const setorId = normalizeSetorId(req.params.setorId);
-  const dealers = getDealersForSetor(setorId);
-  const dealersWithMetrics = dealers.map(d => calculateDealerMetrics(d));
+  const dealersWithMetrics = await getDealersWithMetrics(setorId);
 
   const ranked = dealersWithMetrics
     .sort((a, b) => b.totalCicloAtual - a.totalCicloAtual)
@@ -482,9 +528,9 @@ app.get('/api/setor/:setorId/rank', (req, res) => {
 });
 
 // Ciclos do setor
-app.get('/api/setor/:setorId/ciclos', (req, res) => {
+app.get('/api/setor/:setorId/ciclos', async (req, res) => {
   const setorId = normalizeSetorId(req.params.setorId);
-  const dealers = getDealersForSetor(setorId);
+  const dealers = await enrichDealersWithHistory(getDealersForSetor(setorId));
 
   const ciclosList = Object.keys(config.representatividade);
   const ciclosData = ciclosList.map(ciclo => {
@@ -543,6 +589,43 @@ app.get('/api/map/responsaveis', (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════
+// ADMIN AUTH (token stateless via HMAC das credenciais)
+// ═══════════════════════════════════════════════════════════════
+
+// Gera o token a partir das credenciais atuais. Stateless: não precisa de
+// banco e continua válido após redeploys (depende só de user/senha/secret).
+function getAdminToken() {
+  const secret = process.env.ADMIN_TOKEN_SECRET || 'supervision-admin-token-v1';
+  return crypto
+    .createHmac('sha256', secret)
+    .update(`${config.adminUser}:${config.adminPassword}`)
+    .digest('hex');
+}
+
+// Comparação em tempo constante (evita timing attacks)
+function tokensMatch(provided, expected) {
+  if (!provided || provided.length !== expected.length) return false;
+  try {
+    return crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(expected));
+  } catch {
+    return false;
+  }
+}
+
+function requireAdmin(req, res, next) {
+  const header = req.headers['authorization'] || '';
+  const provided = header.replace(/^Bearer\s+/i, '').trim() || (req.headers['x-admin-token'] || '');
+  if (tokensMatch(provided, getAdminToken())) return next();
+  return res.status(401).json({ error: 'Não autorizado. Faça login no painel admin.' });
+}
+
+// Protege TODAS as rotas /api/admin/* (exceto login/logout, que são públicas)
+app.use('/api/admin', (req, res, next) => {
+  if (req.path === '/login' || req.path === '/logout') return next();
+  return requireAdmin(req, res, next);
+});
+
+// ═══════════════════════════════════════════════════════════════
 // ADMIN ROUTES
 // ═══════════════════════════════════════════════════════════════
 
@@ -551,7 +634,7 @@ app.post('/api/admin/login', (req, res) => {
   const { user, password } = req.body;
 
   if (user === config.adminUser && password === config.adminPassword) {
-    res.json({ success: true, message: 'ACCESS GRANTED' });
+    res.json({ success: true, message: 'ACCESS GRANTED', token: getAdminToken() });
   } else {
     res.status(401).json({ success: false, message: 'ACCESS DENIED' });
   }
@@ -562,9 +645,10 @@ app.post('/api/admin/logout', (req, res) => {
   res.json({ success: true, message: 'LOGGED OUT' });
 });
 
-// Get admin config
+// Get admin config (não expõe credenciais em texto puro)
 app.get('/api/admin/config', (req, res) => {
-  res.json(config);
+  const { adminUser, adminPassword, ...safeConfig } = config;
+  res.json(safeConfig);
 });
 
 // Update config
@@ -893,7 +977,7 @@ app.post('/api/admin/slack/test', async (req, res) => {
 
   try {
     // Get risk summary
-    const summary = riskService.getSectorRiskSummary(setorId);
+    const summary = await riskService.getSectorRiskSummary(setorId);
 
     // Compose message
     const { text, blocks } = alertComposer.composeRiskAlert(summary);
@@ -1105,10 +1189,24 @@ app.post('/api/admin/files/upload', upload.single('file'), async (req, res) => {
     ProdutosService.clearCache && ProdutosService.clearCache();
   }
 
+  // Histórico: ao subir vendas (planilha do ciclo atual), faz upsert daquele
+  // ciclo no Mongo. Mantém o acúmulo da janela (1–9 / 10–17) sempre atualizado
+  // sem depender do arquivo conter todos os ciclos.
+  let historico = null;
+  if (tipo === 'vendas' && isMongoConnected()) {
+    try {
+      historico = await HistoryService.importHistorico(req.file.path);
+      console.log(`[Upload] Histórico atualizado: ciclos ${historico.ciclos.join(', ')} (${historico.docs} registros)`);
+    } catch (error) {
+      console.error('[Upload] Erro ao atualizar histórico no Mongo:', error.message);
+    }
+  }
+
   res.json({
     success: true,
     message: `Arquivo ${filename} enviado com sucesso`,
     persistedToMongo,
+    historico,
     file: {
       name: filename,
       size: req.file.size,

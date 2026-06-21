@@ -14,6 +14,13 @@ build/
 server/data/uploads/
 server/data/*.csv
 
+# Planilhas brutas de importação (contêm dados pessoais — NÃO versionar)
+/Consulta*.xlsx
+/ConsultaRankingVendas*.csv
+/ciclos.xlsx
+/ciclo9*.xlsx
+/ConsultaRankingVendas_*.csv
+
 # IDE
 .vscode/
 .idea/

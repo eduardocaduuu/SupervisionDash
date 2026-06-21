@@ -9,7 +9,8 @@ export default function ProgressBar({
   ticks = 10,
   formatValue = (v) => `${v.toFixed(1)}%`
 }) {
-  const percent = Math.min(100, Math.max(0, (value / max) * 100))
+  const safeValue = Number(value) || 0
+  const percent = Math.min(100, Math.max(0, (safeValue / max) * 100))
   const variantClass = variant !== 'default' ? `progress-bar--${variant}` : ''
 
   return (
@@ -18,7 +19,7 @@ export default function ProgressBar({
         <span className="progress-label">{label}</span>
         {showValue && (
           <span className="progress-value" style={{ color: getColorForVariant(variant) }}>
-            {formatValue(value)}
+            {formatValue(safeValue)}
           </span>
         )}
       </div>

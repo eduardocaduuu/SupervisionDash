@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ChevronRight, Target, Rocket, Zap, StickyNote, X, Check, Edit3, Phone, MessageCircle, FileText } from 'lucide-react'
+import { ChevronRight, Target, Rocket, Zap, StickyNote, X, Check, Edit3, Phone, MessageCircle, FileText, TrendingDown, TrendingUp, ShieldCheck } from 'lucide-react'
 import BadgeSegment from './BadgeSegment'
 import ProgressBar from './ProgressBar'
 import AlertChip from './AlertChip'
@@ -24,14 +24,23 @@ export default function DealerCard({ dealer, onClick, note, onSaveNote, dealerDa
     percentCiclo,
     impulso,
     nearLevelUp,
-    atRisk
+    atRisk,
+    mantem,
+    cairiaPara,
+    subiriaPara
   } = dealer
 
   const getImpulsoType = () => {
-    if (impulso.includes('CRITICAL')) return 'critical'
-    if (impulso.includes('WARMING') || impulso.includes('BOOST')) return 'warning'
-    if (impulso.includes('SECURE') || impulso.includes('ALMOST')) return 'success'
-    if (impulso.includes('LEVEL UP')) return 'info'
+    // Quando o Dashboard já calculou o tipo, usa direto (cores corretas no AlertChip)
+    if (dealer.statusType) return dealer.statusType
+    // Fallback: mapeia os rótulos em português usados pela aplicação
+    const s = (impulso || '').toUpperCase()
+    if (s.includes('CRÍTICO') || s.includes('CRITICO') || s.includes('ACELERAR')) return 'critical'
+    if (s.includes('AQUECENDO')) return 'warning'
+    if (s.includes('CAMINHO')) return 'track'
+    if (s.includes('QUASE')) return 'almost'
+    if (s.includes('SUBIR') || s.includes('LEVEL')) return 'levelup'
+    if (s.includes('MISSÃO') || s.includes('MISSAO') || s.includes('CUMPRIDA')) return 'success'
     return 'info'
   }
 
@@ -323,6 +332,24 @@ export default function DealerCard({ dealer, onClick, note, onSaveNote, dealerDa
           </button>
         )}
       </div>
+
+      {/* PREVISÃO NA VIRADA (sobe a qualquer hora; cai só nas viradas 9→10 e 17→1) */}
+      {cairiaPara ? (
+        <div className="dealer-card__forecast dealer-card__forecast--down">
+          <TrendingDown size={14} />
+          <span>Se a virada fosse hoje, <strong>cai para {cairiaPara}</strong> — falta {formatCurrency(faltaManter)} p/ manter {segmento}</span>
+        </div>
+      ) : subiriaPara ? (
+        <div className="dealer-card__forecast dealer-card__forecast--up">
+          <TrendingUp size={14} />
+          <span><strong>Já subiu para {subiriaPara}!</strong> Acúmulo garante o novo nível</span>
+        </div>
+      ) : (
+        <div className="dealer-card__forecast dealer-card__forecast--keep">
+          <ShieldCheck size={14} />
+          <span><strong>Mantém {segmento}</strong> na virada{faltaSubir != null ? ` — falta ${formatCurrency(faltaSubir)} p/ subir` : ''}</span>
+        </div>
+      )}
 
       <div className="dealer-card__footer">
         <div className="dealer-card__impulso">

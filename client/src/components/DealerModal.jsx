@@ -1,11 +1,11 @@
 import React from 'react'
-import { X, TrendingUp, Target, Rocket, Award } from 'lucide-react'
+import { X, TrendingUp, TrendingDown, ShieldCheck, Target, Rocket, Award } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts'
 import BadgeSegment from './BadgeSegment'
 import ProgressBar from './ProgressBar'
 import './DealerModal.css'
 
-export default function DealerModal({ dealer, onClose }) {
+export default function DealerModal({ dealer, cicloAtual, onClose }) {
   if (!dealer) return null
 
   const {
@@ -19,17 +19,19 @@ export default function DealerModal({ dealer, onClose }) {
     percentManter,
     percentSubir,
     ciclos,
-    impulso
+    impulso,
+    cairiaPara,
+    subiriaPara
   } = dealer
 
   const formatCurrency = (val) =>
-    `R$ ${val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+    `R$ ${(val || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
 
   // Prepare chart data
   const chartData = Object.entries(ciclos || {}).map(([ciclo, total]) => ({
     ciclo: ciclo.replace('/2026', ''),
     total,
-    isCurrent: ciclo === '01/2026' // This should come from config
+    isCurrent: ciclo === cicloAtual
   }))
 
   return (
@@ -56,6 +58,26 @@ export default function DealerModal({ dealer, onClose }) {
               <span className="dealer-modal__impulso-label">STATUS</span>
               <span className="dealer-modal__impulso-value">{impulso}</span>
             </div>
+          </div>
+
+          {/* PREVISÃO NA VIRADA */}
+          <div className={`dealer-modal__forecast dealer-modal__forecast--${cairiaPara ? 'down' : subiriaPara ? 'up' : 'keep'}`}>
+            {cairiaPara ? (
+              <>
+                <TrendingDown size={18} />
+                <span>Se a virada fosse hoje, <strong>cai para {cairiaPara}</strong>. Falta <strong>{formatCurrency(faltaManter)}</strong> para manter {segmento}.</span>
+              </>
+            ) : subiriaPara ? (
+              <>
+                <TrendingUp size={18} />
+                <span>O acúmulo já garante <strong>{subiriaPara}</strong> — subiu de segmentação!</span>
+              </>
+            ) : (
+              <>
+                <ShieldCheck size={18} />
+                <span><strong>Mantém {segmento}</strong> na próxima virada.</span>
+              </>
+            )}
           </div>
 
           {/* MAIN STATS */}

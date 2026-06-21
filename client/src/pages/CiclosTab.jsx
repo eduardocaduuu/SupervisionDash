@@ -26,10 +26,18 @@ export default function CiclosTab({ setorId }) {
     )
   }
 
-  const formatCurrency = (val) =>
-    `R$ ${val.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+  if (!Array.isArray(ciclosData) || ciclosData.length === 0) {
+    return (
+      <div className="ciclos-loading">
+        <span className="mono">{ciclosData?.error || 'SEM DADOS DE CICLOS'}</span>
+      </div>
+    )
+  }
 
-  const maxTotal = Math.max(...ciclosData.map(d => d.total))
+  const formatCurrency = (val) =>
+    `R$ ${(val || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+
+  const maxTotal = Math.max(...ciclosData.map(d => d.total), 1)
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {

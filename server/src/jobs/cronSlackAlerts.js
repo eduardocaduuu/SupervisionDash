@@ -71,7 +71,7 @@ async function sendAlertForSetor(setorId, slackConfig) {
   }
 
   // Get risk summary
-  const summary = riskService.getSectorRiskSummary(setorId);
+  const summary = await riskService.getSectorRiskSummary(setorId);
 
   // Check if we should send when zero
   if (summary.riskCount === 0 && !slackConfig.sendWhenZero) {
@@ -109,7 +109,7 @@ async function runScheduledAlerts(jobName = 'scheduled') {
   console.log(`\n[CronSlack] ═══════════════════════════════════════════════`);
   console.log(`[CronSlack] Starting ${jobName} at ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Maceio' })}`);
 
-  const slackConfig = riskService.getSlackConfig();
+  const slackConfig = await riskService.getSlackConfig();
 
   // Check if Slack is enabled
   if (!slackConfig.enabled) {
@@ -217,7 +217,7 @@ function initCronJobs() {
  * @returns {Promise}
  */
 async function triggerManual(setorId = null) {
-  const slackConfig = riskService.getSlackConfig();
+  const slackConfig = await riskService.getSlackConfig();
 
   if (setorId) {
     return sendAlertForSetor(setorId, slackConfig);

@@ -1,7 +1,6 @@
-const XLSX = require('xlsx');
 const path = require('path');
 const fs = require('fs');
-const SegmentService = require('./SegmentService');
+const { readAllRows } = require('./utils/xlsx');
 
 // Caminho para o arquivo de vendas
 const DATA_DIR = path.join(__dirname, '../../data');
@@ -33,9 +32,7 @@ function buildSetorNameToCodeMap() {
 
   if (fs.existsSync(segmentosPath)) {
     try {
-      const workbook = XLSX.readFile(segmentosPath);
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const rawData = XLSX.utils.sheet_to_json(worksheet);
+      const rawData = readAllRows(segmentosPath);
 
       rawData.forEach(row => {
         const nome = (row.EstruturaComercial || '').trim();
@@ -119,9 +116,7 @@ function loadVendasRaw() {
       const content = fs.readFileSync(DATA_FILE, 'utf-8');
       rawData = parseCSV(content);
     } else {
-      const workbook = XLSX.readFile(DATA_FILE);
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      rawData = XLSX.utils.sheet_to_json(worksheet);
+      rawData = readAllRows(DATA_FILE);
     }
 
     rawCache = rawData;

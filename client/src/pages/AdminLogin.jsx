@@ -21,7 +21,10 @@ export default function AdminLogin() {
         body: JSON.stringify({ user, password })
       })
 
-      if (res.ok) {
+      const data = await res.json().catch(() => ({}))
+
+      if (res.ok && data.token) {
+        sessionStorage.setItem('adminToken', data.token)
         setStatus('granted')
         setTimeout(() => navigate('/admin'), 1500)
       } else {

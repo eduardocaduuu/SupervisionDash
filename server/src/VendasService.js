@@ -1,7 +1,6 @@
-const XLSX = require('xlsx');
 const path = require('path');
 const fs = require('fs');
-const SegmentService = require('./SegmentService');
+const { readAllRows } = require('./utils/xlsx');
 
 // Caminho para o arquivo estático: data/vendas_bd (na raiz do projeto)
 const DATA_DIR = path.join(__dirname, '../../data');
@@ -57,21 +56,13 @@ function normalizeCode(code) {
 function buildSetorNameToCodeMap() {
   if (setorNameToCodeMap) return setorNameToCodeMap;
 
-  const segmentos = SegmentService.loadSegments();
   setorNameToCodeMap = {};
 
-  segmentos.forEach(s => {
-    // O SegmentService já normaliza, mas precisamos do nome original
-    // Vamos ler o arquivo diretamente para pegar EstruturaComercial
-  });
-
-  // Ler arquivo diretamente para pegar o mapeamento nome -> código
+  // Ler o cadastro diretamente para mapear nome -> código (todas as abas)
   const segmentosPath = path.join(DATA_DIR, 'Segmentos_bd.xlsx');
   if (fs.existsSync(segmentosPath)) {
     try {
-      const workbook = XLSX.readFile(segmentosPath);
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const rawData = XLSX.utils.sheet_to_json(worksheet);
+      const rawData = readAllRows(segmentosPath);
 
       rawData.forEach(row => {
         const nome = (row.EstruturaComercial || '').trim();
@@ -165,9 +156,7 @@ const VendasService = {
         const content = fs.readFileSync(DATA_FILE, 'utf-8');
         rawData = parseCSV(content);
       } else {
-        const workbook = XLSX.readFile(DATA_FILE);
-        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-        rawData = XLSX.utils.sheet_to_json(worksheet);
+        rawData = readAllRows(DATA_FILE);
       }
 
       // Agrupar vendas por setor/revendedor
@@ -256,5 +245,8 @@ const VendasService = {
     setorNameToCodeMap = null;
   }
 };
+
+// Exporta o parser de CSV (detecção de delimitador) para reuso
+VendasService.parseCSV = parseCSV;
 
 module.exports = VendasService;

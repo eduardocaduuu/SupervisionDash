@@ -133,16 +133,24 @@ export default function Dashboard() {
   // Salvar nota
   const handleSaveNote = useCallback(async (resellerId, noteText) => {
     try {
-      await fetch('/api/dealer-data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resellerId, note: noteText })
-      })
+      // Persiste nos dois stores para manter Dashboard e Admin em sincronia
+      // (o Admin lê /api/notes; o Dashboard lê ambos)
+      await Promise.all([
+        fetch('/api/dealer-data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ resellerId, note: noteText })
+        }),
+        fetch('/api/notes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ resellerId, note: noteText })
+        })
+      ])
       setDealerData(prev => ({
         ...prev,
         [resellerId]: { ...prev[resellerId], note: noteText }
       }))
-      // Também atualiza notes para compatibilidade
       setNotes(prev => ({ ...prev, [resellerId]: noteText }))
     } catch (error) {
       console.error('Erro ao salvar nota:', error)
@@ -235,7 +243,18 @@ export default function Dashboard() {
     )
   }
 
-  const { setor, cicloAtual, snapshotAtivo, kpis, dealers } = dashboardData
+  // Guarda: setor inválido/gerência, erro do backend ou ausência de dealers
+  if (!dashboardData || dashboardData.error || !Array.isArray(dashboardData.dealers)) {
+    return (
+      <div className="dashboard-loading">
+        <div className="dashboard-loading__spinner" style={{ animation: 'none', opacity: 0.4 }}></div>
+        <span className="mono">{dashboardData?.error || 'SETOR SEM DADOS'}</span>
+        <button className="btn btn--ghost" style={{ marginTop: 16 }} onClick={() => window.location.assign('/')}>VOLTAR</button>
+      </div>
+    )
+  }
+
+  const { setor, cicloAtual, snapshotAtivo, kpis = {}, dealers } = dashboardData
 
   // Extrair segmentos únicos dinamicamente
   const uniqueSegments = ['TODOS', ...new Set(dealers.map(d => d.segmento).filter(Boolean))].sort()
@@ -243,9 +262,9 @@ export default function Dashboard() {
   // Filter and sort dealers
   let filteredDealers = dealers.filter(d => {
     // 1. Filtro de Busca (Texto)
-    const matchesSearch = d.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      d.codigo.toLowerCase().includes(searchTerm.toLowerCase())
-    
+    const matchesSearch = (d.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(d.codigo || '').toLowerCase().includes(searchTerm.toLowerCase())
+
     if (!matchesSearch) return false
 
     // 2. Filtro de Segmento (Novo)
@@ -433,7 +452,7 @@ export default function Dashboard() {
               <MetricCard
                 label="EM RISCO"
                 value={kpis.atRisk}
-                subtext="<50% meta manter"
+                subtext="vão cair na virada"
                 icon={AlertTriangle}
                 variant="danger"
               />
@@ -665,6 +684,7 @@ export default function Dashboard() {
       {selectedDealer && (
         <DealerModal
           dealer={selectedDealer}
+          cicloAtual={cicloAtual}
           onClose={() => setSelectedDealer(null)}
         />
       )}

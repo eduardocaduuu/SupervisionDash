@@ -5,8 +5,12 @@
 
 const fs = require('fs');
 const path = require('path');
+const { readAllRows } = require('../utils/xlsx');
 const SegmentService = require('../SegmentService');
 const VendasService = require('../VendasService');
+const HistoryService = require('../HistoryService');
+const PersistenceService = require('../services/PersistenceService');
+const { isMongoConnected } = require('../db/mongodb');
 
 // ═══════════════════════════════════════════════════════════════
 // CONFIGURATION (mirrors index.js)
@@ -29,6 +33,7 @@ const defaultConfig = {
   }
 };
 
+// Config a partir do arquivo (fallback síncrono)
 function loadConfig() {
   try {
     if (fs.existsSync(configPath)) {
@@ -39,6 +44,19 @@ function loadConfig() {
     console.error('[RiskService] Error loading config:', e);
   }
   return { ...defaultConfig };
+}
+
+// Fonte ÚNICA de config: MongoDB quando conectado (igual ao app), senão arquivo.
+// Evita o "split" em que o cron usava o arquivo e o app usava o Mongo.
+async function loadConfigUnified() {
+  try {
+    if (isMongoConnected()) {
+      return await PersistenceService.loadConfig();
+    }
+  } catch (e) {
+    console.error('[RiskService] Falha ao carregar config do Mongo, usando arquivo:', e.message);
+  }
+  return loadConfig();
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -78,16 +96,14 @@ function normalizeSegmento(segmento) {
 // ═══════════════════════════════════════════════════════════════
 function getSetoresDinamicos() {
   try {
-    const XLSX = require('xlsx');
     const segmentosPath = path.join(__dirname, '../../../data/Segmentos_bd.xlsx');
 
     if (!fs.existsSync(segmentosPath)) {
       return [];
     }
 
-    const workbook = XLSX.readFile(segmentosPath);
-    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rawData = XLSX.utils.sheet_to_json(worksheet);
+    // Lê todas as abas (uma por unidade no export bruto)
+    const rawData = readAllRows(segmentosPath);
 
     const setoresMap = new Map();
 
@@ -111,45 +127,56 @@ function getSetoresDinamicos() {
 // ═══════════════════════════════════════════════════════════════
 // DATA LOADING (same as index.js)
 // ═══════════════════════════════════════════════════════════════
-function getDealersForSetor(setorId, config) {
+async function getDealersForSetor(setorId, config) {
   const cadastro = SegmentService.loadSegments();
   const vendasData = VendasService.loadVendas();
 
+  let dealers;
   if (!cadastro || cadastro.length === 0) {
-    if (!vendasData || vendasData.length === 0) {
-      return [];
-    }
-    return vendasData.filter(d => d.setorId === setorId);
+    dealers = (vendasData || []).filter(d => d.setorId === setorId);
+  } else {
+    const dealersCadastro = cadastro.filter(d => d.setorId === setorId);
+    const vendasMap = new Map();
+    (vendasData || []).forEach(v => {
+      if (v.setorId === setorId) vendasMap.set(v.codigo, v);
+    });
+    dealers = dealersCadastro.map(dealer => {
+      const venda = vendasMap.get(dealer.codigo);
+      return {
+        codigo: dealer.codigo,
+        nome: dealer.nome,
+        setorId: dealer.setorId,
+        segmentoOficial: dealer.segmentoOficial,
+        ciclos: venda ? { ...venda.ciclos } : {}
+      };
+    });
   }
 
-  const dealersCadastro = cadastro.filter(d => d.setorId === setorId);
-  const vendasMap = new Map();
-  (vendasData || []).forEach(v => {
-    if (v.setorId === setorId) {
-      vendasMap.set(v.codigo, v);
+  // Enriquecer com histórico (acúmulo da janela) — mesma lógica do dashboard
+  if (isMongoConnected()) {
+    try {
+      const detalhe = await HistoryService.getDetalheTodos(config.cicloAtual);
+      dealers.forEach(d => { d.ciclos = { ...(detalhe[d.codigo] || {}), ...d.ciclos }; });
+    } catch (e) {
+      console.error('[RiskService] Falha ao enriquecer com histórico:', e.message);
     }
-  });
+  }
 
-  return dealersCadastro.map(dealer => {
-    const venda = vendasMap.get(dealer.codigo);
-    return {
-      codigo: dealer.codigo,
-      nome: dealer.nome,
-      setorId: dealer.setorId,
-      segmentoOficial: dealer.segmentoOficial,
-      ciclos: venda ? venda.ciclos : {}
-    };
-  });
+  return dealers;
 }
 
 // ═══════════════════════════════════════════════════════════════
 // CALCULATE DEALER METRICS (same as index.js)
 // ═══════════════════════════════════════════════════════════════
 function calculateDealerMetrics(dealer, config) {
+  // Acúmulo restrito à janela atual (mesma regra do dashboard)
+  const ciclosJanela = HistoryService.ciclosDaJanela(config.cicloAtual);
   let totalGeral = 0;
-  Object.values(dealer.ciclos).forEach(valor => {
-    totalGeral += valor;
-  });
+  if (ciclosJanela.length > 0) {
+    for (const c of ciclosJanela) totalGeral += (dealer.ciclos[c] || 0);
+  } else {
+    Object.values(dealer.ciclos).forEach(valor => { totalGeral += valor; });
+  }
 
   const totalCicloAtual = dealer.ciclos[config.cicloAtual] || 0;
 
@@ -167,6 +194,10 @@ function calculateDealerMetrics(dealer, config) {
   const faltaSubir = metaSubir ? Math.max(0, metaSubir - totalGeral) : null;
   const percentSubir = metaSubir ? Math.min(100, (totalGeral / metaSubir) * 100) : null;
 
+  // EM RISCO = vai cair de segmentação na virada (acúmulo < meta de manter)
+  const mantem = totalGeral >= metaManter;
+  const cairiaPara = mantem ? null : HistoryService.anterior(segmento);
+
   return {
     ...dealer,
     totalGeral: Math.round(totalGeral * 100) / 100,
@@ -178,7 +209,9 @@ function calculateDealerMetrics(dealer, config) {
     faltaSubir: faltaSubir ? Math.round(faltaSubir * 100) / 100 : null,
     percentManter: Math.round(percentManter * 10) / 10,
     percentSubir: percentSubir ? Math.round(percentSubir * 10) / 10 : null,
-    atRisk: percentManter < (config.slack?.riskThresholdPercent || 50)
+    mantem,
+    cairiaPara,
+    atRisk: !mantem
   };
 }
 
@@ -190,8 +223,8 @@ function calculateDealerMetrics(dealer, config) {
  * @param {string} setorId - Sector ID
  * @returns {object} Risk summary
  */
-function getSectorRiskSummary(setorId) {
-  const config = loadConfig();
+async function getSectorRiskSummary(setorId) {
+  const config = await loadConfigUnified();
   const setores = getSetoresDinamicos();
   const setor = setores.find(s => s.id === setorId);
 
@@ -214,19 +247,20 @@ function getSectorRiskSummary(setorId) {
     };
   }
 
-  const dealers = getDealersForSetor(setorId, config);
+  const dealers = await getDealersForSetor(setorId, config);
   const dealersWithMetrics = dealers.map(d => calculateDealerMetrics(d, config));
 
-  // Filter at-risk dealers (percentManter < threshold AND totalGeral > 0)
+  // Em risco = vai cair na virada. Mantém o filtro totalGeral > 0 para não
+  // poluir o alerta com quem ainda não comprou nada no ciclo.
   const atRiskDealers = dealersWithMetrics
-    .filter(d => d.percentManter < threshold && d.totalGeral > 0)
-    .sort((a, b) => a.percentManter - b.percentManter); // Most critical first
+    .filter(d => d.atRisk && d.totalGeral > 0)
+    .sort((a, b) => a.percentManter - b.percentManter); // Mais críticos primeiro
 
-  // Top 5 most critical (only with purchases > 0)
   const top5 = atRiskDealers.slice(0, 5).map(d => ({
     codigo: d.codigo,
     nome: d.nome,
     segmento: d.segmento,
+    cairiaPara: d.cairiaPara,
     percentManter: d.percentManter,
     faltaManter: d.faltaManter,
     totalGeral: d.totalGeral
@@ -252,11 +286,11 @@ function getAllSetores() {
 }
 
 /**
- * Get current Slack config
- * @returns {object}
+ * Get current Slack config (fonte única: Mongo quando conectado)
+ * @returns {Promise<object>}
  */
-function getSlackConfig() {
-  const config = loadConfig();
+async function getSlackConfig() {
+  const config = await loadConfigUnified();
   return config.slack || defaultConfig.slack;
 }
 

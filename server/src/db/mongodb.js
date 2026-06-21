@@ -5,7 +5,7 @@ let isConnected = false;
 
 async function connectMongoDB() {
   if (isConnected) {
-    return;
+    return true;
   }
 
   const mongoUri = process.env.MONGODB_URI;
