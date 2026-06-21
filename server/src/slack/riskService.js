@@ -196,9 +196,10 @@ function calculateDealerMetrics(dealer, config) {
   const faltaSubir = metaSubir ? Math.max(0, metaSubir - totalGeral) : null;
   const percentSubir = metaSubir ? Math.min(100, (totalGeral / metaSubir) * 100) : null;
 
-  // EM RISCO = vai cair de segmentação na virada (acúmulo < meta de manter)
+  // EM RISCO = vai cair na virada, sinalizado SÓ perto dela (últimos ciclos da janela)
+  const perto = HistoryService.pertoDaVirada(config.cicloAtual);
   const mantem = totalGeral >= metaManter;
-  const cairiaPara = mantem ? null : HistoryService.anterior(segmento);
+  const cairiaPara = (!mantem && perto) ? HistoryService.anterior(segmento) : null;
 
   return {
     ...dealer,
@@ -213,7 +214,7 @@ function calculateDealerMetrics(dealer, config) {
     percentSubir: percentSubir ? Math.round(percentSubir * 10) / 10 : null,
     mantem,
     cairiaPara,
-    atRisk: !mantem
+    atRisk: !mantem && perto
   };
 }
 

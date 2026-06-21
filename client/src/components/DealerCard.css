@@ -784,6 +784,11 @@
   border-color: rgba(184, 217, 119, 0.4);
   background: rgba(184, 217, 119, 0.08);
 }
+.dealer-card__forecast--building {
+  color: #9aa0b0;
+  border-color: rgba(154, 160, 176, 0.4);
+  background: rgba(154, 160, 176, 0.08);
+}
 
 /* ═══ RESPONSIVE - SMALL MOBILE ═══ */
 @media (max-width: 480px) {

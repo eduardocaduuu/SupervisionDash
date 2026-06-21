@@ -1,5 +1,5 @@
 import React from 'react'
-import { X, TrendingUp, TrendingDown, ShieldCheck, Target, Rocket, Award } from 'lucide-react'
+import { X, TrendingUp, TrendingDown, ShieldCheck, Hourglass, Target, Rocket, Award } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, LabelList, Tooltip } from 'recharts'
 import BadgeSegment from './BadgeSegment'
 import ProgressBar from './ProgressBar'
@@ -20,6 +20,7 @@ export default function DealerModal({ dealer, cicloAtual, onClose }) {
     percentSubir,
     ciclos,
     impulso,
+    mantem,
     cairiaPara,
     subiriaPara
   } = dealer
@@ -74,7 +75,7 @@ export default function DealerModal({ dealer, cicloAtual, onClose }) {
           </div>
 
           {/* PREVISÃO NA VIRADA */}
-          <div className={`dealer-modal__forecast dealer-modal__forecast--${cairiaPara ? 'down' : subiriaPara ? 'up' : 'keep'}`}>
+          <div className={`dealer-modal__forecast dealer-modal__forecast--${cairiaPara ? 'down' : subiriaPara ? 'up' : mantem ? 'keep' : 'building'}`}>
             {cairiaPara ? (
               <>
                 <TrendingDown size={18} />
@@ -89,10 +90,15 @@ export default function DealerModal({ dealer, cicloAtual, onClose }) {
                 <TrendingUp size={18} />
                 <span>O acúmulo já garante <strong>{subiriaPara}</strong> — subiu de segmentação!</span>
               </>
-            ) : (
+            ) : mantem ? (
               <>
                 <ShieldCheck size={18} />
                 <span><strong>Mantém {segmento}</strong> na próxima virada.</span>
+              </>
+            ) : (
+              <>
+                <Hourglass size={18} />
+                <span><strong>Janela em construção</strong> — {faltaManter < 1 ? `qualquer pedido mantém ${segmento}` : <>falta <strong>{formatCurrency(faltaManter)}</strong> p/ manter {segmento}</>}.</span>
               </>
             )}
           </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ChevronRight, Target, Rocket, Zap, StickyNote, X, Check, Edit3, Phone, MessageCircle, FileText, TrendingDown, TrendingUp, ShieldCheck } from 'lucide-react'
+import { ChevronRight, Target, Rocket, Zap, StickyNote, X, Check, Edit3, Phone, MessageCircle, FileText, TrendingDown, TrendingUp, ShieldCheck, Hourglass } from 'lucide-react'
 import BadgeSegment from './BadgeSegment'
 import ProgressBar from './ProgressBar'
 import AlertChip from './AlertChip'
@@ -370,10 +370,15 @@ export default function DealerCard({ dealer, onClick, note, onSaveNote, dealerDa
           <TrendingUp size={14} />
           <span><strong>Já subiu para {subiriaPara}!</strong> Acúmulo garante o novo nível</span>
         </div>
-      ) : (
+      ) : mantem ? (
         <div className="dealer-card__forecast dealer-card__forecast--keep">
           <ShieldCheck size={14} />
           <span><strong>Mantém {segmento}</strong> na virada{faltaSubir != null ? ` — falta ${formatCurrency(faltaSubir)} p/ subir` : ''}</span>
+        </div>
+      ) : (
+        <div className="dealer-card__forecast dealer-card__forecast--building">
+          <Hourglass size={14} />
+          <span><strong>Janela em construção</strong> — {faltaManter < 1 ? `qualquer pedido mantém ${segmento}` : `falta ${formatCurrency(faltaManter)} p/ manter ${segmento}`}</span>
         </div>
       )}
 

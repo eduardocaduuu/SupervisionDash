@@ -52,6 +52,15 @@ function janelaDoCiclo(num) {
   return (num >= 10 && num <= 17) ? { ini: 10, fim: 17 } : { ini: 1, fim: 9 };
 }
 
+// Estamos perto da virada? (nos últimos `n` ciclos da janela: 7-9 ou 15-17)
+// Antes disso o acúmulo ainda está sendo construído — não faz sentido avisar "vai cair".
+function pertoDaVirada(cicloAtual, n = 3) {
+  const pc = parseCiclo(cicloAtual);
+  if (!pc) return true; // sem ciclo válido: não suprime
+  const { fim } = janelaDoCiclo(pc.num);
+  return pc.num >= (fim - (n - 1));
+}
+
 // Lista de ciclos da janela atual, do início até o ciclo vigente.
 function ciclosDaJanela(cicloAtual) {
   const pc = parseCiclo(cicloAtual);
@@ -195,7 +204,7 @@ function clearCache() { _detalheCache = null; }
 module.exports = {
   SEG, LADDER,
   normSegmento, segmentoPorTotal, anterior,
-  parseCiclo, janelaDoCiclo, ciclosDaJanela,
+  parseCiclo, janelaDoCiclo, ciclosDaJanela, pertoDaVirada,
   aggregateFile, forecast, importHistorico,
   getDetalheTodos, getAcumuladoPorCodigo, clearCache
 };

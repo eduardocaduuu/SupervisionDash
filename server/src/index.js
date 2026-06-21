@@ -73,6 +73,18 @@ function segmentoAnterior(seg) {
   return i > 0 ? SEGMENTOS_ORDEM[i - 1] : seg;
 }
 
+// Representatividade de um ciclo. A janela 10-17 reaproveita os pesos da janela
+// 1-9 por posição: ciclo 10 usa o peso do 1, 11 o do 2, ... 17 o do 8.
+function repDoCiclo(cicloStr) {
+  const m = String(cicloStr || '').match(/(\d{1,2})\/(\d{4})/);
+  if (!m) return config.representatividade?.[cicloStr] ?? 10;
+  let num = parseInt(m[1], 10);
+  const ano = m[2];
+  if (num >= 10) num = num - 9; // 10→1, 11→2, ... 17→8
+  const key = `${String(num).padStart(2, '0')}/${ano}`;
+  return config.representatividade?.[key] ?? config.representatividade?.[cicloStr] ?? 10;
+}
+
 // Normalizar segmento (remove sufixo GB e trata valores invalidos)
 function normalizeSegmento(segmento) {
   if (!segmento) return null;
@@ -329,8 +341,9 @@ function calculateDealerMetrics(dealer) {
   // 0.01 é só o gatilho "qualquer compra vira Bronze" — não deve virar meta ponderada.
   const ehCobre = segmento === 'Cobre';
 
-  // Meta ponderada do ciclo atual (usa ?? para permitir 0 como valor válido)
-  const repCiclo = config.representatividade[config.cicloAtual] ?? 10;
+  // Meta ponderada do ciclo atual. A janela 10-17 reaproveita os pesos da
+  // janela 1-9 por posição (10↔1, 11↔2, ... 17↔8) — não precisa cadastrar 10-17.
+  const repCiclo = repDoCiclo(config.cicloAtual);
   const metaCicloPonderada = (repCiclo > 0 && !ehCobre)
     ? (metaSubir ? (metaSubir * repCiclo / 100) : (metaManter * repCiclo / 100))
     : 0;
@@ -338,9 +351,12 @@ function calculateDealerMetrics(dealer) {
 
   // ── Previsão pela mecânica do negócio ──────────────────────────
   // Sobe a qualquer momento; cai apenas 1 nível nas viradas (9→10 e 17→1).
+  // "Vai cair" só é sinalizado PERTO da virada (últimos ciclos da janela) — antes
+  // disso o acúmulo ainda está sendo construído e não faz sentido alarmar.
+  const perto = HistoryService.pertoDaVirada(config.cicloAtual);
   const mantem = totalGeral >= metaManter;
-  const cairiaPara = mantem ? null : segmentoAnterior(segmento);        // onde cai na virada
-  // sobe só se o acúmulo leva a um nível ESTRITAMENTE acima do atual
+  const cairiaPara = (!mantem && perto) ? segmentoAnterior(segmento) : null;  // onde cai na virada
+  // sobe a qualquer momento se o acúmulo leva a um nível ESTRITAMENTE acima do atual
   let subiriaPara = null;
   if (metaSubir && totalGeral >= metaSubir) {
     const alvo = getSegmentoByTotal(totalGeral);
@@ -374,9 +390,10 @@ function calculateDealerMetrics(dealer) {
     mantem,
     cairiaPara,
     subiriaPara,
+    pertoDaVirada: perto,
     impulso,
     nearLevelUp: !ehCobre && percentSubir !== null && percentSubir >= 80,
-    atRisk: !mantem // EM RISCO = vai cair de segmentação na virada
+    atRisk: !mantem && perto // EM RISCO = vai cair na virada (só perto dela)
   };
 }
 
@@ -539,13 +556,14 @@ app.get('/api/setor/:setorId/ciclos', async (req, res) => {
   const setorId = normalizeSetorId(req.params.setorId);
   const dealers = await enrichDealersWithHistory(getDealersForSetor(setorId));
 
-  const ciclosList = Object.keys(config.representatividade);
+  // Ciclos da janela vigente (1-9 ou 10-17); representatividade mapeada por posição
+  const ciclosList = HistoryService.ciclosDaJanela(config.cicloAtual);
   const ciclosData = ciclosList.map(ciclo => {
     const total = dealers.reduce((sum, d) => sum + (d.ciclos[ciclo] || 0), 0);
     return {
       ciclo,
       total: Math.round(total * 100) / 100,
-      representatividade: config.representatividade[ciclo]
+      representatividade: repDoCiclo(ciclo)
     };
   });
 
