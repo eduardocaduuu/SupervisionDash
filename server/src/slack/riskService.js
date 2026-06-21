@@ -268,6 +268,11 @@ async function getSectorRiskSummary(setorId) {
     totalGeral: d.totalGeral
   }));
 
+  // Total que o setor já vendeu no ciclo vigente (soma do ciclo atual de todos)
+  const vendidoNoCiclo = Math.round(
+    dealersWithMetrics.reduce((s, d) => s + (d.totalCicloAtual || 0), 0) * 100
+  ) / 100;
+
   return {
     setorId,
     setorNome: setor.nome,
@@ -275,6 +280,8 @@ async function getSectorRiskSummary(setorId) {
     totalDealers: dealersWithMetrics.length,
     threshold,
     dashboardUrl,
+    cicloAtual: config.cicloAtual,
+    vendidoNoCiclo,
     top5
   };
 }

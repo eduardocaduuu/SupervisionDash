@@ -30,61 +30,73 @@ function composeRiskAlert(summary) {
     setorNome,
     riskCount,
     totalDealers,
-    threshold,
     dashboardUrl,
+    cicloAtual,
+    vendidoNoCiclo,
     top5
   } = summary;
 
+  // Saudação pelo horário (America/Maceio): manhã = Bom dia, tarde = Boa tarde
+  const hora = parseInt(
+    new Date().toLocaleString('en-US', { timeZone: 'America/Maceio', hour: '2-digit', hour12: false }),
+    10
+  );
+  const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
+  const emojiSaud = hora < 12 ? '☀️' : hora < 18 ? '🌤️' : '🌙';
+
   // Fallback text for notifications
   const text = riskCount > 0
-    ? `⚠️ ALERTA: ${riskCount} revendedor(es) em risco no Setor ${setorId}`
-    : `✅ Setor ${setorId}: Nenhum revendedor em risco`;
+    ? `${saudacao}! ${setorNome || 'Setor ' + setorId}: ${riskCount} de ${totalDealers} a acompanhar`
+    : `${saudacao}! ${setorNome || 'Setor ' + setorId}: tudo certo 🎉`;
 
   const blocks = [];
 
-  // Header
+  // Header (saudação no lugar de "EM RISCO" — tom mais leve)
   blocks.push({
     type: 'header',
-    text: {
-      type: 'plain_text',
-      text: riskCount > 0 ? `⚠️ EM RISCO — Setor ${setorId}` : `✅ Setor ${setorId}`,
-      emoji: true
-    }
+    text: { type: 'plain_text', text: `${emojiSaud} ${saudacao}!`, emoji: true }
   });
 
-  // Sector info
-  if (setorNome) {
+  // Setor + ciclo
+  blocks.push({
+    type: 'context',
+    elements: [{
+      type: 'mrkdwn',
+      text: `📍 *${setorNome || 'Setor ' + setorId}* · Setor ${setorId}${cicloAtual ? ` · Ciclo ${cicloAtual}` : ''}`
+    }]
+  });
+
+  // Quanto o setor já vendeu no ciclo
+  if (vendidoNoCiclo != null) {
     blocks.push({
       type: 'context',
-      elements: [
-        {
-          type: 'mrkdwn',
-          text: `📍 *${setorNome}*`
-        }
-      ]
+      elements: [{
+        type: 'mrkdwn',
+        text: `💰 Vendido no ciclo até agora: *${formatCurrency(vendidoNoCiclo)}*`
+      }]
     });
   }
 
   // Divider
   blocks.push({ type: 'divider' });
 
-  // Main message
+  // Main message (tom de acompanhamento, sem alarme)
   if (riskCount > 0) {
     blocks.push({
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `*${riskCount}* de *${totalDealers}* revendedores vão *cair de segmentação* na próxima virada se mantiverem o acúmulo atual.`
+        text: `*${riskCount}* de *${totalDealers}* revendedores estão a caminho de cair de segmentação na virada, caso mantenham o acúmulo atual.`
       }
     });
 
-    // Top 5 critical dealers
+    // Top 5 prioridades
     if (top5 && top5.length > 0) {
       blocks.push({
         type: 'section',
         text: {
           type: 'mrkdwn',
-          text: '*🔥 Top 5 Mais Críticos:*'
+          text: '*Top 5 prioridades:*'
         }
       });
 
@@ -107,7 +119,7 @@ function composeRiskAlert(summary) {
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `🎉 *Parabéns!* Nenhum dos ${totalDealers} revendedores vai cair de segmentação na próxima virada.`
+        text: `🎉 *Tudo certo!* Nenhum dos ${totalDealers} revendedores está a caminho de cair de segmentação na virada.`
       }
     });
   }
@@ -127,7 +139,7 @@ function composeRiskAlert(summary) {
           emoji: true
         },
         url: dashboardUrl,
-        style: riskCount > 0 ? 'danger' : 'primary'
+        style: 'primary'
       }
     ]
   });
