@@ -173,40 +173,26 @@ async function runScheduledAlerts(jobName = 'scheduled') {
 
 /**
  * Initialize cron jobs
- * Schedule: Monday and Friday at 09:00 and 17:00 (America/Maceio)
+ * Schedule: todos os dias às 09:00 e 16:30 (America/Maceio)
  */
 function initCronJobs() {
   const timezone = 'America/Maceio';
 
   console.log('[CronSlack] Initializing cron jobs...');
 
-  // Monday 09:00
-  cron.schedule('0 9 * * 1', () => runScheduledAlerts('monday-09'), {
+  // Todos os dias 09:00
+  cron.schedule('0 9 * * *', () => runScheduledAlerts('daily-09'), {
     scheduled: true,
     timezone
   });
-  console.log('[CronSlack] Scheduled: Monday 09:00 (America/Maceio)');
+  console.log('[CronSlack] Scheduled: todos os dias 09:00 (America/Maceio)');
 
-  // Monday 17:00
-  cron.schedule('0 17 * * 1', () => runScheduledAlerts('monday-17'), {
+  // Todos os dias 16:30
+  cron.schedule('30 16 * * *', () => runScheduledAlerts('daily-1630'), {
     scheduled: true,
     timezone
   });
-  console.log('[CronSlack] Scheduled: Monday 17:00 (America/Maceio)');
-
-  // Friday 09:00
-  cron.schedule('0 9 * * 5', () => runScheduledAlerts('friday-09'), {
-    scheduled: true,
-    timezone
-  });
-  console.log('[CronSlack] Scheduled: Friday 09:00 (America/Maceio)');
-
-  // Friday 17:00
-  cron.schedule('0 17 * * 5', () => runScheduledAlerts('friday-17'), {
-    scheduled: true,
-    timezone
-  });
-  console.log('[CronSlack] Scheduled: Friday 17:00 (America/Maceio)');
+  console.log('[CronSlack] Scheduled: todos os dias 16:30 (America/Maceio)');
 
   console.log('[CronSlack] All cron jobs initialized');
 }

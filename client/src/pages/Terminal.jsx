@@ -198,7 +198,7 @@ export default function Terminal() {
               <Bell size={16} className="terminal-info-card__icon" />
               <div>
                 <strong>Alertas Slack</strong>
-                <p>O bot de alertas envia notificações somente às <strong>segundas e sextas-feiras</strong>, nos horários: 09:00 e 17:00.</p>
+                <p>O bot de alertas envia notificações <strong>todos os dias</strong>, nos horários: 09:00 e 16:30.</p>
               </div>
             </div>
           </div>

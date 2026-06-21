@@ -954,10 +954,8 @@ app.get('/api/admin/slack/status', (req, res) => {
     hasTestUser: !!process.env.SLACK_TEST_USER_ID,
     mappedSetores: Object.keys(slackConfig.supervisoresPorSetor || {}),
     cronSchedule: [
-      'Segunda 09:00 (America/Maceio)',
-      'Segunda 17:00 (America/Maceio)',
-      'Sexta 09:00 (America/Maceio)',
-      'Sexta 17:00 (America/Maceio)'
+      'Todos os dias 09:00 (America/Maceio)',
+      'Todos os dias 16:30 (America/Maceio)'
     ]
   });
 });

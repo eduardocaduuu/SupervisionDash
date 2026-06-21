@@ -189,8 +189,7 @@ O sistema pode enviar alertas automáticos via DM no Slack para supervisoras qua
 
 ### Agendamento
 
-- Segunda-feira: 09:00 e 17:00
-- Sexta-feira: 09:00 e 17:00
+- Todos os dias: 09:00 e 16:30
 - Timezone: America/Maceio
 
 ### Configuração do Slack App
