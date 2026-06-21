@@ -124,8 +124,8 @@ export default function DealerModal({ dealer, cicloAtual, onClose }) {
               />
               <div className="dealer-modal__progress-info">
                 <span className="text-muted">Falta:</span>
-                <strong className={faltaManter > 0 ? 'text-warning' : 'text-neon'}>{formatCurrency(faltaManter)}</strong>
-                <span className="mono text-muted">({percentManter.toFixed(1)}%)</span>
+                <strong className={faltaManter > 0 ? 'text-warning' : 'text-neon'}>{cairiaPara === 'Cobre' ? 'qualquer pedido' : formatCurrency(faltaManter)}</strong>
+                {cairiaPara !== 'Cobre' && <span className="mono text-muted">({percentManter.toFixed(1)}%)</span>}
               </div>
             </div>
 

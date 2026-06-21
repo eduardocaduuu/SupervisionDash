@@ -176,7 +176,7 @@ export default function DealerCard({ dealer, onClick, note, onSaveNote, dealerDa
           <Target size={14} />
           <span>Falta p/ manter:</span>
           <strong className={faltaManter > 0 ? 'text-warning' : 'text-neon'}>
-            {formatCurrency(faltaManter)}
+            {cairiaPara === 'Cobre' ? 'qualquer pedido' : formatCurrency(faltaManter)}
           </strong>
         </div>
         {faltaSubir !== null && (

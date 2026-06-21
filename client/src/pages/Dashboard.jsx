@@ -4,7 +4,7 @@ import { useParams } from 'react-router-dom'
 import {
   DollarSign, Users, TrendingUp, AlertTriangle,
   Search, SlidersHorizontal, Grid, List, Download,
-  Gift, X, Sparkles, Filter
+  Gift, X, Sparkles, Filter, Zap, ChevronRight
 } from 'lucide-react'
 import HUDHeader from '../components/HUDHeader'
 import MetricCard from '../components/MetricCard'
@@ -285,6 +285,10 @@ export default function Dashboard() {
         return b.totalGeral - a.totalGeral
       case 'risk':
         return a.percentManter - b.percentManter
+      case 'salvar':
+        // em risco primeiro; entre eles, quem falta MENOS pra manter (mais fácil de salvar)
+        if (a.atRisk !== b.atRisk) return a.atRisk ? -1 : 1
+        return (a.faltaManter || 0) - (b.faltaManter || 0)
       default:
         return 0
     }
@@ -366,6 +370,33 @@ export default function Dashboard() {
               <Sparkles size={20} className="recompensa-banner__sparkle" />
             </div>
           )}
+          {/* BRIEFING / FOCO DO DIA */}
+          <section className={`briefing ${kpis.atRisk > 0 ? 'briefing--alert' : 'briefing--ok'}`}>
+            <div className="briefing__icon"><Zap size={22} /></div>
+            <div className="briefing__text">
+              <span className="briefing__title">FOCO DO DIA</span>
+              {kpis.atRisk > 0 ? (
+                <p>
+                  <strong>{kpis.atRisk}</strong> {kpis.atRisk === 1 ? 'revendedor vai cair' : 'revendedores vão cair'} de segmentação na virada
+                  {kpis.nearLevelUp > 0 && <> · <strong>{kpis.nearLevelUp}</strong> a um passo de subir</>}.
+                </p>
+              ) : (
+                <p>
+                  Ninguém em risco de cair agora 🎉
+                  {kpis.nearLevelUp > 0 && <> — <strong>{kpis.nearLevelUp}</strong> {kpis.nearLevelUp === 1 ? 'está' : 'estão'} perto de subir.</>}
+                </p>
+              )}
+            </div>
+            {kpis.atRisk > 0 && (
+              <button
+                className="briefing__cta"
+                onClick={() => { setActiveFilter('AT_RISK'); setSortBy('salvar'); setSegmentFilter('TODOS'); setActiveTab('revendedores') }}
+              >
+                Atacar os em risco <ChevronRight size={16} />
+              </button>
+            )}
+          </section>
+
           {/* KPIs */}
           <section className="dashboard__kpis">
             {/* TOTAL (Reset Filter) */}
@@ -518,6 +549,7 @@ export default function Dashboard() {
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
                   >
+                    <option value="salvar">Mais perto de salvar (em risco)</option>
                     <option value="levelUp">Mais perto de SUBIR</option>
                     <option value="total">Maior total</option>
                     <option value="risk">Maior risco</option>

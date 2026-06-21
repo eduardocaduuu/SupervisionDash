@@ -4,6 +4,73 @@
   background: var(--color-bg-primary);
 }
 
+/* ═══ BRIEFING / FOCO DO DIA ═══ */
+.briefing {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  margin-bottom: var(--space-lg);
+  border: var(--border-width, 3px) solid var(--border-color, #3a3a42);
+  box-shadow: 6px 6px 0 var(--shadow-color, rgba(0,0,0,0.4));
+  background: var(--color-bg-panel, #1a1a1f);
+}
+.briefing--alert {
+  border-color: var(--color-neon-danger, #d97777);
+  box-shadow: 6px 6px 0 rgba(217, 119, 119, 0.25);
+}
+.briefing--ok {
+  border-color: var(--color-neon-primary, #b8d977);
+  box-shadow: 6px 6px 0 rgba(184, 217, 119, 0.2);
+}
+.briefing__icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 4px;
+  color: #1a1a1f;
+  background: var(--color-neon-warning, #d9c377);
+}
+.briefing--alert .briefing__icon { background: var(--color-neon-danger, #d97777); }
+.briefing--ok .briefing__icon { background: var(--color-neon-primary, #b8d977); }
+.briefing__text { flex: 1; min-width: 0; }
+.briefing__title {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--color-text-muted, #888);
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 2px;
+}
+.briefing__text p { margin: 0; font-size: 15px; line-height: 1.35; }
+.briefing__text strong { font-weight: 800; }
+.briefing__cta {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 16px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  color: #1a1a1f;
+  background: var(--color-neon-danger, #d97777);
+  border: 2px solid #1a1a1f;
+  border-radius: 4px;
+  transition: transform 0.08s ease;
+}
+.briefing__cta:hover { transform: translate(-1px, -1px); }
+.briefing__cta:active { transform: translate(1px, 1px); }
+
+@media (max-width: 640px) {
+  .briefing { flex-direction: column; align-items: flex-start; gap: var(--space-sm); }
+  .briefing__cta { width: 100%; justify-content: center; }
+}
+
 /* LOADING */
 .dashboard-loading {
   min-height: 100vh;
