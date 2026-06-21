@@ -1274,6 +1274,18 @@ async function startServer() {
   // 4. Carregar notes em cache
   notesCache = await PersistenceService.loadNotes();
 
+  // 4.1 Pré-aquecer o histórico (acúmulo por ciclo) ANTES de aceitar requisições.
+  // Evita que a 1ª chamada pós-boot (dashboard ou alerta Slack) calcule sem o
+  // histórico do Mongo e reporte totais/risco errados.
+  if (isMongoConnected()) {
+    try {
+      const detalhe = await HistoryService.getDetalheTodos(config.cicloAtual);
+      console.log(`[Startup] Histórico pré-aquecido: ${Object.keys(detalhe).length} revendedores na janela ${config.cicloAtual}`);
+    } catch (e) {
+      console.error('[Startup] Falha ao pré-aquecer histórico:', e.message);
+    }
+  }
+
   // 5. Iniciar servidor HTTP
   app.listen(PORT, () => {
     const slackStatus = config.slack?.enabled ? 'ENABLED' : 'DISABLED';
