@@ -44,7 +44,8 @@ let notesCache = {};
 // SEGMENTAÇÕES (REGRAS DE NEGÓCIO)
 // ═══════════════════════════════════════════════════════════════
 const SEGMENTOS = {
-  'Bronze':    { minManter: 0,        maxManter: 2999.99,   metaSubir: 3000,    proximo: 'Prata' },
+  'Cobre':     { minManter: 0,        maxManter: 0,         metaSubir: 0.01,    proximo: 'Bronze' },
+  'Bronze':    { minManter: 0.01,     maxManter: 2999.99,   metaSubir: 3000,    proximo: 'Prata' },
   'Prata':     { minManter: 3000,     maxManter: 8999.99,   metaSubir: 9000,    proximo: 'Ouro' },
   'Ouro':      { minManter: 9000,     maxManter: 19999.99,  metaSubir: 20000,   proximo: 'Platina' },
   'Platina':   { minManter: 20000,    maxManter: 49999.99,  metaSubir: 50000,   proximo: 'Rubi' },
@@ -53,7 +54,7 @@ const SEGMENTOS = {
   'Diamante':  { minManter: 130000,   maxManter: Infinity,  metaSubir: null,    proximo: null }
 };
 
-// Determinar segmento pelo total
+// Determinar segmento pelo total. Cobre = sem compras (R$ 0); qualquer compra já é Bronze.
 function getSegmentoByTotal(total) {
   if (total >= 130000) return 'Diamante';
   if (total >= 80000) return 'Esmeralda';
@@ -61,11 +62,12 @@ function getSegmentoByTotal(total) {
   if (total >= 20000) return 'Platina';
   if (total >= 9000) return 'Ouro';
   if (total >= 3000) return 'Prata';
-  return 'Bronze';
+  if (total > 0) return 'Bronze';
+  return 'Cobre';
 }
 
 // Ordem da escada de segmentos (para calcular queda de 1 nível na virada)
-const SEGMENTOS_ORDEM = ['Bronze', 'Prata', 'Ouro', 'Platina', 'Rubi', 'Esmeralda', 'Diamante'];
+const SEGMENTOS_ORDEM = ['Cobre', 'Bronze', 'Prata', 'Ouro', 'Platina', 'Rubi', 'Esmeralda', 'Diamante'];
 function segmentoAnterior(seg) {
   const i = SEGMENTOS_ORDEM.indexOf(seg);
   return i > 0 ? SEGMENTOS_ORDEM[i - 1] : seg;
@@ -465,6 +467,7 @@ app.get('/api/dashboard', async (req, res) => {
   res.json({
     setor,
     cicloAtual: config.cicloAtual,
+    ciclosJanela: HistoryService.ciclosDaJanela(config.cicloAtual),
     kpis: {
       totalSetor: Math.round(totalSetor * 100) / 100,
       qtdRevendedores,

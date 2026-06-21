@@ -65,7 +65,11 @@ export default function DealerModal({ dealer, cicloAtual, onClose }) {
             {cairiaPara ? (
               <>
                 <TrendingDown size={18} />
-                <span>Se a virada fosse hoje, <strong>cai para {cairiaPara}</strong>. Falta <strong>{formatCurrency(faltaManter)}</strong> para manter {segmento}.</span>
+                {cairiaPara === 'Cobre' ? (
+                  <span>Sem compras na janela: <strong>vira Cobre</strong> na virada. <strong>Qualquer pedido</strong> mantém {segmento}.</span>
+                ) : (
+                  <span>Se a virada fosse hoje, <strong>cai para {cairiaPara}</strong>. Falta <strong>{formatCurrency(faltaManter)}</strong> para manter {segmento}.</span>
+                )}
               </>
             ) : subiriaPara ? (
               <>

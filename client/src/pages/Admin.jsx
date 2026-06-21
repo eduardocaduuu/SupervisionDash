@@ -897,6 +897,7 @@ export default function Admin() {
                                     <DealerCard
                                       key={dealer.codigo}
                                       dealer={{ ...dealer, impulso: label }}
+                                      ciclosJanela={baseData.ciclosJanela}
                                       onClick={() => {}}
                                       note={notes[dealer.codigo] || ''}
                                       onSaveNote={(noteText) => handleSaveNote(dealer.codigo, noteText)}

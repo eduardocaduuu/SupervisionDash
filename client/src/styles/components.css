@@ -193,6 +193,12 @@
   gap: var(--space-xs);
 }
 
+.badge--cobre {
+  color: #9b6a4f;
+  background: rgba(155, 106, 79, 0.15);
+  border-color: #9b6a4f;
+}
+
 .badge--bronze {
   color: #cd7f32;
   background: rgba(205, 127, 50, 0.15);

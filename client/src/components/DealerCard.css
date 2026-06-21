@@ -713,6 +713,47 @@
   }
 }
 
+/* ═══ TRILHA DE CICLOS ═══ */
+.dealer-card__cycles {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 var(--space-md);
+}
+.dealer-card__cycles-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted, #888);
+  font-family: 'JetBrains Mono', monospace;
+}
+.dealer-card__cycles-strip {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+.dealer-card__cycle {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  border: 2px solid var(--border-color, #3a3a42);
+  border-radius: 4px;
+  color: var(--color-text-muted, #777);
+  background: transparent;
+  opacity: 0.45;
+}
+.dealer-card__cycle--on {
+  opacity: 1;
+  color: #1a1a1f;
+  background: var(--color-neon-primary, #b8d977);
+  border-color: var(--color-neon-primary, #b8d977);
+}
+
 /* ═══ PREVISÃO NA VIRADA ═══ */
 .dealer-card__forecast {
   display: flex;

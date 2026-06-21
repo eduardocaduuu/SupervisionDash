@@ -5,9 +5,10 @@ const { readAllRows } = require('./utils/xlsx');
 // ═══════════════════════════════════════════════════════════════
 // REGRAS DE SEGMENTAÇÃO (escada + metas)
 // ═══════════════════════════════════════════════════════════════
-const LADDER = ['Bronze', 'Prata', 'Ouro', 'Platina', 'Rubi', 'Esmeralda', 'Diamante'];
+const LADDER = ['Cobre', 'Bronze', 'Prata', 'Ouro', 'Platina', 'Rubi', 'Esmeralda', 'Diamante'];
 const SEG = {
-  Bronze:    { minManter: 0,      metaSubir: 3000 },
+  Cobre:     { minManter: 0,      metaSubir: 0.01 },
+  Bronze:    { minManter: 0.01,   metaSubir: 3000 },
   Prata:     { minManter: 3000,   metaSubir: 9000 },
   Ouro:      { minManter: 9000,   metaSubir: 20000 },
   Platina:   { minManter: 20000,  metaSubir: 50000 },
@@ -23,7 +24,7 @@ function normSegmento(papel) {
   return SEG[s] ? s : null;
 }
 function segmentoPorTotal(total) {
-  let r = 'Bronze';
+  let r = 'Cobre';
   for (const s of LADDER) if (total >= SEG[s].minManter) r = s;
   return r;
 }

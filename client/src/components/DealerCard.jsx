@@ -5,7 +5,7 @@ import ProgressBar from './ProgressBar'
 import AlertChip from './AlertChip'
 import './DealerCard.css'
 
-export default function DealerCard({ dealer, onClick, note, onSaveNote, dealerData, onSaveMeta, onAddAcao }) {
+export default function DealerCard({ dealer, onClick, note, onSaveNote, dealerData, onSaveMeta, onAddAcao, ciclosJanela }) {
   const [isEditingNote, setIsEditingNote] = useState(false)
   const [noteText, setNoteText] = useState(note || '')
   const [isEditingMeta, setIsEditingMeta] = useState(false)
@@ -14,6 +14,7 @@ export default function DealerCard({ dealer, onClick, note, onSaveNote, dealerDa
     codigo,
     nome,
     segmento,
+    ciclos,
     totalGeral,
     totalCicloAtual,
     faltaManter,
@@ -133,6 +134,27 @@ export default function DealerCard({ dealer, onClick, note, onSaveNote, dealerDa
         <span className="dealer-card__total-label">TOTAL 9 CICLOS</span>
         <span className="dealer-card__total-value mono">{formatCurrency(totalGeral)}</span>
       </div>
+
+      {/* TRILHA: ciclos em que houve compra */}
+      {Array.isArray(ciclosJanela) && ciclosJanela.length > 0 && (
+        <div className="dealer-card__cycles">
+          <span className="dealer-card__cycles-label">COMPROU NOS CICLOS</span>
+          <div className="dealer-card__cycles-strip">
+            {ciclosJanela.map(c => {
+              const bought = (ciclos?.[c] || 0) > 0
+              return (
+                <span
+                  key={c}
+                  className={`dealer-card__cycle ${bought ? 'dealer-card__cycle--on' : ''}`}
+                  title={`Ciclo ${c}${bought ? ` — ${formatCurrency(ciclos[c])}` : ' — sem compra'}`}
+                >
+                  {parseInt(c, 10)}
+                </span>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="dealer-card__progress">
         <ProgressBar
@@ -337,7 +359,11 @@ export default function DealerCard({ dealer, onClick, note, onSaveNote, dealerDa
       {cairiaPara ? (
         <div className="dealer-card__forecast dealer-card__forecast--down">
           <TrendingDown size={14} />
-          <span>Se a virada fosse hoje, <strong>cai para {cairiaPara}</strong> — falta {formatCurrency(faltaManter)} p/ manter {segmento}</span>
+          {cairiaPara === 'Cobre' ? (
+            <span>Sem compras: <strong>vira Cobre</strong> na virada — <strong>qualquer pedido</strong> mantém {segmento}</span>
+          ) : (
+            <span>Se a virada fosse hoje, <strong>cai para {cairiaPara}</strong> — falta {formatCurrency(faltaManter)} p/ manter {segmento}</span>
+          )}
         </div>
       ) : subiriaPara ? (
         <div className="dealer-card__forecast dealer-card__forecast--up">

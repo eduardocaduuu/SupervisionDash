@@ -254,7 +254,7 @@ export default function Dashboard() {
     )
   }
 
-  const { setor, cicloAtual, snapshotAtivo, kpis = {}, dealers } = dashboardData
+  const { setor, cicloAtual, snapshotAtivo, kpis = {}, dealers, ciclosJanela } = dashboardData
 
   // Extrair segmentos únicos dinamicamente
   const uniqueSegments = ['TODOS', ...new Set(dealers.map(d => d.segmento).filter(Boolean))].sort()
@@ -570,6 +570,7 @@ export default function Dashboard() {
                     <DealerCard
                       key={dealer.codigo}
                       dealer={dealerDisplay}
+                      ciclosJanela={ciclosJanela}
                       onClick={() => handleDealerClick(dealerDisplay)}
                       note={dealerData[dealer.codigo]?.note || notes[dealer.codigo] || ''}
                       onSaveNote={(noteText) => handleSaveNote(dealer.codigo, noteText)}

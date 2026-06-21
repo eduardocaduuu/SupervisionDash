@@ -63,7 +63,8 @@ async function loadConfigUnified() {
 // SEGMENTOS (same as index.js)
 // ═══════════════════════════════════════════════════════════════
 const SEGMENTOS = {
-  'Bronze':    { minManter: 0,        maxManter: 2999.99,   metaSubir: 3000,    proximo: 'Prata' },
+  'Cobre':     { minManter: 0,        maxManter: 0,         metaSubir: 0.01,    proximo: 'Bronze' },
+  'Bronze':    { minManter: 0.01,     maxManter: 2999.99,   metaSubir: 3000,    proximo: 'Prata' },
   'Prata':     { minManter: 3000,     maxManter: 8999.99,   metaSubir: 9000,    proximo: 'Ouro' },
   'Ouro':      { minManter: 9000,     maxManter: 19999.99,  metaSubir: 20000,   proximo: 'Platina' },
   'Platina':   { minManter: 20000,    maxManter: 49999.99,  metaSubir: 50000,   proximo: 'Rubi' },
@@ -79,7 +80,8 @@ function getSegmentoByTotal(total) {
   if (total >= 20000) return 'Platina';
   if (total >= 9000) return 'Ouro';
   if (total >= 3000) return 'Prata';
-  return 'Bronze';
+  if (total > 0) return 'Bronze';
+  return 'Cobre';
 }
 
 // Normalizar segmento (remove sufixo GB e trata valores invalidos)
