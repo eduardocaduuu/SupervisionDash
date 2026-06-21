@@ -1,6 +1,6 @@
 import React from 'react'
 import { X, TrendingUp, TrendingDown, ShieldCheck, Target, Rocket, Award } from 'lucide-react'
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, LabelList, Tooltip } from 'recharts'
 import BadgeSegment from './BadgeSegment'
 import ProgressBar from './ProgressBar'
 import './DealerModal.css'
@@ -27,12 +27,25 @@ export default function DealerModal({ dealer, cicloAtual, onClose }) {
   const formatCurrency = (val) =>
     `R$ ${(val || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
 
-  // Prepare chart data
-  const chartData = Object.entries(ciclos || {}).map(([ciclo, total]) => ({
-    ciclo: ciclo.replace('/2026', ''),
-    total,
-    isCurrent: ciclo === cicloAtual
-  }))
+  // Rótulo compacto sobre cada barra (valor exato fica no tooltip e na tabela)
+  const barLabel = (v) => {
+    if (!v || v <= 0) return ''
+    if (v >= 1000) return `${(v / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}k`
+    return String(Math.round(v))
+  }
+
+  // Prepare chart data (ordenado cronologicamente: ano*100 + mês)
+  const cycleNum = (c) => {
+    const [m, y] = String(c).split('/').map(Number)
+    return (y || 0) * 100 + (m || 0)
+  }
+  const chartData = Object.entries(ciclos || {})
+    .sort((a, b) => cycleNum(a[0]) - cycleNum(b[0]))
+    .map(([ciclo, total]) => ({
+      ciclo: ciclo.replace('/2026', ''),
+      total,
+      isCurrent: ciclo === cicloAtual
+    }))
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -144,8 +157,8 @@ export default function DealerModal({ dealer, cicloAtual, onClose }) {
               <span>HISTÓRICO POR CICLO</span>
             </div>
             <div className="dealer-modal__chart-container">
-              <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+              <ResponsiveContainer width="100%" height={230}>
+                <BarChart data={chartData} margin={{ top: 26, right: 10, left: 10, bottom: 10 }}>
                   <XAxis
                     dataKey="ciclo"
                     tick={{ fill: '#a0a0a8', fontSize: 11, fontFamily: 'JetBrains Mono' }}
@@ -158,6 +171,13 @@ export default function DealerModal({ dealer, cicloAtual, onClose }) {
                     tickLine={{ stroke: '#3a3a42' }}
                     tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
                   />
+                  <Tooltip
+                    cursor={{ fill: 'rgba(255,255,255,0.05)' }}
+                    contentStyle={{ background: '#1a1a1f', border: '1px solid #3a3a42', borderRadius: 4, fontFamily: 'JetBrains Mono', fontSize: 12 }}
+                    labelStyle={{ color: '#a0a0a8' }}
+                    formatter={(v) => [formatCurrency(v), 'Comprou']}
+                    labelFormatter={(l) => `Ciclo ${l}`}
+                  />
                   <Bar dataKey="total" radius={[2, 2, 0, 0]}>
                     {chartData.map((entry, index) => (
                       <Cell
@@ -167,6 +187,14 @@ export default function DealerModal({ dealer, cicloAtual, onClose }) {
                         strokeWidth={2}
                       />
                     ))}
+                    <LabelList
+                      dataKey="total"
+                      position="top"
+                      formatter={barLabel}
+                      fill="#e0e0e8"
+                      fontSize={9}
+                      style={{ fontFamily: 'JetBrains Mono', fontWeight: 700 }}
+                    />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
