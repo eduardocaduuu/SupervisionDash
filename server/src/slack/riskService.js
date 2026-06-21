@@ -230,7 +230,7 @@ async function getSectorRiskSummary(setorId) {
   const setores = getSetoresDinamicos();
   const setor = setores.find(s => s.id === setorId);
 
-  const baseUrl = process.env.SLACK_BASE_URL || 'https://dashsupervision.onrender.com';
+  const baseUrl = process.env.SLACK_BASE_URL || 'https://supervisiondashboard.onrender.com';
   const dashboardUrl = `${baseUrl}/dashboard/${setorId}`;
   const threshold = config.slack?.riskThresholdPercent || 50;
 

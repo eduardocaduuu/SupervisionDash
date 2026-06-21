@@ -920,7 +920,7 @@ const cronSlackAlerts = require('./jobs/cronSlackAlerts');
 // Get Slack status (admin)
 app.get('/api/admin/slack/status', (req, res) => {
   const slackConfig = config.slack || {};
-  const baseUrl = process.env.SLACK_BASE_URL || 'https://dashsupervision.onrender.com';
+  const baseUrl = process.env.SLACK_BASE_URL || 'https://supervisiondashboard.onrender.com';
 
   res.json({
     enabled: slackConfig.enabled || false,
