@@ -4,7 +4,7 @@ import { useParams } from 'react-router-dom'
 import {
   DollarSign, Users, TrendingUp, AlertTriangle,
   Search, SlidersHorizontal, Grid, List, Download,
-  Gift, X, Sparkles, Filter, Zap, ChevronRight
+  Gift, X, Sparkles, Filter, Zap, ChevronRight, Rocket
 } from 'lucide-react'
 import HUDHeader from '../components/HUDHeader'
 import MetricCard from '../components/MetricCard'
@@ -256,6 +256,11 @@ export default function Dashboard() {
 
   const { setor, cicloAtual, snapshotAtivo, kpis = {}, dealers, ciclosJanela } = dashboardData
 
+  // Perto da virada? (vem em cada dealer; é o mesmo pra todo o setor)
+  const pertoDaVirada = Array.isArray(dealers) && dealers.length > 0 ? !!dealers[0].pertoDaVirada : true
+  // Quem ainda não comprou no ciclo atual (foco de ativação no início da janela)
+  const semCompraNoCiclo = (dealers || []).filter(d => (d.totalCicloAtual || 0) === 0).length
+
   // Extrair segmentos únicos dinamicamente
   const uniqueSegments = ['TODOS', ...new Set(dealers.map(d => d.segmento).filter(Boolean))].sort()
 
@@ -273,7 +278,8 @@ export default function Dashboard() {
     // 3. Filtro Ativo (Cards)
     if (activeFilter === 'NEAR_LEVEL_UP') return d.nearLevelUp
     if (activeFilter === 'AT_RISK') return d.atRisk
-    
+    if (activeFilter === 'NAO_COMPROU') return (d.totalCicloAtual || 0) === 0
+
     return true
   })
 
@@ -370,32 +376,56 @@ export default function Dashboard() {
               <Sparkles size={20} className="recompensa-banner__sparkle" />
             </div>
           )}
-          {/* BRIEFING / FOCO DO DIA */}
-          <section className={`briefing ${kpis.atRisk > 0 ? 'briefing--alert' : 'briefing--ok'}`}>
-            <div className="briefing__icon"><Zap size={22} /></div>
-            <div className="briefing__text">
-              <span className="briefing__title">FOCO DO DIA</span>
-              {kpis.atRisk > 0 ? (
-                <p>
-                  <strong>{kpis.atRisk}</strong> {kpis.atRisk === 1 ? 'revendedor vai cair' : 'revendedores vão cair'} de segmentação na virada
-                  {kpis.nearLevelUp > 0 && <> · <strong>{kpis.nearLevelUp}</strong> a um passo de subir</>}.
-                </p>
-              ) : (
-                <p>
-                  Ninguém em risco de cair agora 🎉
-                  {kpis.nearLevelUp > 0 && <> — <strong>{kpis.nearLevelUp}</strong> {kpis.nearLevelUp === 1 ? 'está' : 'estão'} perto de subir.</>}
-                </p>
+          {/* BRIEFING / FOCO DO DIA (adaptativo: perto da virada = risco; início da janela = ativação) */}
+          {pertoDaVirada ? (
+            <section className={`briefing ${kpis.atRisk > 0 ? 'briefing--alert' : 'briefing--ok'}`}>
+              <div className="briefing__icon"><Zap size={22} /></div>
+              <div className="briefing__text">
+                <span className="briefing__title">FOCO DO DIA · RETA FINAL DA JANELA</span>
+                {kpis.atRisk > 0 ? (
+                  <p>
+                    <strong>{kpis.atRisk}</strong> {kpis.atRisk === 1 ? 'revendedor vai cair' : 'revendedores vão cair'} de segmentação na virada
+                    {kpis.nearLevelUp > 0 && <> · <strong>{kpis.nearLevelUp}</strong> a um passo de subir</>}.
+                  </p>
+                ) : (
+                  <p>
+                    Ninguém em risco de cair agora 🎉
+                    {kpis.nearLevelUp > 0 && <> — <strong>{kpis.nearLevelUp}</strong> {kpis.nearLevelUp === 1 ? 'está' : 'estão'} perto de subir.</>}
+                  </p>
+                )}
+              </div>
+              {kpis.atRisk > 0 && (
+                <button
+                  className="briefing__cta"
+                  onClick={() => { setActiveFilter('AT_RISK'); setSortBy('salvar'); setSegmentFilter('TODOS'); setActiveTab('revendedores') }}
+                >
+                  Atacar os em risco <ChevronRight size={16} />
+                </button>
               )}
-            </div>
-            {kpis.atRisk > 0 && (
-              <button
-                className="briefing__cta"
-                onClick={() => { setActiveFilter('AT_RISK'); setSortBy('salvar'); setSegmentFilter('TODOS'); setActiveTab('revendedores') }}
-              >
-                Atacar os em risco <ChevronRight size={16} />
-              </button>
-            )}
-          </section>
+            </section>
+          ) : (
+            <section className={`briefing ${semCompraNoCiclo > 0 ? 'briefing--build' : 'briefing--ok'}`}>
+              <div className="briefing__icon"><Rocket size={22} /></div>
+              <div className="briefing__text">
+                <span className="briefing__title">FOCO DO DIA · INÍCIO DA JANELA</span>
+                {semCompraNoCiclo > 0 ? (
+                  <p>
+                    Hora de <strong>ativar</strong>: <strong>{semCompraNoCiclo}</strong> {semCompraNoCiclo === 1 ? 'revendedor ainda não comprou' : 'revendedores ainda não compraram'} no ciclo atual.
+                  </p>
+                ) : (
+                  <p><strong>Todos já compraram</strong> no ciclo atual 🎉 Ótimo ritmo de ativação!</p>
+                )}
+              </div>
+              {semCompraNoCiclo > 0 && (
+                <button
+                  className="briefing__cta briefing__cta--build"
+                  onClick={() => { setActiveFilter('NAO_COMPROU'); setSortBy('total'); setSegmentFilter('TODOS'); setActiveTab('revendedores') }}
+                >
+                  Ver quem ativar <ChevronRight size={16} />
+                </button>
+              )}
+            </section>
+          )}
 
           {/* KPIs */}
           <section className="dashboard__kpis">
