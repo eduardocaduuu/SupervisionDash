@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { readAllRows } = require('./utils/xlsx');
+const { isMongoConnected } = require('./db/mongodb');
 
 // ═══════════════════════════════════════════════════════════════
 // REGRAS DE SEGMENTAÇÃO (escada + metas)
@@ -175,7 +176,12 @@ let _detalheCache = null; // { cicloAtual, map: { codigo: { ciclo: total } } }
 
 // Mapa { codigo: { ciclo: total } } para TODOS os ciclos da janela atual.
 async function getDetalheTodos(cicloAtual) {
+  // Cache primeiro: se já temos a janela carregada, devolve SEM depender do Mongo.
+  // (Crucial no free tier, onde a conexão oscila — o pré-aquecimento no boot garante
+  // que o cache exista, então um "piscar" do Mongo não zera o acúmulo.)
   if (_detalheCache && _detalheCache.cicloAtual === cicloAtual) return _detalheCache.map;
+  // Sem cache e sem Mongo: devolve vazio (degrada), nunca trava nem inventa dado.
+  if (!isMongoConnected()) return {};
   const CicloVenda = require('./models/CicloVenda');
   const ciclos = ciclosDaJanela(cicloAtual);
   const linhas = await CicloVenda

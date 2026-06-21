@@ -154,14 +154,16 @@ async function getDealersForSetor(setorId, config) {
     });
   }
 
-  // Enriquecer com histórico (acúmulo da janela) — mesma lógica do dashboard
-  if (isMongoConnected()) {
-    try {
-      const detalhe = await HistoryService.getDetalheTodos(config.cicloAtual);
+  // Enriquecer com histórico (acúmulo da janela) — mesma lógica do dashboard.
+  // Sem gate de isMongoConnected(): getDetalheTodos usa o cache (pré-aquecido no
+  // boot). Evita que uma oscilação do Mongo pule o histórico e infle o "em risco".
+  try {
+    const detalhe = await HistoryService.getDetalheTodos(config.cicloAtual);
+    if (detalhe && Object.keys(detalhe).length) {
       dealers.forEach(d => { d.ciclos = { ...(detalhe[d.codigo] || {}), ...d.ciclos }; });
-    } catch (e) {
-      console.error('[RiskService] Falha ao enriquecer com histórico:', e.message);
     }
+  } catch (e) {
+    console.error('[RiskService] Falha ao enriquecer com histórico:', e.message);
   }
 
   return dealers;

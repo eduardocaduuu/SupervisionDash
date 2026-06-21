@@ -284,13 +284,16 @@ function generateDemoData(setorId) {
 // O ciclo atual vem do arquivo recém-importado (mais fresco) e sobrescreve o do Mongo.
 // Sem Mongo, mantém apenas o que veio do arquivo (degrada, não quebra).
 async function enrichDealersWithHistory(dealers) {
-  if (!isMongoConnected()) return dealers;
+  // Não dependemos de isMongoConnected() aqui: getDetalheTodos usa o cache
+  // (pré-aquecido no boot) e só consulta o Mongo se necessário. Assim, uma
+  // oscilação da conexão não pula o histórico (que zeraria o acúmulo).
   try {
     const detalhe = await HistoryService.getDetalheTodos(config.cicloAtual);
-    dealers.forEach(d => {
-      const hist = detalhe[d.codigo] || {};
-      d.ciclos = { ...hist, ...d.ciclos };
-    });
+    if (detalhe && Object.keys(detalhe).length) {
+      dealers.forEach(d => {
+        d.ciclos = { ...(detalhe[d.codigo] || {}), ...d.ciclos };
+      });
+    }
   } catch (e) {
     console.error('[History] Falha ao enriquecer com histórico:', e.message);
   }
@@ -1220,6 +1223,8 @@ app.post('/api/admin/files/upload', upload.single('file'), async (req, res) => {
     try {
       historico = await HistoryService.importHistorico(req.file.path);
       console.log(`[Upload] Histórico atualizado: ciclos ${historico.ciclos.join(', ')} (${historico.docs} registros)`);
+      // re-aquece o cache (o import o limpou) para a próxima leitura não depender do Mongo
+      try { await HistoryService.getDetalheTodos(config.cicloAtual); } catch (e) {}
     } catch (error) {
       console.error('[Upload] Erro ao atualizar histórico no Mongo:', error.message);
     }
