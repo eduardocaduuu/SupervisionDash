@@ -195,8 +195,7 @@ const VendasService = {
         const codigoRevendedor = normalizeCode(getVal(['CodigoRevendedora', 'CodigoRevendedor', 'codigoRevendedor', 'Codigo']));
         const nomeRevendedor = getVal(['NomeRevendedora', 'NomeRevendedor', 'Nome']) || '';
         const ciclo = getVal(['CicloFaturamento', 'Ciclo', 'ciclo']) || '';
-        // Usa o valor real da venda (ValorVenda = Faturamento), não o praticado (tabela)
-        const valor = parseCurrencyPTBR(getVal(['ValorVenda', 'Faturamento', 'Valor', 'valor']));
+        const valor = parseCurrencyPTBR(getVal(['ValorPraticado', 'Valor', 'valor', 'Faturamento']));
 
         if (!codigoRevendedor || !ciclo) return;
 

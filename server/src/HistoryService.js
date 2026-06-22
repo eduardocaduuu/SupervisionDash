@@ -103,8 +103,7 @@ function aggregateFile(filePath) {
     const ciclo = String(getVal(['CicloFaturamento', 'Ciclo'])).trim();
     const pc = parseCiclo(ciclo);
     if (!codigo || !pc) continue;
-    // Valor real da venda (ValorVenda = Faturamento), não o praticado (tabela)
-    const val = parseValor(getVal(['ValorVenda', 'Faturamento']));
+    const val = parseValor(getVal(['ValorPraticado']));
     const key = `${codigo}|${ciclo}`;
     if (!map.has(key)) {
       map.set(key, { codigo, setorId: '', ciclo, cicloNum: pc.num, ano: pc.ano, total: 0 });
