@@ -524,7 +524,22 @@ export default function Admin() {
     )
   }
 
-  const ciclos = Object.keys(representatividade)
+  // Ano base dos ciclos (do ciclo vigente ou da 1ª chave cadastrada)
+  const anoCiclos =
+    config?.cicloAtual?.match(/\/(\d{4})/)?.[1] ||
+    Object.keys(representatividade)[0]?.match(/\/(\d{4})/)?.[1] ||
+    '2026'
+  const fmtCiclo = (n) => `${String(n).padStart(2, '0')}/${anoCiclos}`
+  // Peso de um ciclo (espelha o backend repDoCiclo): a janela 10-17 reaproveita
+  // os pesos dos ciclos 2-9 por posição (10←2, 11←3, ... 17←9).
+  const pesoEspelhado = (n) => (n >= 10 ? representatividade[fmtCiclo(n - 8)] : representatividade[fmtCiclo(n)])
+  // 17 ciclos: 1-9 são editáveis; 10-17 são derivados (somente leitura).
+  const ciclos = Array.from({ length: 17 }, (_, i) => i + 1)
+  // Peso do ciclo vigente (robusto para ciclos 10-17, que não ficam na config)
+  const pesoCicloVigente = (() => {
+    const mm = String(config?.cicloAtual || '').match(/(\d{1,2})\/\d{4}/)
+    return mm ? pesoEspelhado(parseInt(mm[1], 10)) : config?.representatividade?.[config?.cicloAtual]
+  })()
 
   return (
     <div className="admin">
@@ -626,35 +641,45 @@ export default function Admin() {
               }
             >
               <div className="repr-grid">
-                {ciclos.map(ciclo => {
-                  const isVigente = config.cicloAtual === ciclo
+                {ciclos.map(n => {
+                  const cicloStr = fmtCiclo(n)
+                  const espelhado = n >= 10
+                  const peso = espelhado ? pesoEspelhado(n) : representatividade[cicloStr]
+                  const isVigente = config.cicloAtual === cicloStr
                   return (
                     <div
-                      key={ciclo}
-                      className={`repr-item ${isVigente ? 'repr-item--vigente' : ''}`}
-                      onClick={() => handleCicloChange(ciclo)}
+                      key={cicloStr}
+                      className={`repr-item ${isVigente ? 'repr-item--vigente' : ''} ${espelhado ? 'repr-item--espelhado' : ''}`}
+                      onClick={() => handleCicloChange(cicloStr)}
                     >
                       <div className="repr-item__radio">
                         <input
                           type="radio"
                           name="cicloVigente"
                           checked={isVigente}
-                          onChange={() => handleCicloChange(ciclo)}
+                          onChange={() => handleCicloChange(cicloStr)}
                           className="repr-item__radio-input"
                         />
                         <span className="repr-item__radio-custom"></span>
                       </div>
-                      <label className="repr-item__label">{ciclo}</label>
+                      <label className="repr-item__label">
+                        {cicloStr}
+                        {espelhado && (
+                          <span className="repr-item__mirror">espelha ciclo {String(n - 8).padStart(2, '0')}</span>
+                        )}
+                      </label>
                       <div className="repr-item__input-wrapper">
                         <input
                           type="number"
                           min="0"
                           max="100"
                           className="repr-item__input"
-                          value={representatividade[ciclo]}
+                          value={peso ?? ''}
+                          readOnly={espelhado}
+                          disabled={espelhado}
                           onChange={(e) => {
                             e.stopPropagation()
-                            handleRepresentatividadeChange(ciclo, e.target.value)
+                            if (!espelhado) handleRepresentatividadeChange(cicloStr, e.target.value)
                           }}
                           onClick={(e) => e.stopPropagation()}
                         />
@@ -662,7 +687,7 @@ export default function Admin() {
                       </div>
                       <div
                         className="repr-item__bar"
-                        style={{ width: `${representatividade[ciclo]}%` }}
+                        style={{ width: `${peso || 0}%` }}
                       />
                       {isVigente && (
                         <span className="repr-item__badge">VIGENTE</span>
@@ -675,7 +700,10 @@ export default function Admin() {
                 <TrendingUp size={16} />
                 <p>
                   <strong>Clique no ciclo para defini-lo como vigente!</strong> A meta ponderada
-                  de todas as supervisoras será calculada com base na % do ciclo selecionado.
+                  de todas as supervisoras é calculada com base na % do ciclo selecionado.
+                  Os <strong>ciclos 10–17</strong> reaproveitam automaticamente os pesos dos
+                  <strong> ciclos 2–9</strong> (10 = ciclo 02, 11 = ciclo 03, … 17 = ciclo 09),
+                  por isso aparecem em modo somente leitura.
                 </p>
               </div>
             </Panel>
@@ -943,7 +971,7 @@ export default function Admin() {
                   <p>
                     Revendedores que atingiram <strong>100%</strong> da meta do ciclo atual
                     <span className="admin__mission-meta">
-                      (Meta: {config?.representatividade?.[config?.cicloAtual]}% do ciclo {config?.cicloAtual})
+                      (Meta: {pesoCicloVigente}% do ciclo {config?.cicloAtual})
                     </span>
                   </p>
                 </div>

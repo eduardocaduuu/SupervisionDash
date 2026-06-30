@@ -376,6 +376,22 @@
   animation: pulse 2s infinite;
 }
 
+/* CICLOS ESPELHADOS (10-17 reaproveitam os pesos de 2-9) */
+.repr-item--espelhado {
+  opacity: 0.85;
+  border-style: dashed;
+}
+
+.repr-item--espelhado .repr-item__input {
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+.repr-item--espelhado .repr-item__bar {
+  background: var(--color-text-muted);
+  opacity: 0.6;
+}
+
 .repr-item__label {
   display: block;
   font-family: var(--font-mono);
@@ -383,6 +399,16 @@
   font-weight: 600;
   color: var(--color-text-muted);
   margin-bottom: var(--space-sm);
+}
+
+.repr-item__mirror {
+  display: block;
+  margin-top: 2px;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  color: var(--color-neon-secondary);
+  text-transform: uppercase;
 }
 
 .repr-item--vigente .repr-item__label {

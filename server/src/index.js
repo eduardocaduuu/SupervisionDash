@@ -74,13 +74,13 @@ function segmentoAnterior(seg) {
 }
 
 // Representatividade de um ciclo. A janela 10-17 reaproveita os pesos da janela
-// 1-9 por posição: ciclo 10 usa o peso do 1, 11 o do 2, ... 17 o do 8.
+// 1-9 por posição: ciclo 10 usa o peso do 2, 11 o do 3, ... 17 o do 9.
 function repDoCiclo(cicloStr) {
   const m = String(cicloStr || '').match(/(\d{1,2})\/(\d{4})/);
   if (!m) return config.representatividade?.[cicloStr] ?? 10;
   let num = parseInt(m[1], 10);
   const ano = m[2];
-  if (num >= 10) num = num - 9; // 10→1, 11→2, ... 17→8
+  if (num >= 10) num = num - 8; // 10→2, 11→3, ... 17→9
   const key = `${String(num).padStart(2, '0')}/${ano}`;
   return config.representatividade?.[key] ?? config.representatividade?.[cicloStr] ?? 10;
 }
@@ -345,7 +345,7 @@ function calculateDealerMetrics(dealer) {
   const ehCobre = segmento === 'Cobre';
 
   // Meta ponderada do ciclo atual. A janela 10-17 reaproveita os pesos da
-  // janela 1-9 por posição (10↔1, 11↔2, ... 17↔8) — não precisa cadastrar 10-17.
+  // janela 1-9 por posição (10↔2, 11↔3, ... 17↔9) — não precisa cadastrar 10-17.
   const repCiclo = repDoCiclo(config.cicloAtual);
   const metaCicloPonderada = (repCiclo > 0 && !ehCobre)
     ? (metaSubir ? (metaSubir * repCiclo / 100) : (metaManter * repCiclo / 100))
