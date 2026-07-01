@@ -74,6 +74,10 @@ export default function Admin() {
   const [venSetorMap, setVenSetorMap] = useState({})     // nomeSetorOriginal -> codigo escolhido
   const [venApplying, setVenApplying] = useState(null)
   const [venApplyMsg, setVenApplyMsg] = useState('')
+  // Adicionar ao cadastro os revendedores das vendas sem cadastro
+  const [venAdd, setVenAdd] = useState({})               // codigo -> { setorId, segmento }
+  const [venAddStatus, setVenAddStatus] = useState(null)
+  const [venAddMsg, setVenAddMsg] = useState('')
 
   // Sistema de Mensagens
   const [mensagens, setMensagens] = useState([])
@@ -432,6 +436,7 @@ export default function Admin() {
     if (!file) return
     setVenVal({ loading: true, file })
     setVenSetorMap({}); setVenApplying(null); setVenApplyMsg('')
+    setVenAdd({}); setVenAddStatus(null); setVenAddMsg('')
 
     const formData = new FormData()
     formData.append('file', file)
@@ -451,6 +456,39 @@ export default function Admin() {
 
   const handleCancelVenVal = () => {
     setVenVal(null); setVenSetorMap({}); setVenApplying(null); setVenApplyMsg('')
+    setVenAdd({}); setVenAddStatus(null); setVenAddMsg('')
+  }
+
+  const handleAddRevendedores = async () => {
+    if (!venVal?.report?.revendedoresSemCadastro) return
+    const setores = venVal.setores || []
+    const nomePorId = new Map(setores.map(s => [String(s.id), s.nome]))
+    const payload = venVal.report.revendedoresSemCadastro.lista.map(rv => {
+      const def = setores.find(s => s.nome === rv.setor)?.id || ''
+      const setorId = venAdd[rv.codigo]?.setorId ?? def
+      const segmento = venAdd[rv.codigo]?.segmento ?? 'Cobre'
+      return { codigo: rv.codigo, nome: rv.nome, setorId, setorNome: nomePorId.get(String(setorId)) || '', segmento }
+    }).filter(x => x.setorId)
+
+    if (!payload.length) { setVenAddStatus('error'); setVenAddMsg('Escolha ao menos um setor.'); return }
+
+    setVenAddStatus('loading'); setVenAddMsg('')
+    try {
+      const res = await adminFetch('/api/admin/cadastro/add-revendedores', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ revendedores: payload })
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setVenAddStatus('success')
+        setVenAddMsg(`${data.added} revendedor(es) adicionado(s) ao cadastro (${data.setores} setores).`)
+      } else {
+        setVenAddStatus('error'); setVenAddMsg(data.error || 'Falha ao adicionar')
+      }
+    } catch (err) {
+      if (err.message === 'unauthorized') return
+      setVenAddStatus('error'); setVenAddMsg('Erro ao adicionar ao cadastro')
+    }
   }
 
   const handleApplyVendas = async () => {
@@ -1544,17 +1582,44 @@ export default function Admin() {
                       {rep.revendedoresSemCadastro && rep.revendedoresSemCadastro.count > 0 && (
                         <div className="seg-block seg-block--warn">
                           <h4><AlertTriangle size={15} /> Revendedores nas vendas sem cadastro ({rep.revendedoresSemCadastro.count})</h4>
-                          <ul className="seg-quem">
-                            {rep.revendedoresSemCadastro.lista.map(rv => (
-                              <li key={rv.codigo}>
-                                <span className="mono">{rv.codigo}</span>{rv.nome ? ` — ${rv.nome}` : ''}
-                                {rv.setor ? <span className="text-muted"> · {rv.setor}</span> : null}
-                              </li>
-                            ))}
+                          <p className="seg-hint">Escolha um setor (e o segmento) para adicionar ao cadastro. Quem ficar "sem setor" não é adicionado.</p>
+                          <div className="seg-quem seg-quem--add">
+                            {rep.revendedoresSemCadastro.lista.map(rv => {
+                              const def = (venVal.setores || []).find(s => s.nome === rv.setor)?.id || ''
+                              return (
+                                <div className="seg-add-row" key={rv.codigo}>
+                                  <span className="seg-add-rev"><span className="mono">{rv.codigo}</span> {rv.nome}{rv.setor ? <span className="text-muted"> · {rv.setor}</span> : null}</span>
+                                  <select
+                                    value={venAdd[rv.codigo]?.setorId ?? def}
+                                    onChange={e => setVenAdd(m => ({ ...m, [rv.codigo]: { ...m[rv.codigo], setorId: e.target.value } }))}
+                                  >
+                                    <option value="">— sem setor —</option>
+                                    {(venVal.setores || []).map(s => <option key={s.id} value={s.id}>{s.id} — {s.nome}</option>)}
+                                  </select>
+                                  <select
+                                    value={venAdd[rv.codigo]?.segmento ?? 'Cobre'}
+                                    onChange={e => setVenAdd(m => ({ ...m, [rv.codigo]: { ...m[rv.codigo], segmento: e.target.value } }))}
+                                  >
+                                    {SEGMENTOS_VALIDOS.map(seg => <option key={seg} value={seg}>{seg}</option>)}
+                                  </select>
+                                </div>
+                              )
+                            })}
                             {rep.revendedoresSemCadastro.count > rep.revendedoresSemCadastro.lista.length && (
-                              <li className="text-muted">…e mais {rep.revendedoresSemCadastro.count - rep.revendedoresSemCadastro.lista.length}</li>
+                              <div className="text-muted">…e mais {rep.revendedoresSemCadastro.count - rep.revendedoresSemCadastro.lista.length}</div>
                             )}
-                          </ul>
+                          </div>
+                          <div className="seg-add-actions">
+                            <button className="btn btn--sm" disabled={venAddStatus === 'loading' || venAddStatus === 'success'} onClick={handleAddRevendedores}>
+                              {venAddStatus === 'loading' ? 'ADICIONANDO...' : venAddStatus === 'success' ? 'ADICIONADO' : 'Adicionar ao cadastro'}
+                            </button>
+                            {venAddMsg && (
+                              <span className={`seg-val__applymsg ${venAddStatus === 'error' ? 'err' : 'ok'}`}>
+                                {venAddStatus === 'error' ? <AlertTriangle size={14} /> : <CheckCircle size={14} />} {venAddMsg}
+                              </span>
+                            )}
+                          </div>
+                          <p className="seg-add-note">Obs.: a próxima importação da planilha oficial de Segmentos sobrescreve o cadastro — se o revendedor não estiver nela, some de novo.</p>
                         </div>
                       )}
 

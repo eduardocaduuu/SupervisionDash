@@ -203,7 +203,28 @@ function writeToFile(rows, filePath) {
   XLSX.writeFile(buildWorkbook(rows), filePath);
 }
 
+// Mapeia linhas cruas (qualquer origem) para o formato canônico de 6 colunas,
+// preservando os valores. Usado ao anexar revendedores ao cadastro existente.
+function toCanonicalRows(rawRows) {
+  if (!rawRows || !rawRows.length) return [];
+  const sample = rawRows[0];
+  const kCod = findKey(sample, ['CodigoRevendedor', 'Codigo']);
+  const kNome = findKey(sample, ['Nome', 'NomeRevendedora', 'Revendedor']);
+  const kSit = findKey(sample, ['Situacao']);
+  const kPapel = findKey(sample, ['Papel', 'SegmentoAtual', 'Segmento']);
+  const kSetor = findKey(sample, ['CodigoEstruturaComercial', 'SetorId', 'Setor']);
+  const kSetorNome = findKey(sample, ['EstruturaComercial', 'SetorNome']);
+  return rawRows.map(r => ({
+    CodigoRevendedor: kCod ? (r[kCod] ?? '') : '',
+    Nome: kNome ? (r[kNome] ?? '') : '',
+    Situacao: kSit ? (r[kSit] ?? '') : '',
+    Papel: kPapel ? (r[kPapel] ?? '') : '',
+    CodigoEstruturaComercial: kSetor ? (r[kSetor] ?? '') : '',
+    EstruturaComercial: kSetorNome ? (r[kSetorNome] ?? '') : ''
+  }));
+}
+
 module.exports = {
   SEGMENTOS_VALIDOS, GERENCIAS, COLUNAS,
-  normCode, normPapel, parse, analyze, buildWorkbook, writeToFile
+  normCode, normPapel, parse, analyze, buildWorkbook, writeToFile, toCanonicalRows
 };

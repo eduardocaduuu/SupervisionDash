@@ -1302,6 +1302,63 @@ app.post('/api/admin/files/commit-vendas', uploadMem.single('file'), async (req,
   }
 });
 
+// ── ADICIONAR REVENDEDORES AO CADASTRO (a partir do validador de vendas) ──
+// Anexa revendedores que estão nas vendas mas não no cadastro. Grava no
+// Segmentos_bd.xlsx (append, sem duplicar por código), persiste e recarrega.
+app.post('/api/admin/cadastro/add-revendedores', async (req, res) => {
+  const novos = req.body && req.body.revendedores;
+  if (!Array.isArray(novos) || novos.length === 0) {
+    return res.status(400).json({ error: 'Nenhum revendedor informado.' });
+  }
+  try {
+    const diskPath = path.join(uploadDir, 'Segmentos_bd.xlsx');
+    const atuais = fs.existsSync(diskPath)
+      ? segmentosValidator.toCanonicalRows(segmentosValidator.parse(diskPath))
+      : [];
+    const norm = (c) => String(c ?? '').replace(/\./g, '').replace(/\s+/g, '').trim();
+    const existentes = new Set(atuais.map(r => norm(r.CodigoRevendedor)));
+
+    let added = 0;
+    for (const nv of novos) {
+      const cod = norm(nv.codigo);
+      const setorId = norm(nv.setorId);
+      if (!cod || !setorId || existentes.has(cod)) continue; // precisa de código e setor; sem duplicar
+      existentes.add(cod);
+      atuais.push({
+        CodigoRevendedor: nv.codigo,
+        Nome: nv.nome || '',
+        Situacao: 'Ativo',
+        Papel: nv.segmento || 'Cobre',
+        CodigoEstruturaComercial: nv.setorId,
+        EstruturaComercial: nv.setorNome || ''
+      });
+      added++;
+    }
+
+    if (added === 0) {
+      return res.status(400).json({ error: 'Nada a adicionar (sem setor escolhido ou já cadastrados).' });
+    }
+
+    segmentosValidator.writeToFile(atuais, diskPath);
+
+    let persistedToMongo = false;
+    if (isMongoConnected()) {
+      persistedToMongo = await FileStorageService.saveFileFromDisk(
+        'Segmentos_bd.xlsx', diskPath, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+    }
+    SegmentService.clearCache && SegmentService.clearCache();
+    VendasService.clearCache && VendasService.clearCache();
+    ProdutosService.clearCache && ProdutosService.clearCache();
+    SETORES = getSetoresDinamicos();
+
+    res.json({ success: true, added, persistedToMongo, total: atuais.length, setores: SETORES.length });
+  } catch (e) {
+    console.error('[AddRevendedores] Erro:', e);
+    res.status(500).json({ error: 'Falha ao adicionar revendedores ao cadastro: ' + e.message });
+  }
+});
+
 // Tratamento de erros do multer
 app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError) {

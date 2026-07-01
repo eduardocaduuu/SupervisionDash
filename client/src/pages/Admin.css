@@ -2178,3 +2178,40 @@
   color: var(--color-text-secondary);
   line-height: 1.6;
 }
+
+/* Adicionar revendedores de vendas ao cadastro */
+.seg-hint {
+  margin: 0 0 var(--space-sm);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+.seg-quem--add { padding-left: 0; }
+.seg-add-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 4px 0;
+  flex-wrap: wrap;
+}
+.seg-add-rev { flex: 1 1 240px; font-size: var(--text-xs); color: var(--color-text-secondary); }
+.seg-add-row select {
+  padding: 5px 6px;
+  background: var(--color-bg-tertiary);
+  border: 2px solid var(--border-color);
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  max-width: 260px;
+}
+.seg-add-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  margin-top: var(--space-sm);
+}
+.seg-add-note {
+  margin: var(--space-sm) 0 0;
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
