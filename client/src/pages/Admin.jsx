@@ -4,7 +4,7 @@ import {
   Shield, LogOut, Save, CheckCircle, AlertTriangle, FileSpreadsheet, TrendingUp,
   Gift, Trash2, Send, MessageSquare, Users, ChevronDown, ChevronUp, Filter,
   Building2, Target, Rocket, Search, X, Trophy, Star, Sparkles, RefreshCw,
-  Upload, File, Database, Clock, Mail, Edit3, Plus, Globe, User
+  File, Database, Clock, Mail, Edit3, Plus, Globe, User
 } from 'lucide-react'
 import Panel from '../components/Panel'
 import DealerCard from '../components/DealerCard'
@@ -59,8 +59,6 @@ export default function Admin() {
 
   // Upload de arquivos
   const [filesStatus, setFilesStatus] = useState({ vendas: {}, segmentos: {} })
-  const [uploading, setUploading] = useState(null)
-  const [uploadStatus, setUploadStatus] = useState(null)
   const [refreshingFilesStatus, setRefreshingFilesStatus] = useState(false)
   const [filesStatusPulse, setFilesStatusPulse] = useState(false)
 
@@ -363,39 +361,6 @@ export default function Admin() {
         : [...current, setorId]
       setNovaMensagem({ ...novaMensagem, targetSetores: updated })
     }
-  }
-
-  // Upload de arquivo
-  const handleFileUpload = async (tipo, file) => {
-    if (!file) return
-
-    setUploading(tipo)
-    setUploadStatus(null)
-
-    const formData = new FormData()
-    formData.append('file', file)
-
-    try {
-      // Passa tipo como query param para estar disponível antes do multer processar
-      const res = await adminFetch(`/api/admin/files/upload?tipo=${tipo}`, {
-        method: 'POST',
-        body: formData
-      })
-
-      const data = await res.json()
-
-      if (res.ok) {
-        setUploadStatus({ tipo, success: true, message: data.message })
-        loadFilesStatus({ withFeedback: true })
-      } else {
-        setUploadStatus({ tipo, success: false, message: data.error })
-      }
-    } catch (err) {
-      setUploadStatus({ tipo, success: false, message: 'Erro ao enviar arquivo' })
-    }
-
-    setUploading(null)
-    setTimeout(() => setUploadStatus(null), 5000)
   }
 
   // ── Validação da planilha de Segmentos ──────────────────────────
@@ -1558,6 +1523,23 @@ export default function Admin() {
                               </div>
                             ))}
                           </div>
+                        </div>
+                      )}
+
+                      {rep.revendedoresSemCadastro && rep.revendedoresSemCadastro.count > 0 && (
+                        <div className="seg-block seg-block--warn">
+                          <h4><AlertTriangle size={15} /> Revendedores nas vendas sem cadastro ({rep.revendedoresSemCadastro.count})</h4>
+                          <ul>
+                            {rep.revendedoresSemCadastro.lista.map(rv => (
+                              <li key={rv.codigo}>
+                                <span className="mono">{rv.codigo}</span>{rv.nome ? ` — ${rv.nome}` : ''}
+                                {rv.setor ? <span className="text-muted"> · {rv.setor}</span> : null}
+                              </li>
+                            ))}
+                            {rep.revendedoresSemCadastro.count > rep.revendedoresSemCadastro.lista.length && (
+                              <li className="text-muted">…e mais {rep.revendedoresSemCadastro.count - rep.revendedoresSemCadastro.lista.length}</li>
+                            )}
+                          </ul>
                         </div>
                       )}
 

@@ -93,6 +93,7 @@ function analyze(rawRows, deps = {}) {
   const kTipo = findKey(sample, ['Tipo']);
   const kSetor = findKey(sample, ['Setor', 'SetorNome']);
   const kCod = findKey(sample, ['CodigoRevendedora', 'CodigoRevendedor', 'Codigo']);
+  const kNome = findKey(sample, ['NomeRevendedora', 'NomeRevendedor', 'Nome']);
   const kCiclo = findKey(sample, ['CicloFaturamento', 'Ciclo']);
   const kValor = findKey(sample, ['ValorVenda', 'Faturamento', 'Valor']);
 
@@ -110,7 +111,8 @@ function analyze(rawRows, deps = {}) {
 
   const ciclos = new Map();          // ciclo -> { linhas, total }
   const setoresNaoResolv = new Map();// nome -> count
-  const semCadastro = new Set();
+  const semCadastroCods = new Set(); // contagem distinta
+  const semCadastroDet = [];         // detalhe: { codigo, nome, setor }
   const cicloInvalidoEx = new Set();
 
   for (const r of rawRows) {
@@ -136,9 +138,12 @@ function analyze(rawRows, deps = {}) {
       setoresNaoResolv.set(nomeSetor, (setoresNaoResolv.get(nomeSetor) || 0) + 1);
     }
 
-    // Revendedor sem cadastro
-    if (cod && cadastroCodigos.size && !cadastroCodigos.has(cod)) {
-      if (semCadastro.size < 5000) semCadastro.add(cod);
+    // Revendedor sem cadastro — guarda código + nome + setor para detalhar
+    if (cod && cadastroCodigos.size && !cadastroCodigos.has(cod) && !semCadastroCods.has(cod)) {
+      semCadastroCods.add(cod);
+      if (semCadastroDet.length < 500) {
+        semCadastroDet.push({ codigo: cod, nome: kNome ? String(r[kNome] ?? '').trim() : '', setor: nomeSetor });
+      }
     }
 
     // Acúmulo por ciclo (apenas ciclos válidos)
@@ -157,7 +162,7 @@ function analyze(rawRows, deps = {}) {
   report.setoresNaoResolvidos = [...setoresNaoResolv.entries()]
     .map(([nome, count]) => ({ nome, count }))
     .sort((a, b) => b.count - a.count);
-  report.revendedoresSemCadastro = { count: semCadastro.size, exemplos: [...semCadastro].slice(0, 8) };
+  report.revendedoresSemCadastro = { count: semCadastroCods.size, lista: semCadastroDet };
 
   // ── Avisos ────────────────────────────────────────────────────
   if (report.vendas === 0) report.errors.push({ code: 'SEM_VENDAS', message: 'Nenhuma linha com Tipo = Venda foi encontrada.' });
@@ -166,7 +171,7 @@ function analyze(rawRows, deps = {}) {
   if (report.excluidas.semCiclo) report.warnings.push({ code: 'SEM_CICLO', count: report.excluidas.semCiclo, message: `${report.excluidas.semCiclo} venda(s) sem ciclo — serão ignoradas.` });
   if (report.excluidas.cicloInvalido) report.warnings.push({ code: 'CICLO_INVALIDO', count: report.excluidas.cicloInvalido, message: `${report.excluidas.cicloInvalido} venda(s) com ciclo em formato inesperado (ex.: ${[...cicloInvalidoEx].slice(0, 4).join(', ')}) — provável desalinhamento de colunas. Serão ignoradas.` });
   if (report.setoresNaoResolvidos.length) report.warnings.push({ code: 'SETOR_NAO_RESOLVIDO', count: report.setoresNaoResolvidos.length, message: `${report.setoresNaoResolvidos.length} nome(s) de setor não reconhecido(s) — mapeie para o setor correto abaixo.` });
-  if (report.revendedoresSemCadastro.count) report.warnings.push({ code: 'SEM_CADASTRO', count: report.revendedoresSemCadastro.count, message: `${report.revendedoresSemCadastro.count} revendedor(es) das vendas não estão no cadastro de Segmentos.` });
+  // "sem cadastro" tem um bloco detalhado próprio na UI (não duplicar como aviso).
 
   return { report };
 }
