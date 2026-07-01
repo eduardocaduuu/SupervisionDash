@@ -125,13 +125,16 @@ function analyze(rawRows, currentSetores = []) {
   }
   report.linhasValidas = rows.length;
 
-  // Nome canônico por setor (mais frequente) + normaliza as linhas para esse nome
+  // Nome canônico por setor (mais frequente). Ignora nomes em branco na votação —
+  // células vazias não devem "ganhar" e zerar o nome do setor.
   const canonico = new Map();
   for (const [setorId, nomes] of nomesPorSetor) {
-    const entries = [...nomes.entries()].sort((a, b) => b[1] - a[1]);
-    const nomeNovo = entries[0][0];
+    const entries = [...nomes.entries()]
+      .filter(([nome]) => nome && String(nome).trim() !== '')
+      .sort((a, b) => b[1] - a[1]);
+    const nomeNovo = entries.length ? entries[0][0] : '';
     canonico.set(setorId, nomeNovo);
-    const inconsistente = entries.length > 1;
+    const inconsistente = entries.length > 1; // 2+ nomes NÃO vazios
     const nomeAtual = atualById.has(setorId) ? atualById.get(setorId) : null;
     const novo = nomeAtual === null;
     const mudou = !novo && nomeAtual !== nomeNovo;
@@ -142,10 +145,12 @@ function analyze(rawRows, currentSetores = []) {
       });
     }
   }
-  // Garante consistência: toda linha do setor usa o nome canônico
+  // Garante consistência: toda linha do setor usa o nome canônico — mas só
+  // sobrescreve quando há um nome (nunca zera um nome existente com vazio).
   for (const row of rows) {
     const sid = normCode(row.CodigoEstruturaComercial);
-    if (canonico.has(sid)) row.EstruturaComercial = canonico.get(sid);
+    const canon = canonico.get(sid);
+    if (canon) row.EstruturaComercial = canon;
   }
 
   report.papelInvalido = [...papelInvalido.entries()]

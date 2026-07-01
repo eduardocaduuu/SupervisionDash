@@ -102,6 +102,12 @@ function analyze(rawRows, deps = {}) {
   if (!kValor) report.errors.push({ code: 'MISSING_COL_VALOR', message: 'Coluna obrigatória ausente: valor da venda (ValorVenda/Faturamento).' });
   if (report.errors.length) return { report };
 
+  // A coluna Setor não é obrigatória para o histórico (que usa código+ciclo),
+  // mas sem ela o dashboard não agrupa as vendas por setor. Avisa claramente.
+  if (!kSetor) {
+    report.warnings.push({ code: 'SEM_COL_SETOR', message: 'Coluna "Setor" ausente — as vendas não serão agrupadas por setor no dashboard (o histórico/acúmulo continua funcionando).' });
+  }
+
   const ciclos = new Map();          // ciclo -> { linhas, total }
   const setoresNaoResolv = new Map();// nome -> count
   const semCadastro = new Set();
@@ -177,7 +183,10 @@ function buildWorkbook(rawRows, setorMap = {}, codeToName = new Map()) {
         const code = setorMap[nome];
         if (code) {
           const nomeCanon = codeToName.get(String(code));
-          // Formato "<codigo> - <nome>": o resolvedor extrai o código pelo número.
+          // Formato "<codigo> - <nome>": o resolvedor (loadVendas) extrai o código
+          // pelo fallback \d{4,}. Premissa: códigos de setor têm 4+ dígitos
+          // (mínimo atual: 1260). Se algum dia houver código < 4 dígitos, este
+          // formato não resolveria e as vendas cairiam — revisar aqui.
           row[kSetor] = nomeCanon ? `${code} - ${nomeCanon}` : String(code);
         }
       }
