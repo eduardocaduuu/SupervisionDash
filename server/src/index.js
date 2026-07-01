@@ -4,7 +4,6 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
-const { readAllRows } = require('./utils/xlsx');
 const SegmentService = require('./SegmentService');
 const VendasService = require('./VendasService');
 const HistoryService = require('./HistoryService');
@@ -101,75 +100,16 @@ function normalizeSegmento(segmento) {
 // LISTA DINÂMICA DE SETORES (gerada a partir de Segmentos_bd.xlsx)
 // ═══════════════════════════════════════════════════════════════
 
-// Lista estática como fallback (caso a planilha não esteja disponível)
-const SETORES_FALLBACK = [
-  { id: '1414', nome: 'SUPERVISORA DE RELACIONAMENTO' },
-  { id: '1415', nome: 'PRATA 2 / Coruripe / Piaçabuçu / F. Deserto / São Sebastião /' },
-  { id: '3124', nome: 'BRONZE / Todas as cidades 13707' },
-  { id: '4005', nome: 'PLATINA & OURO / Palmeira / Igaci /Major / Cacimbinhas / Estrela / Minador / Quebrangulo /' },
-  { id: '8238', nome: 'PRATA 2 / Major / Cacimbinhas / Estrela / Quebrangulo / Minador /' },
-  { id: '8239', nome: 'SUPERVISORA DE RELACIONAMENTO PALMEIRA DOS INDIOS' },
-  { id: '8317', nome: 'BRONZE 2 / Todas as cidades 13707' },
-  { id: '9540', nome: 'PLATINA / Penedo /' },
-  { id: '14210', nome: 'FVC - 13706 - A - ALCINA MARIA 1' },
-  { id: '14211', nome: 'FVC - 13707 - A - ALCINA MARIA 1' },
-  { id: '14244', nome: "PRATA 3 / I.Nova / Junqueiro / Olho D' Agua / Porto Real / São Brás / Teotônio" },
-  { id: '14245', nome: 'PRATA 1 / Penedo /' },
-  { id: '14246', nome: 'OURO / Penedo /' },
-  { id: '15242', nome: 'FVC - 13707 - A - ALCINA MARIA 2' },
-  { id: '15774', nome: 'INICIOS CENTRAL 13707' },
-  { id: '15775', nome: 'INICIOS CENTRAL 13706' },
-  { id: '16283', nome: 'FVC - 13706- BER - ALCINA MARIA' },
-  { id: '16284', nome: 'FVC - 13707- BER - ALCINA MARIA' },
-  { id: '16289', nome: 'FVC - 13706 - A - ALCINA MARIA 2' },
-  { id: '16471', nome: 'Setor Multimarcas - PALMEIRA DOS INDIOS - CP ALCINA MARIA' },
-  { id: '16472', nome: 'Setor Multimarcas - PENEDO - CP ALCINA MARIA' },
-  { id: '16635', nome: 'FVC - 13707 - A - ALCINA MARIA 3' },
-  { id: '17539', nome: 'PLATINA / Palmeira /' },
-  { id: '18787', nome: 'FVC - 13706 - ALCINA MARIA REINÍCIOS' },
-  { id: '18788', nome: 'FVC - 13707 - ALCINA MARIA REINÍCIOS' },
-  { id: '23032', nome: 'BRONZE / Todas as cidades 13706' },
-  { id: '23336', nome: 'SETOR PADRÃO 13706' },
-  { id: '23557', nome: 'SETOR PADRÃO 13707' }
-];
-
-// Gerar lista de setores dinamicamente a partir da planilha
+// Fonte única de verdade: a base de segmentos (via SegmentService, cacheada).
+// Sem lista estática para não defasar. Se a base estiver ausente/vazia, retorna
+// [] — as rotas já degradam para "setor não encontrado" (mostrar setores sem
+// cadastro seria pior: abririam dashboards vazios).
 function getSetoresDinamicos() {
   try {
-    // Caminho correto: data/ na raiz do projeto (não server/data/)
-    const segmentosPath = path.join(__dirname, '../../data/Segmentos_bd.xlsx');
-
-    if (!fs.existsSync(segmentosPath)) {
-      console.log('[Setores] Planilha não encontrada, usando lista fallback');
-      return SETORES_FALLBACK;
-    }
-
-    // Lê todas as abas (uma por unidade no export bruto)
-    const rawData = readAllRows(segmentosPath);
-
-    // Mapa para agrupar setores únicos (id -> nome)
-    const setoresMap = new Map();
-
-    rawData.forEach(row => {
-      // Pega o código e normaliza (remove pontos)
-      let codigo = row.CodigoEstruturaComercial || row.SetorId || '';
-      codigo = String(codigo).replace(/\./g, '').replace(/\s+/g, '').trim();
-
-      // Pega o nome do setor
-      const nome = row.EstruturaComercial || row.SetorNome || `Setor ${codigo}`;
-
-      if (codigo && !setoresMap.has(codigo)) {
-        setoresMap.set(codigo, nome);
-      }
-    });
-
-    const setores = Array.from(setoresMap.entries()).map(([id, nome]) => ({ id, nome }));
-    console.log(`[Setores] ${setores.length} setores carregados da planilha`);
-
-    return setores.length > 0 ? setores : SETORES_FALLBACK;
+    return SegmentService.getSetores();
   } catch (error) {
-    console.error('[Setores] Erro ao carregar setores da planilha:', error);
-    return SETORES_FALLBACK;
+    console.error('[Setores] Erro ao carregar setores da base:', error);
+    return [];
   }
 }
 

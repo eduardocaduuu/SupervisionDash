@@ -52,6 +52,7 @@ const SegmentService = {
           codigo: normalizeCode(getVal(['CodigoRevendedor', 'Codigo'])),
           nome: getVal(['Nome', 'NomeRevendedora', 'Revendedor']) || 'Sem Nome',
           setorId: normalizeCode(getVal(['CodigoEstruturaComercial', 'SetorId', 'Setor'])),
+          setorNome: getVal(['EstruturaComercial', 'SetorNome']) || '',
           segmentoOficial: getVal(['Papel', 'SegmentoAtual', 'Segmento']) || 'Bronze'
         };
       }).filter(d => d.codigo && d.setorId); // Filtra linhas inválidas
@@ -65,6 +66,23 @@ const SegmentService = {
       console.error('[SegmentService] Erro crítico ao ler arquivo:', error);
       return [];
     }
+  },
+
+  /**
+   * Lista de setores únicos (id -> nome) derivada da base de segmentos.
+   * Usa o cache de loadSegments (fonte única de verdade). Retorna [] se a base
+   * estiver ausente/vazia — sem lista estática para não defasar.
+   */
+  getSetores: () => {
+    const data = SegmentService.loadSegments();
+    const map = new Map();
+    for (const d of data) {
+      // Primeiro nome encontrado por setor prevalece (igual ao comportamento anterior)
+      if (d.setorId && !map.has(d.setorId)) {
+        map.set(d.setorId, d.setorNome || `Setor ${d.setorId}`);
+      }
+    }
+    return Array.from(map.entries()).map(([id, nome]) => ({ id, nome }));
   },
 
   /**
