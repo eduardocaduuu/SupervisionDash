@@ -90,7 +90,7 @@ function analyze(rawRows, currentSetores = []) {
   const rows = [];
   const vistos = new Set();
   const nomesPorSetor = new Map();   // setorId -> Map(nome -> count)
-  const papelInvalido = new Map();   // valorRaw -> count
+  const papelInvalido = new Map();   // valorRaw -> { count, lista:[{codigo,nome,setor}] }
   const gerencia = new Map();        // setorId -> count
 
   for (const r of rawRows) {
@@ -106,7 +106,16 @@ function analyze(rawRows, currentSetores = []) {
     const papelRaw = kPapel ? r[kPapel] : '';
     if (!normPapel(papelRaw)) {
       const v = String(papelRaw ?? '').trim();
-      papelInvalido.set(v, (papelInvalido.get(v) || 0) + 1);
+      if (!papelInvalido.has(v)) papelInvalido.set(v, { count: 0, lista: [] });
+      const pi = papelInvalido.get(v);
+      pi.count++;
+      if (pi.lista.length < 200) {
+        pi.lista.push({
+          codigo: r[kCod] !== undefined ? r[kCod] : '',
+          nome: kNome ? String(r[kNome] ?? '').trim() : '',
+          setor: kSetorNome ? String(r[kSetorNome] ?? '').trim() : ''
+        });
+      }
     }
 
     const setorNome = kSetorNome ? String(r[kSetorNome] ?? '').trim() : '';
@@ -154,7 +163,7 @@ function analyze(rawRows, currentSetores = []) {
   }
 
   report.papelInvalido = [...papelInvalido.entries()]
-    .map(([valor, count]) => ({ valor, label: valor || '(vazio)', count }))
+    .map(([valor, v]) => ({ valor, label: valor || '(vazio)', count: v.count, lista: v.lista }))
     .sort((a, b) => b.count - a.count);
   report.gerenciaComoSetor = [...gerencia.entries()].map(([setorId, count]) => ({ setorId, count }));
 

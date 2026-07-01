@@ -1424,16 +1424,31 @@ export default function Admin() {
                           <h4><Edit3 size={15} /> Segmentos (Papel) não reconhecidos ({rep.papelInvalido.length})</h4>
                           <div className="seg-papel">
                             {rep.papelInvalido.map(p => (
-                              <div className="seg-papel__row" key={p.valor}>
-                                <span className="seg-papel__val mono">"{p.label}" <em>({p.count} rev.)</em></span>
-                                <span className="arrow">→</span>
-                                <select
-                                  value={segPapelMap[p.valor] ?? ''}
-                                  onChange={e => setSegPapelMap(m => ({ ...m, [p.valor]: e.target.value }))}
-                                >
-                                  <option value="">Manter (vira Bronze/calculado)</option>
-                                  {SEGMENTOS_VALIDOS.map(seg => <option key={seg} value={seg}>{seg}</option>)}
-                                </select>
+                              <div className="seg-papel__item" key={p.valor}>
+                                <div className="seg-papel__row">
+                                  <span className="seg-papel__val mono">"{p.label}" <em>({p.count} rev.)</em></span>
+                                  <span className="arrow">→</span>
+                                  <select
+                                    value={segPapelMap[p.valor] ?? ''}
+                                    onChange={e => setSegPapelMap(m => ({ ...m, [p.valor]: e.target.value }))}
+                                  >
+                                    <option value="">Manter (vira Bronze/calculado)</option>
+                                    {SEGMENTOS_VALIDOS.map(seg => <option key={seg} value={seg}>{seg}</option>)}
+                                  </select>
+                                </div>
+                                {p.lista && p.lista.length > 0 && (
+                                  <ul className="seg-quem">
+                                    {p.lista.map(rv => (
+                                      <li key={rv.codigo}>
+                                        <span className="mono">{rv.codigo}</span>{rv.nome ? ` — ${rv.nome}` : ''}
+                                        {rv.setor ? <span className="text-muted"> · {rv.setor}</span> : null}
+                                      </li>
+                                    ))}
+                                    {p.count > p.lista.length && (
+                                      <li className="text-muted">…e mais {p.count - p.lista.length}</li>
+                                    )}
+                                  </ul>
+                                )}
                               </div>
                             ))}
                           </div>
@@ -1529,7 +1544,7 @@ export default function Admin() {
                       {rep.revendedoresSemCadastro && rep.revendedoresSemCadastro.count > 0 && (
                         <div className="seg-block seg-block--warn">
                           <h4><AlertTriangle size={15} /> Revendedores nas vendas sem cadastro ({rep.revendedoresSemCadastro.count})</h4>
-                          <ul>
+                          <ul className="seg-quem">
                             {rep.revendedoresSemCadastro.lista.map(rv => (
                               <li key={rv.codigo}>
                                 <span className="mono">{rv.codigo}</span>{rv.nome ? ` — ${rv.nome}` : ''}
