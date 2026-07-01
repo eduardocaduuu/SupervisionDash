@@ -6,6 +6,7 @@ const path = require('path');
 const multer = require('multer');
 const SegmentService = require('./SegmentService');
 const segmentosValidator = require('./validators/segmentosValidator');
+const vendasValidator = require('./validators/vendasValidator');
 const VendasService = require('./VendasService');
 const HistoryService = require('./HistoryService');
 const MapService = require('./MapService');
@@ -1191,20 +1192,29 @@ const uploadMem = multer({ storage: multer.memoryStorage(), limits: { fileSize: 
 app.post('/api/admin/files/validate', uploadMem.single('file'), async (req, res) => {
   const tipo = req.query.tipo || req.body.tipo;
   if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
-  if (tipo !== 'segmentos') {
-    return res.status(400).json({ error: 'Validação disponível apenas para a planilha de Segmentos por enquanto.' });
-  }
   const ext = path.extname(req.file.originalname || '').toLowerCase();
-  if (ext !== '.xlsx' && req.file.mimetype !== 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
-    return res.status(400).json({ error: 'Envie um arquivo Excel (.xlsx).' });
-  }
   try {
-    const raw = segmentosValidator.parse(req.file.buffer);
-    const currentSetores = SegmentService.getSetores();
-    const { report, rows } = segmentosValidator.analyze(raw, currentSetores);
-    res.json({ tipo, filename: req.file.originalname, report, rows });
+    if (tipo === 'segmentos') {
+      if (ext !== '.xlsx' && req.file.mimetype !== 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+        return res.status(400).json({ error: 'Envie um arquivo Excel (.xlsx).' });
+      }
+      const raw = segmentosValidator.parse(req.file.buffer);
+      const currentSetores = SegmentService.getSetores();
+      const { report, rows } = segmentosValidator.analyze(raw, currentSetores);
+      return res.json({ tipo, filename: req.file.originalname, report, rows });
+    }
+    if (tipo === 'vendas') {
+      if (ext !== '.xlsx' && ext !== '.csv') {
+        return res.status(400).json({ error: 'Envie um arquivo CSV ou Excel (.xlsx).' });
+      }
+      const raw = vendasValidator.parse(req.file.buffer, req.file.originalname);
+      const cadastroCodigos = new Set(SegmentService.loadSegments().map(d => d.codigo));
+      const { report } = vendasValidator.analyze(raw, { resolveSetor: VendasService.findSetorCode, cadastroCodigos });
+      return res.json({ tipo, filename: req.file.originalname, report, setores: SegmentService.getSetores() });
+    }
+    return res.status(400).json({ error: 'Tipo inválido para validação.' });
   } catch (e) {
-    console.error('[Validate] Erro ao validar segmentos:', e);
+    console.error('[Validate] Erro:', e);
     res.status(500).json({ error: 'Falha ao ler/validar a planilha: ' + e.message });
   }
 });
@@ -1241,6 +1251,54 @@ app.post('/api/admin/files/commit', async (req, res) => {
   } catch (e) {
     console.error('[Commit] Erro ao gravar segmentos:', e);
     res.status(500).json({ error: 'Falha ao gravar a planilha: ' + e.message });
+  }
+});
+
+// ── APLICAR IMPORTAÇÃO DE VENDAS (reenvia o arquivo + mapa de correções) ──
+// Grava sempre como vendas_bd.xlsx (evita a fragilidade de CSV com vírgula
+// decimal), aplica o mapa de setor e roda o histórico (upsert por ciclo).
+app.post('/api/admin/files/commit-vendas', uploadMem.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+  let setorMap = {};
+  try { setorMap = req.body.corrections ? JSON.parse(req.body.corrections) : {}; } catch (e) { setorMap = {}; }
+
+  try {
+    const raw = vendasValidator.parse(req.file.buffer, req.file.originalname);
+    if (!raw.length) return res.status(400).json({ error: 'Planilha de vendas vazia.' });
+
+    const codeToName = new Map(SegmentService.getSetores().map(s => [String(s.id), s.nome]));
+    const diskPath = path.join(uploadDir, 'vendas_bd.xlsx');
+    vendasValidator.writeToFile(raw, diskPath, setorMap, codeToName);
+
+    // Mantém só um formato de vendas ativo (remove o .csv antigo)
+    const csvPath = path.join(uploadDir, 'vendas_bd.csv');
+    if (fs.existsSync(csvPath)) fs.unlinkSync(csvPath);
+
+    let persistedToMongo = false;
+    if (isMongoConnected()) {
+      try { await FileStorageService.deleteFile('vendas_bd.csv'); } catch (e) {}
+      persistedToMongo = await FileStorageService.saveFileFromDisk(
+        'vendas_bd.xlsx', diskPath, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+    }
+
+    VendasService.clearCache && VendasService.clearCache();
+    ProdutosService.clearCache && ProdutosService.clearCache();
+
+    let historico = null;
+    if (isMongoConnected()) {
+      try {
+        historico = await HistoryService.importHistorico(diskPath);
+        try { await HistoryService.getDetalheTodos(config.cicloAtual); } catch (e) {}
+      } catch (e) {
+        console.error('[CommitVendas] Erro ao atualizar histórico:', e.message);
+      }
+    }
+
+    res.json({ success: true, persistedToMongo, linhas: raw.length, historico });
+  } catch (e) {
+    console.error('[CommitVendas] Erro ao gravar vendas:', e);
+    res.status(500).json({ error: 'Falha ao gravar as vendas: ' + e.message });
   }
 });
 

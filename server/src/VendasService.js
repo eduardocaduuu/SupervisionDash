@@ -247,7 +247,8 @@ const VendasService = {
   }
 };
 
-// Exporta o parser de CSV (detecção de delimitador) para reuso
+// Exporta o parser de CSV (detecção de delimitador) e o resolvedor de setor para reuso
 VendasService.parseCSV = parseCSV;
+VendasService.findSetorCode = findSetorCode;
 
 module.exports = VendasService;

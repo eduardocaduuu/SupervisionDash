@@ -71,6 +71,12 @@ export default function Admin() {
   const [segApplying, setSegApplying] = useState(null)   // null | 'loading' | 'success' | 'error'
   const [segApplyMsg, setSegApplyMsg] = useState('')
 
+  // Validação da planilha de Vendas
+  const [venVal, setVenVal] = useState(null)             // { loading, file, filename, report, setores, error }
+  const [venSetorMap, setVenSetorMap] = useState({})     // nomeSetorOriginal -> codigo escolhido
+  const [venApplying, setVenApplying] = useState(null)
+  const [venApplyMsg, setVenApplyMsg] = useState('')
+
   // Sistema de Mensagens
   const [mensagens, setMensagens] = useState([])
   const [loadingMensagens, setLoadingMensagens] = useState(false)
@@ -453,6 +459,56 @@ export default function Admin() {
     } catch (err) {
       if (err.message === 'unauthorized') return
       setSegApplying('error'); setSegApplyMsg('Erro ao aplicar importação')
+    }
+  }
+
+  // ── Validação da planilha de Vendas ─────────────────────────────
+  const handleValidateVendas = async (file) => {
+    if (!file) return
+    setVenVal({ loading: true, file })
+    setVenSetorMap({}); setVenApplying(null); setVenApplyMsg('')
+
+    const formData = new FormData()
+    formData.append('file', file)
+    try {
+      const res = await adminFetch('/api/admin/files/validate?tipo=vendas', { method: 'POST', body: formData })
+      const data = await res.json()
+      if (res.ok) {
+        setVenVal({ loading: false, file, filename: data.filename, report: data.report, setores: data.setores || [] })
+      } else {
+        setVenVal({ loading: false, file, error: data.error || 'Falha na validação' })
+      }
+    } catch (err) {
+      if (err.message === 'unauthorized') return
+      setVenVal({ loading: false, file, error: 'Erro ao enviar arquivo para validação' })
+    }
+  }
+
+  const handleCancelVenVal = () => {
+    setVenVal(null); setVenSetorMap({}); setVenApplying(null); setVenApplyMsg('')
+  }
+
+  const handleApplyVendas = async () => {
+    if (!venVal?.file) return
+    setVenApplying('loading'); setVenApplyMsg('')
+    const formData = new FormData()
+    formData.append('file', venVal.file)
+    formData.append('corrections', JSON.stringify(venSetorMap))
+    try {
+      const res = await adminFetch('/api/admin/files/commit-vendas', { method: 'POST', body: formData })
+      const data = await res.json()
+      if (res.ok) {
+        setVenApplying('success')
+        const ciclos = data.historico?.ciclos?.length ? ` Ciclos no histórico: ${data.historico.ciclos.join(', ')}.` : ''
+        setVenApplyMsg(`Vendas importadas: ${data.linhas} linhas.${ciclos}`)
+        loadFilesStatus({ withFeedback: true })
+        setTimeout(() => { setVenVal(null); setVenApplying(null); setVenApplyMsg('') }, 3500)
+      } else {
+        setVenApplying('error'); setVenApplyMsg(data.error || 'Falha ao importar')
+      }
+    } catch (err) {
+      if (err.message === 'unauthorized') return
+      setVenApplying('error'); setVenApplyMsg('Erro ao aplicar importação')
     }
   }
 
@@ -1231,34 +1287,28 @@ export default function Admin() {
                 </div>
 
                 <div className="admin__dados-card-upload">
-                  <label className={`admin__dados-upload-btn ${uploading === 'vendas' ? 'admin__dados-upload-btn--loading' : ''}`}>
-                    {uploading === 'vendas' ? (
+                  <label className={`admin__dados-upload-btn ${venVal?.loading ? 'admin__dados-upload-btn--loading' : ''}`}>
+                    {venVal?.loading ? (
                       <>
                         <div className="admin-loading__spinner" style={{ width: 18, height: 18 }}></div>
-                        <span>ENVIANDO...</span>
+                        <span>VALIDANDO...</span>
                       </>
                     ) : (
                       <>
-                        <Upload size={18} />
-                        <span>ENVIAR CSV OU EXCEL</span>
+                        <CheckCircle size={18} />
+                        <span>SELECIONAR E VALIDAR (CSV/XLSX)</span>
                       </>
                     )}
                     <input
                       type="file"
                       accept=".csv,.xlsx"
-                      onChange={(e) => handleFileUpload('vendas', e.target.files[0])}
-                      disabled={uploading === 'vendas'}
+                      onChange={(e) => { handleValidateVendas(e.target.files[0]); e.target.value = '' }}
+                      disabled={venVal?.loading}
                       style={{ display: 'none' }}
                     />
                   </label>
+                  <span className="admin__dados-upload-hint">A planilha é validada antes de importar — você revisa os erros e mapeia setores aqui mesmo.</span>
                 </div>
-
-                {uploadStatus?.tipo === 'vendas' && (
-                  <div className={`admin__dados-feedback ${uploadStatus.success ? 'admin__dados-feedback--success' : 'admin__dados-feedback--error'}`}>
-                    {uploadStatus.success ? <CheckCircle size={16} /> : <AlertTriangle size={16} />}
-                    <span>{uploadStatus.message}</span>
-                  </div>
-                )}
               </div>
 
               {/* SEGMENTOS */}
@@ -1433,6 +1483,92 @@ export default function Admin() {
                         {segApplyMsg && (
                           <span className={`seg-val__applymsg ${segApplying === 'error' ? 'err' : 'ok'}`}>
                             {segApplying === 'error' ? <AlertTriangle size={14} /> : <CheckCircle size={14} />} {segApplyMsg}
+                          </span>
+                        )}
+                      </div>
+                    </>
+                  )
+                })()}
+              </div>
+            )}
+
+            {/* PAINEL DE VALIDAÇÃO / CORREÇÃO DA PLANILHA DE VENDAS */}
+            {venVal && (
+              <div className="seg-val">
+                <div className="seg-val__head">
+                  <h3><Database size={18} /> Validação — Vendas {venVal.filename ? <span className="mono">({venVal.filename})</span> : null}</h3>
+                  <button className="btn btn--ghost btn--sm" onClick={handleCancelVenVal}><X size={14} /> Fechar</button>
+                </div>
+
+                {venVal.loading && (
+                  <div className="seg-val__loading"><div className="admin-loading__spinner" style={{ width: 22, height: 22 }}></div><span>Validando planilha...</span></div>
+                )}
+
+                {venVal.error && (
+                  <div className="seg-val__banner seg-val__banner--err"><AlertTriangle size={16} /><span>{venVal.error}</span></div>
+                )}
+
+                {venVal.report && (() => {
+                  const rep = venVal.report
+                  const blocking = rep.errors.length > 0
+                  return (
+                    <>
+                      <div className="seg-val__summary">
+                        <span className="seg-chip seg-chip--ok"><CheckCircle size={14} /> {rep.vendas} vendas</span>
+                        {rep.naoVenda > 0 && <span className="seg-chip">{rep.naoVenda} não-venda</span>}
+                        {rep.errors.length > 0 && <span className="seg-chip seg-chip--err"><AlertTriangle size={14} /> {rep.errors.length} erro(s)</span>}
+                        {rep.warnings.length > 0 && <span className="seg-chip seg-chip--warn"><AlertTriangle size={14} /> {rep.warnings.length} aviso(s)</span>}
+                      </div>
+
+                      {rep.ciclos && rep.ciclos.length > 0 && (
+                        <div className="seg-block">
+                          <h4><Database size={15} /> Ciclos na planilha</h4>
+                          <ul>{rep.ciclos.map(c => (
+                            <li key={c.ciclo}><span className="mono">{c.ciclo}</span> — {c.linhas} vendas · R$ {c.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</li>
+                          ))}</ul>
+                        </div>
+                      )}
+
+                      {rep.errors.length > 0 && (
+                        <div className="seg-block seg-block--err">
+                          <h4><AlertTriangle size={15} /> Erros que impedem a importação</h4>
+                          <ul>{rep.errors.map((e, i) => <li key={i}>{e.message}</li>)}</ul>
+                        </div>
+                      )}
+
+                      {rep.warnings.length > 0 && (
+                        <div className="seg-block seg-block--warn">
+                          <h4><AlertTriangle size={15} /> Avisos (importa, mas revise)</h4>
+                          <ul>{rep.warnings.map((w, i) => <li key={i}>{w.message}</li>)}</ul>
+                        </div>
+                      )}
+
+                      {rep.setoresNaoResolvidos && rep.setoresNaoResolvidos.length > 0 && (
+                        <div className="seg-block">
+                          <h4><Edit3 size={15} /> Setores não reconhecidos ({rep.setoresNaoResolvidos.length}) — mapeie para o setor correto</h4>
+                          <div className="seg-papel">
+                            {rep.setoresNaoResolvidos.map(s => (
+                              <div className="seg-papel__row" key={s.nome}>
+                                <span className="seg-papel__val">"{s.nome}" <em>({s.count} vendas)</em></span>
+                                <span className="arrow">→</span>
+                                <select value={venSetorMap[s.nome] ?? ''} onChange={e => setVenSetorMap(m => ({ ...m, [s.nome]: e.target.value }))}>
+                                  <option value="">Não mapear (ignora essas vendas)</option>
+                                  {(venVal.setores || []).map(st => <option key={st.id} value={st.id}>{st.id} — {st.nome}</option>)}
+                                </select>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="seg-val__actions">
+                        <button className="btn" disabled={blocking || venApplying === 'loading'} onClick={handleApplyVendas}>
+                          {venApplying === 'loading' ? 'APLICANDO...' : blocking ? 'CORRIJA OS ERROS PARA IMPORTAR' : 'APLICAR IMPORTAÇÃO'}
+                        </button>
+                        <button className="btn btn--ghost" onClick={handleCancelVenVal}>Cancelar</button>
+                        {venApplyMsg && (
+                          <span className={`seg-val__applymsg ${venApplying === 'error' ? 'err' : 'ok'}`}>
+                            {venApplying === 'error' ? <AlertTriangle size={14} /> : <CheckCircle size={14} />} {venApplyMsg}
                           </span>
                         )}
                       </div>
