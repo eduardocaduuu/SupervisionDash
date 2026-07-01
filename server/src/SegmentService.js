@@ -47,12 +47,18 @@ const SegmentService = {
         // Função para normalizar código (remover pontos e espaços)
         const normalizeCode = (code) => String(code || '').replace(/\./g, '').replace(/\s+/g, '').trim();
 
+        // Unidade (gerência 13706/13707): coluna "Unidade" ou derivada de
+        // EstruturaComercialPai ("Loja 13707 - ...") quando for o export bruto.
+        const unidade = String(getVal(['Unidade']) || '').trim()
+          || (String(getVal(['EstruturaComercialPai']) || '').match(/1370[67]/) || [''])[0];
+
         // Mapeamento das colunas (De-Para)
         return {
           codigo: normalizeCode(getVal(['CodigoRevendedor', 'Codigo'])),
           nome: getVal(['Nome', 'NomeRevendedora', 'Revendedor']) || 'Sem Nome',
           setorId: normalizeCode(getVal(['CodigoEstruturaComercial', 'SetorId', 'Setor'])),
           setorNome: getVal(['EstruturaComercial', 'SetorNome']) || '',
+          unidade,
           segmentoOficial: getVal(['Papel', 'SegmentoAtual', 'Segmento']) || 'Bronze'
         };
       }).filter(d => d.codigo && d.setorId); // Filtra linhas inválidas
@@ -77,12 +83,15 @@ const SegmentService = {
     const data = SegmentService.loadSegments();
     const map = new Map();
     for (const d of data) {
+      if (!d.setorId) continue;
       // Primeiro nome encontrado por setor prevalece (igual ao comportamento anterior)
-      if (d.setorId && !map.has(d.setorId)) {
-        map.set(d.setorId, d.setorNome || `Setor ${d.setorId}`);
+      if (!map.has(d.setorId)) {
+        map.set(d.setorId, { nome: d.setorNome || `Setor ${d.setorId}`, unidade: d.unidade || '' });
+      } else if (!map.get(d.setorId).unidade && d.unidade) {
+        map.get(d.setorId).unidade = d.unidade; // completa a unidade se faltava
       }
     }
-    return Array.from(map.entries()).map(([id, nome]) => ({ id, nome }));
+    return Array.from(map.entries()).map(([id, v]) => ({ id, nome: v.nome, unidade: v.unidade }));
   },
 
   /**

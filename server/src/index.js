@@ -1317,6 +1317,8 @@ app.post('/api/admin/cadastro/add-revendedores', async (req, res) => {
       : [];
     const norm = (c) => String(c ?? '').replace(/\./g, '').replace(/\s+/g, '').trim();
     const existentes = new Set(atuais.map(r => norm(r.CodigoRevendedor)));
+    // Unidade (gerência) é determinada pelo setor escolhido
+    const unidadePorSetor = new Map(SegmentService.getSetores().map(s => [String(s.id), s.unidade || '']));
 
     let added = 0;
     for (const nv of novos) {
@@ -1330,7 +1332,8 @@ app.post('/api/admin/cadastro/add-revendedores', async (req, res) => {
         Situacao: 'Ativo',
         Papel: nv.segmento || 'Cobre',
         CodigoEstruturaComercial: nv.setorId,
-        EstruturaComercial: nv.setorNome || ''
+        EstruturaComercial: nv.setorNome || '',
+        Unidade: unidadePorSetor.get(setorId) || ''
       });
       added++;
     }

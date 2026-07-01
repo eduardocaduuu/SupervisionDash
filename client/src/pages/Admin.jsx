@@ -1584,7 +1584,7 @@ export default function Admin() {
                                 <span className="arrow">→</span>
                                 <select value={venSetorMap[s.nome] ?? ''} onChange={e => setVenSetorMap(m => ({ ...m, [s.nome]: e.target.value }))}>
                                   <option value="">Não mapear (ignora essas vendas)</option>
-                                  {(venVal.setores || []).map(st => <option key={st.id} value={st.id}>{st.id} — {st.nome}</option>)}
+                                  {(venVal.setores || []).map(st => <option key={st.id} value={st.id}>{st.id} — {st.nome}{st.unidade ? ` · un ${st.unidade}` : ''}</option>)}
                                 </select>
                               </div>
                             ))}
@@ -1607,7 +1607,7 @@ export default function Admin() {
                                     onChange={e => setVenAdd(m => ({ ...m, [rv.codigo]: { ...m[rv.codigo], setorId: e.target.value } }))}
                                   >
                                     <option value="">— sem setor —</option>
-                                    {(venVal.setores || []).map(s => <option key={s.id} value={s.id}>{s.id} — {s.nome}</option>)}
+                                    {(venVal.setores || []).map(s => <option key={s.id} value={s.id}>{s.id} — {s.nome}{s.unidade ? ` · un ${s.unidade}` : ''}</option>)}
                                   </select>
                                   <select
                                     value={venAdd[rv.codigo]?.segmento ?? 'Cobre'}

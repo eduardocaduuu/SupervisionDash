@@ -13,10 +13,19 @@ const XLSX = require('xlsx');
 const SEGMENTOS_VALIDOS = ['Cobre', 'Bronze', 'Prata', 'Ouro', 'Platina', 'Rubi', 'Esmeralda', 'Diamante'];
 const GERENCIAS = ['13706', '13707'];
 
-// Colunas do arquivo final (mesma ordem/nomes do Segmentos_bd.xlsx atual)
-const COLUNAS = ['CodigoRevendedor', 'Nome', 'Situacao', 'Papel', 'CodigoEstruturaComercial', 'EstruturaComercial'];
+// Colunas do arquivo final. "Unidade" (gerência 13706/13707) foi adicionada
+// para saber a que unidade cada setor pertence.
+const COLUNAS = ['CodigoRevendedor', 'Nome', 'Situacao', 'Papel', 'CodigoEstruturaComercial', 'EstruturaComercial', 'Unidade'];
 
 const normCode = (c) => String(c ?? '').replace(/\./g, '').replace(/\s+/g, '').trim();
+
+// Extrai a unidade (13706/13707): usa a coluna "Unidade" se existir, senão
+// deriva de EstruturaComercialPai ("Loja 13707 - ...").
+function deriveUnidade(r, kUnidade, kPai) {
+  if (kUnidade && String(r[kUnidade] ?? '').trim()) return String(r[kUnidade]).trim();
+  if (kPai) { const m = String(r[kPai] ?? '').match(/1370[67]/); if (m) return m[0]; }
+  return '';
+}
 
 function normPapel(papel) {
   if (papel === null || papel === undefined) return null;
@@ -79,6 +88,8 @@ function analyze(rawRows, currentSetores = []) {
   const kNome = findKey(sample, ['Nome', 'NomeRevendedora', 'Revendedor']);
   const kSetorNome = findKey(sample, ['EstruturaComercial', 'SetorNome']);
   const kSit = findKey(sample, ['Situacao']);
+  const kUnidade = findKey(sample, ['Unidade']);
+  const kPai = findKey(sample, ['EstruturaComercialPai']);
 
   if (!kCod) report.errors.push({ code: 'MISSING_COL_CODIGO', message: 'Coluna obrigatória ausente: código do revendedor (CodigoRevendedor).' });
   if (!kSetor) report.errors.push({ code: 'MISSING_COL_SETOR', message: 'Coluna obrigatória ausente: código do setor (CodigoEstruturaComercial).' });
@@ -129,7 +140,8 @@ function analyze(rawRows, currentSetores = []) {
       Situacao: kSit ? (r[kSit] ?? '') : '',
       Papel: papelRaw ?? '',
       CodigoEstruturaComercial: r[kSetor] !== undefined ? r[kSetor] : '',
-      EstruturaComercial: setorNome
+      EstruturaComercial: setorNome,
+      Unidade: deriveUnidade(r, kUnidade, kPai)
     });
   }
   report.linhasValidas = rows.length;
@@ -214,13 +226,16 @@ function toCanonicalRows(rawRows) {
   const kPapel = findKey(sample, ['Papel', 'SegmentoAtual', 'Segmento']);
   const kSetor = findKey(sample, ['CodigoEstruturaComercial', 'SetorId', 'Setor']);
   const kSetorNome = findKey(sample, ['EstruturaComercial', 'SetorNome']);
+  const kUnidade = findKey(sample, ['Unidade']);
+  const kPai = findKey(sample, ['EstruturaComercialPai']);
   return rawRows.map(r => ({
     CodigoRevendedor: kCod ? (r[kCod] ?? '') : '',
     Nome: kNome ? (r[kNome] ?? '') : '',
     Situacao: kSit ? (r[kSit] ?? '') : '',
     Papel: kPapel ? (r[kPapel] ?? '') : '',
     CodigoEstruturaComercial: kSetor ? (r[kSetor] ?? '') : '',
-    EstruturaComercial: kSetorNome ? (r[kSetorNome] ?? '') : ''
+    EstruturaComercial: kSetorNome ? (r[kSetorNome] ?? '') : '',
+    Unidade: deriveUnidade(r, kUnidade, kPai)
   }));
 }
 
