@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
 const SegmentService = require('./SegmentService');
+const segmentosValidator = require('./validators/segmentosValidator');
 const VendasService = require('./VendasService');
 const HistoryService = require('./HistoryService');
 const MapService = require('./MapService');
@@ -1181,6 +1182,66 @@ app.post('/api/admin/files/upload', upload.single('file'), async (req, res) => {
       sizeFormatted: `${(req.file.size / 1024 / 1024).toFixed(2)} MB`
     }
   });
+});
+
+// ── VALIDAÇÃO PRÉ-IMPORTAÇÃO (não persiste; devolve relatório + linhas) ──
+// Usa storage em memória para NÃO sobrescrever o arquivo atual em disco.
+const uploadMem = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
+
+app.post('/api/admin/files/validate', uploadMem.single('file'), async (req, res) => {
+  const tipo = req.query.tipo || req.body.tipo;
+  if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado' });
+  if (tipo !== 'segmentos') {
+    return res.status(400).json({ error: 'Validação disponível apenas para a planilha de Segmentos por enquanto.' });
+  }
+  const ext = path.extname(req.file.originalname || '').toLowerCase();
+  if (ext !== '.xlsx' && req.file.mimetype !== 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') {
+    return res.status(400).json({ error: 'Envie um arquivo Excel (.xlsx).' });
+  }
+  try {
+    const raw = segmentosValidator.parse(req.file.buffer);
+    const currentSetores = SegmentService.getSetores();
+    const { report, rows } = segmentosValidator.analyze(raw, currentSetores);
+    res.json({ tipo, filename: req.file.originalname, report, rows });
+  } catch (e) {
+    console.error('[Validate] Erro ao validar segmentos:', e);
+    res.status(500).json({ error: 'Falha ao ler/validar a planilha: ' + e.message });
+  }
+});
+
+// ── APLICAR IMPORTAÇÃO (grava o arquivo já corrigido pelo admin) ──
+app.post('/api/admin/files/commit', async (req, res) => {
+  const tipo = req.query.tipo || req.body.tipo;
+  if (tipo !== 'segmentos') {
+    return res.status(400).json({ error: 'Importação validada disponível apenas para Segmentos por enquanto.' });
+  }
+  const rows = req.body && req.body.rows;
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return res.status(400).json({ error: 'Nenhuma linha para importar.' });
+  }
+  try {
+    const diskPath = path.join(uploadDir, 'Segmentos_bd.xlsx');
+    segmentosValidator.writeToFile(rows, diskPath);
+
+    let persistedToMongo = false;
+    if (isMongoConnected()) {
+      persistedToMongo = await FileStorageService.saveFileFromDisk(
+        'Segmentos_bd.xlsx',
+        diskPath,
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      );
+    }
+
+    SegmentService.clearCache && SegmentService.clearCache();
+    VendasService.clearCache && VendasService.clearCache();
+    ProdutosService.clearCache && ProdutosService.clearCache();
+    SETORES = getSetoresDinamicos();
+
+    res.json({ success: true, persistedToMongo, revendedores: rows.length, setores: SETORES.length });
+  } catch (e) {
+    console.error('[Commit] Erro ao gravar segmentos:', e);
+    res.status(500).json({ error: 'Falha ao gravar a planilha: ' + e.message });
+  }
 });
 
 // Tratamento de erros do multer

@@ -64,6 +64,13 @@ export default function Admin() {
   const [refreshingFilesStatus, setRefreshingFilesStatus] = useState(false)
   const [filesStatusPulse, setFilesStatusPulse] = useState(false)
 
+  // Validação da planilha de Segmentos (fluxo: selecionar -> validar -> corrigir -> aplicar)
+  const [segVal, setSegVal] = useState(null)          // { loading, filename, report, rows, error }
+  const [segSetorNomes, setSegSetorNomes] = useState({}) // setorId -> nome corrigido (override)
+  const [segPapelMap, setSegPapelMap] = useState({})     // valorOriginal -> papel escolhido
+  const [segApplying, setSegApplying] = useState(null)   // null | 'loading' | 'success' | 'error'
+  const [segApplyMsg, setSegApplyMsg] = useState('')
+
   // Sistema de Mensagens
   const [mensagens, setMensagens] = useState([])
   const [loadingMensagens, setLoadingMensagens] = useState(false)
@@ -383,6 +390,70 @@ export default function Admin() {
 
     setUploading(null)
     setTimeout(() => setUploadStatus(null), 5000)
+  }
+
+  // ── Validação da planilha de Segmentos ──────────────────────────
+  const SEGMENTOS_VALIDOS = ['Cobre', 'Bronze', 'Prata', 'Ouro', 'Platina', 'Rubi', 'Esmeralda', 'Diamante']
+  const normCodeCli = (c) => String(c ?? '').replace(/\./g, '').replace(/\s+/g, '').trim()
+
+  const handleValidateSegmentos = async (file) => {
+    if (!file) return
+    setSegVal({ loading: true })
+    setSegSetorNomes({}); setSegPapelMap({}); setSegApplying(null); setSegApplyMsg('')
+
+    const formData = new FormData()
+    formData.append('file', file)
+    try {
+      const res = await adminFetch('/api/admin/files/validate?tipo=segmentos', { method: 'POST', body: formData })
+      const data = await res.json()
+      if (res.ok) {
+        setSegVal({ loading: false, filename: data.filename, report: data.report, rows: data.rows })
+      } else {
+        setSegVal({ loading: false, error: data.error || 'Falha na validação' })
+      }
+    } catch (err) {
+      if (err.message === 'unauthorized') return
+      setSegVal({ loading: false, error: 'Erro ao enviar arquivo para validação' })
+    }
+  }
+
+  const handleCancelSegVal = () => {
+    setSegVal(null); setSegSetorNomes({}); setSegPapelMap({}); setSegApplying(null); setSegApplyMsg('')
+  }
+
+  const handleApplySegmentos = async () => {
+    if (!segVal?.rows) return
+    // Aplica as correções do admin sobre as linhas base
+    const rows = segVal.rows.map(r => {
+      const out = { ...r }
+      const sid = normCodeCli(out.CodigoEstruturaComercial)
+      const nomeOverride = segSetorNomes[sid]
+      if (nomeOverride != null && String(nomeOverride).trim() !== '') out.EstruturaComercial = nomeOverride
+      const papelKey = String(out.Papel ?? '').trim()
+      if (segPapelMap[papelKey]) out.Papel = segPapelMap[papelKey]
+      return out
+    })
+
+    setSegApplying('loading'); setSegApplyMsg('')
+    try {
+      const res = await adminFetch('/api/admin/files/commit?tipo=segmentos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rows })
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setSegApplying('success')
+        setSegApplyMsg(`Importado com sucesso: ${data.revendedores} revendedores, ${data.setores} setores.`)
+        loadFilesStatus({ withFeedback: true })
+        setTimeout(() => { setSegVal(null); setSegApplying(null); setSegApplyMsg('') }, 3000)
+      } else {
+        setSegApplying('error'); setSegApplyMsg(data.error || 'Falha ao importar')
+      }
+    } catch (err) {
+      if (err.message === 'unauthorized') return
+      setSegApplying('error'); setSegApplyMsg('Erro ao aplicar importação')
+    }
   }
 
   const handleCicloChange = async (ciclo) => {
@@ -1225,36 +1296,151 @@ export default function Admin() {
                 </div>
 
                 <div className="admin__dados-card-upload">
-                  <label className={`admin__dados-upload-btn ${uploading === 'segmentos' ? 'admin__dados-upload-btn--loading' : ''}`}>
-                    {uploading === 'segmentos' ? (
+                  <label className={`admin__dados-upload-btn ${segVal?.loading ? 'admin__dados-upload-btn--loading' : ''}`}>
+                    {segVal?.loading ? (
                       <>
                         <div className="admin-loading__spinner" style={{ width: 18, height: 18 }}></div>
-                        <span>ENVIANDO...</span>
+                        <span>VALIDANDO...</span>
                       </>
                     ) : (
                       <>
-                        <Upload size={18} />
-                        <span>ENVIAR NOVO XLSX</span>
+                        <CheckCircle size={18} />
+                        <span>SELECIONAR E VALIDAR XLSX</span>
                       </>
                     )}
                     <input
                       type="file"
                       accept=".xlsx"
-                      onChange={(e) => handleFileUpload('segmentos', e.target.files[0])}
-                      disabled={uploading === 'segmentos'}
+                      onChange={(e) => { handleValidateSegmentos(e.target.files[0]); e.target.value = '' }}
+                      disabled={segVal?.loading}
                       style={{ display: 'none' }}
                     />
                   </label>
+                  <span className="admin__dados-upload-hint">A planilha é validada antes de importar — você revisa e corrige os erros aqui mesmo.</span>
                 </div>
-
-                {uploadStatus?.tipo === 'segmentos' && (
-                  <div className={`admin__dados-feedback ${uploadStatus.success ? 'admin__dados-feedback--success' : 'admin__dados-feedback--error'}`}>
-                    {uploadStatus.success ? <CheckCircle size={16} /> : <AlertTriangle size={16} />}
-                    <span>{uploadStatus.message}</span>
-                  </div>
-                )}
               </div>
             </div>
+
+            {/* PAINEL DE VALIDAÇÃO / CORREÇÃO DA PLANILHA DE SEGMENTOS */}
+            {segVal && (
+              <div className="seg-val">
+                <div className="seg-val__head">
+                  <h3><Database size={18} /> Validação — Segmentos {segVal.filename ? <span className="mono">({segVal.filename})</span> : null}</h3>
+                  <button className="btn btn--ghost btn--sm" onClick={handleCancelSegVal}><X size={14} /> Fechar</button>
+                </div>
+
+                {segVal.loading && (
+                  <div className="seg-val__loading"><div className="admin-loading__spinner" style={{ width: 22, height: 22 }}></div><span>Validando planilha...</span></div>
+                )}
+
+                {segVal.error && (
+                  <div className="seg-val__banner seg-val__banner--err"><AlertTriangle size={16} /><span>{segVal.error}</span></div>
+                )}
+
+                {segVal.report && (() => {
+                  const rep = segVal.report
+                  const blocking = rep.errors.length > 0
+                  return (
+                    <>
+                      <div className="seg-val__summary">
+                        <span className="seg-chip seg-chip--ok"><CheckCircle size={14} /> {rep.linhasValidas} válidas</span>
+                        {rep.errors.length > 0 && <span className="seg-chip seg-chip--err"><AlertTriangle size={14} /> {rep.errors.length} erro(s)</span>}
+                        {rep.warnings.length > 0 && <span className="seg-chip seg-chip--warn"><AlertTriangle size={14} /> {rep.warnings.length} aviso(s)</span>}
+                      </div>
+
+                      {rep.errors.length > 0 && (
+                        <div className="seg-block seg-block--err">
+                          <h4><AlertTriangle size={15} /> Erros que impedem a importação</h4>
+                          <ul>{rep.errors.map((e, i) => <li key={i}>{e.message}</li>)}</ul>
+                        </div>
+                      )}
+
+                      {rep.warnings.length > 0 && (
+                        <div className="seg-block seg-block--warn">
+                          <h4><AlertTriangle size={15} /> Avisos (importa, mas revise)</h4>
+                          <ul>{rep.warnings.map((w, i) => <li key={i}>{w.message}</li>)}</ul>
+                        </div>
+                      )}
+
+                      {rep.setores.length > 0 && (
+                        <div className="seg-block">
+                          <h4><Edit3 size={15} /> Setores para revisar ({rep.setores.length})</h4>
+                          <div className="seg-setores">
+                            {rep.setores.map(s => {
+                              const tag = s.inconsistente ? '2+ nomes' : s.novo ? 'novo' : 'renomeado'
+                              const tagCls = s.inconsistente ? 'incons' : s.novo ? 'novo' : 'renom'
+                              return (
+                                <div className="seg-setor" key={s.setorId}>
+                                  <div className="seg-setor__top">
+                                    <span className="mono seg-setor__id">setor {s.setorId}</span>
+                                    <span className={`seg-tag seg-tag--${tagCls}`}>{tag}</span>
+                                  </div>
+                                  {!s.novo && !s.inconsistente && (
+                                    <div className="seg-setor__diff"><span className="old">{s.nomeAtual}</span> <span className="arrow">→</span> <span className="new">{s.nomeNovo}</span></div>
+                                  )}
+                                  {s.novo && (<div className="seg-setor__diff">novo setor: <span className="new">{s.nomeNovo}</span></div>)}
+                                  {s.inconsistente && (
+                                    <div className="seg-setor__diff">
+                                      <label>Nome correto:&nbsp;</label>
+                                      <select
+                                        value={segSetorNomes[s.setorId] ?? s.nomeNovo}
+                                        onChange={e => setSegSetorNomes(p => ({ ...p, [s.setorId]: e.target.value }))}
+                                      >
+                                        {s.nomesNoArquivo.map(n => <option key={n.nome} value={n.nome}>{n.nome} ({n.count})</option>)}
+                                      </select>
+                                    </div>
+                                  )}
+                                  <input
+                                    className="seg-setor__override"
+                                    type="text"
+                                    placeholder="Corrigir nome (opcional)"
+                                    value={segSetorNomes[s.setorId] ?? ''}
+                                    onChange={e => setSegSetorNomes(p => ({ ...p, [s.setorId]: e.target.value }))}
+                                  />
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {rep.papelInvalido.length > 0 && (
+                        <div className="seg-block">
+                          <h4><Edit3 size={15} /> Segmentos (Papel) não reconhecidos ({rep.papelInvalido.length})</h4>
+                          <div className="seg-papel">
+                            {rep.papelInvalido.map(p => (
+                              <div className="seg-papel__row" key={p.valor}>
+                                <span className="seg-papel__val mono">"{p.label}" <em>({p.count} rev.)</em></span>
+                                <span className="arrow">→</span>
+                                <select
+                                  value={segPapelMap[p.valor] ?? ''}
+                                  onChange={e => setSegPapelMap(m => ({ ...m, [p.valor]: e.target.value }))}
+                                >
+                                  <option value="">Manter (vira Bronze/calculado)</option>
+                                  {SEGMENTOS_VALIDOS.map(seg => <option key={seg} value={seg}>{seg}</option>)}
+                                </select>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="seg-val__actions">
+                        <button className="btn" disabled={blocking || segApplying === 'loading'} onClick={handleApplySegmentos}>
+                          {segApplying === 'loading' ? 'APLICANDO...' : blocking ? 'CORRIJA OS ERROS PARA IMPORTAR' : 'APLICAR IMPORTAÇÃO'}
+                        </button>
+                        <button className="btn btn--ghost" onClick={handleCancelSegVal}>Cancelar</button>
+                        {segApplyMsg && (
+                          <span className={`seg-val__applymsg ${segApplying === 'error' ? 'err' : 'ok'}`}>
+                            {segApplying === 'error' ? <AlertTriangle size={14} /> : <CheckCircle size={14} />} {segApplyMsg}
+                          </span>
+                        )}
+                      </div>
+                    </>
+                  )
+                })()}
+              </div>
+            )}
 
             <div className="admin__dados-info">
               <AlertTriangle size={18} />
