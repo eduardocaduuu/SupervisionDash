@@ -65,7 +65,8 @@ export default function Admin() {
   // Validação da planilha de Segmentos (fluxo: selecionar -> validar -> corrigir -> aplicar)
   const [segVal, setSegVal] = useState(null)          // { loading, filename, report, rows, error }
   const [segSetorNomes, setSegSetorNomes] = useState({}) // setorId -> nome corrigido (override)
-  const [segPapelMap, setSegPapelMap] = useState({})     // valorOriginal -> papel escolhido
+  const [segPapelMap, setSegPapelMap] = useState({})     // valorOriginal -> papel (aplicar a todos)
+  const [segPapelRev, setSegPapelRev] = useState({})     // codigoRevendedor(normalizado) -> papel escolhido
   const [segApplying, setSegApplying] = useState(null)   // null | 'loading' | 'success' | 'error'
   const [segApplyMsg, setSegApplyMsg] = useState('')
 
@@ -374,7 +375,7 @@ export default function Admin() {
   const handleValidateSegmentos = async (file) => {
     if (!file) return
     setSegVal({ loading: true })
-    setSegSetorNomes({}); setSegPapelMap({}); setSegApplying(null); setSegApplyMsg('')
+    setSegSetorNomes({}); setSegPapelMap({}); setSegPapelRev({}); setSegApplying(null); setSegApplyMsg('')
 
     const formData = new FormData()
     formData.append('file', file)
@@ -393,7 +394,7 @@ export default function Admin() {
   }
 
   const handleCancelSegVal = () => {
-    setSegVal(null); setSegSetorNomes({}); setSegPapelMap({}); setSegApplying(null); setSegApplyMsg('')
+    setSegVal(null); setSegSetorNomes({}); setSegPapelMap({}); setSegPapelRev({}); setSegApplying(null); setSegApplyMsg('')
   }
 
   const handleApplySegmentos = async () => {
@@ -405,7 +406,10 @@ export default function Admin() {
       const nomeOverride = segSetorNomes[sid]
       if (nomeOverride != null && String(nomeOverride).trim() !== '') out.EstruturaComercial = nomeOverride
       const papelKey = String(out.Papel ?? '').trim()
-      if (segPapelMap[papelKey]) out.Papel = segPapelMap[papelKey]
+      const revCod = normCodeCli(out.CodigoRevendedor)
+      // Por revendedor tem prioridade; senão cai no "aplicar a todos" do valor
+      const escolhido = segPapelRev[revCod] || segPapelMap[papelKey] || ''
+      if (escolhido) out.Papel = escolhido
       return out
     })
 
@@ -1470,22 +1474,31 @@ export default function Admin() {
                                     value={segPapelMap[p.valor] ?? ''}
                                     onChange={e => setSegPapelMap(m => ({ ...m, [p.valor]: e.target.value }))}
                                   >
-                                    <option value="">Manter (vira Bronze/calculado)</option>
+                                    <option value="">Aplicar a todos…</option>
                                     {SEGMENTOS_VALIDOS.map(seg => <option key={seg} value={seg}>{seg}</option>)}
                                   </select>
                                 </div>
                                 {p.lista && p.lista.length > 0 && (
-                                  <ul className="seg-quem">
-                                    {p.lista.map(rv => (
-                                      <li key={rv.codigo}>
-                                        <span className="mono">{rv.codigo}</span>{rv.nome ? ` — ${rv.nome}` : ''}
-                                        {rv.setor ? <span className="text-muted"> · {rv.setor}</span> : null}
-                                      </li>
-                                    ))}
+                                  <div className="seg-quem seg-quem--add">
+                                    {p.lista.map(rv => {
+                                      const rc = normCodeCli(rv.codigo)
+                                      return (
+                                        <div className="seg-add-row" key={rc}>
+                                          <span className="seg-add-rev"><span className="mono">{rv.codigo}</span> {rv.nome}{rv.setor ? <span className="text-muted"> · {rv.setor}</span> : null}</span>
+                                          <select
+                                            value={segPapelRev[rc] ?? (segPapelMap[p.valor] || '')}
+                                            onChange={e => setSegPapelRev(m => ({ ...m, [rc]: e.target.value }))}
+                                          >
+                                            <option value="">Manter</option>
+                                            {SEGMENTOS_VALIDOS.map(seg => <option key={seg} value={seg}>{seg}</option>)}
+                                          </select>
+                                        </div>
+                                      )
+                                    })}
                                     {p.count > p.lista.length && (
-                                      <li className="text-muted">…e mais {p.count - p.lista.length}</li>
+                                      <div className="text-muted">…e mais {p.count - p.lista.length} (use "aplicar a todos")</div>
                                     )}
-                                  </ul>
+                                  </div>
                                 )}
                               </div>
                             ))}
