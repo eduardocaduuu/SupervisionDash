@@ -407,8 +407,9 @@ export default function Admin() {
       if (nomeOverride != null && String(nomeOverride).trim() !== '') out.EstruturaComercial = nomeOverride
       const papelKey = String(out.Papel ?? '').trim()
       const revCod = normCodeCli(out.CodigoRevendedor)
-      // Por revendedor tem prioridade; senão cai no "aplicar a todos" do valor
-      const escolhido = segPapelRev[revCod] || segPapelMap[papelKey] || ''
+      // Escolha individual prevalece — mesmo "Manter" (vazio) explícito; só
+      // cai no "aplicar a todos" quando o revendedor NÃO foi tocado.
+      const escolhido = (segPapelRev[revCod] !== undefined) ? segPapelRev[revCod] : (segPapelMap[papelKey] || '')
       if (escolhido) out.Papel = escolhido
       return out
     })
