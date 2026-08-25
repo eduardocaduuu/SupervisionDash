@@ -20,6 +20,8 @@ server/data/*.csv
 /ciclos.xlsx
 /ciclo9*.xlsx
 /ConsultaRankingVendas_*.csv
+/bases/
+/pedidos*.xlsx
 
 # IDE
 .vscode/
