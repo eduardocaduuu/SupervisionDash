@@ -43,10 +43,12 @@ export default function DealerModal({ dealer, cicloAtual, onClose }) {
   const chartData = Object.entries(ciclos || {})
     .sort((a, b) => cycleNum(a[0]) - cycleNum(b[0]))
     .map(([ciclo, total]) => ({
-      ciclo: ciclo.replace('/2026', ''),
+      ciclo: ciclo.replace(/\/\d{4}$/, ''),
+      cicloFull: ciclo,
       total,
       isCurrent: ciclo === cicloAtual
     }))
+  const maxTotalCiclos = Math.max(...chartData.map(d => d.total), 0)
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -106,7 +108,7 @@ export default function DealerModal({ dealer, cicloAtual, onClose }) {
           {/* MAIN STATS */}
           <div className="dealer-modal__stats">
             <div className="dealer-modal__stat">
-              <span className="dealer-modal__stat-label">TOTAL 9 CICLOS</span>
+              <span className="dealer-modal__stat-label">TOTAL DA JANELA</span>
               <span className="dealer-modal__stat-value mono">{formatCurrency(totalGeral)}</span>
             </div>
             <div className="dealer-modal__stat dealer-modal__stat--secondary">
@@ -224,11 +226,10 @@ export default function DealerModal({ dealer, cicloAtual, onClose }) {
                 </thead>
                 <tbody>
                   {chartData.map((item, idx) => {
-                    const maxTotal = Math.max(...chartData.map(d => d.total))
-                    const percent = ((item.total / maxTotal) * 100).toFixed(1)
+                    const percent = maxTotalCiclos > 0 ? ((item.total / maxTotalCiclos) * 100).toFixed(1) : '0.0'
                     return (
                       <tr key={idx} className={item.isCurrent ? 'current' : ''}>
-                        <td className="mono">{item.ciclo}/2026</td>
+                        <td className="mono">{item.cicloFull}</td>
                         <td className="mono">{formatCurrency(item.total)}</td>
                         <td className="mono">{percent}%</td>
                       </tr>
