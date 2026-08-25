@@ -173,11 +173,19 @@ function getDealersForSetor(setorId) {
   // 3. Filtrar revendedores do setor no cadastro
   const dealersCadastro = cadastro.filter(d => d.setorId === setorId);
 
-  // 4. Indexar vendas por código para acesso O(1)
+  // 4. Indexar vendas por código, agregando TODOS os setores da pessoa.
+  // O acúmulo é da pessoa, não do setor: quem foi remanejado leva as vendas
+  // junto — mesma semântica do histórico do Mongo (agregado por código).
+  // Filtrar por setor aqui zerava o ciclo de quem trocou de setor na janela.
   const vendasMap = new Map();
   (vendasData || []).forEach(v => {
-    if (v.setorId === setorId) {
-      vendasMap.set(v.codigo, v);
+    const atual = vendasMap.get(v.codigo);
+    if (!atual) {
+      vendasMap.set(v.codigo, { ...v, ciclos: { ...v.ciclos } });
+    } else {
+      for (const [ciclo, valor] of Object.entries(v.ciclos || {})) {
+        atual.ciclos[ciclo] = (atual.ciclos[ciclo] || 0) + valor;
+      }
     }
   });
 
@@ -1387,6 +1395,9 @@ if (process.env.NODE_ENV === 'production') {
   app.get('*', (req, res) => {
     if (!req.path.startsWith('/api')) {
       res.sendFile(path.join(clientBuildPath, 'index.html'));
+    } else {
+      // Sem isso, /api desconhecida ficava pendurada até o timeout do cliente
+      res.status(404).json({ error: 'Rota não encontrada' });
     }
   });
 }

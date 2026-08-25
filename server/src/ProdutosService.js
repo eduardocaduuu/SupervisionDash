@@ -1,6 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const { readAllRows } = require('./utils/xlsx');
+const VendasService = require('./VendasService');
 
 // Caminho para o arquivo de vendas
 const DATA_DIR = path.join(__dirname, '../../data');
@@ -16,44 +17,21 @@ function getDataFile() {
 
 let rawCache = null;
 let rawLastMtime = 0;
-let setorNameToCodeMap = null;
 
 // Normalizar código (remover pontos e espaços)
 function normalizeCode(code) {
   return String(code || '').replace(/\./g, '').replace(/\s+/g, '').trim();
 }
 
-// Construir mapa de nome de setor para código
-function buildSetorNameToCodeMap() {
-  if (setorNameToCodeMap) return setorNameToCodeMap;
-
-  const segmentosPath = path.join(DATA_DIR, 'Segmentos_bd.xlsx');
-  setorNameToCodeMap = {};
-
-  if (fs.existsSync(segmentosPath)) {
-    try {
-      const rawData = readAllRows(segmentosPath);
-
-      rawData.forEach(row => {
-        const nome = (row.EstruturaComercial || '').trim();
-        const codigo = normalizeCode(row.CodigoEstruturaComercial);
-        if (nome && codigo) {
-          setorNameToCodeMap[nome] = codigo;
-        }
-      });
-    } catch (e) {
-      console.error('[ProdutosService] Erro ao construir mapa de setores:', e);
-    }
-  }
-
-  return setorNameToCodeMap;
-}
-
-// Encontrar código do setor pelo nome
+// Resolve o setor da linha de venda com a MESMA lógica do VendasService
+// (mapa nome→código do cadastro + aliases) e o mesmo fallback de número com
+// 4+ dígitos — sem isso, linhas corrigidas pela importação (setor gravado
+// como "1260 - PRATA 1/ Palmeira /") eram descartadas da análise de produtos.
 function findSetorCode(setorName) {
-  const map = buildSetorNameToCodeMap();
-  const nome = (setorName || '').trim();
-  return map[nome] || null;
+  const porNome = VendasService.findSetorCode(setorName);
+  if (porNome) return porNome;
+  const m = String(setorName || '').match(/\d{4,}/);
+  return m ? m[0] : null;
 }
 
 // Parse CSV com detecção de delimitador
@@ -261,7 +239,6 @@ const ProdutosService = {
   clearCache: () => {
     rawCache = null;
     rawLastMtime = 0;
-    setorNameToCodeMap = null;
   }
 };
 

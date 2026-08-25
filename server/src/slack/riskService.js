@@ -138,9 +138,18 @@ async function getDealersForSetor(setorId, config) {
     dealers = (vendasData || []).filter(d => d.setorId === setorId);
   } else {
     const dealersCadastro = cadastro.filter(d => d.setorId === setorId);
+    // Vendas por código, agregando TODOS os setores da pessoa (paridade com
+    // index.js): quem foi remanejado leva as vendas junto, como no histórico.
     const vendasMap = new Map();
     (vendasData || []).forEach(v => {
-      if (v.setorId === setorId) vendasMap.set(v.codigo, v);
+      const atual = vendasMap.get(v.codigo);
+      if (!atual) {
+        vendasMap.set(v.codigo, { ...v, ciclos: { ...v.ciclos } });
+      } else {
+        for (const [ciclo, valor] of Object.entries(v.ciclos || {})) {
+          atual.ciclos[ciclo] = (atual.ciclos[ciclo] || 0) + valor;
+        }
+      }
     });
     dealers = dealersCadastro.map(dealer => {
       const venda = vendasMap.get(dealer.codigo);
